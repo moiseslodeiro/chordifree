@@ -165,6 +165,41 @@ test.describe('flujo completo', () => {
     await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1.25');
   });
 
+  test('exporta la biblioteca y la restaura desde una copia JSON', async ({ page }, testInfo) => {
+    await analyze(page);
+    await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await expect(page.getByText('Demo sincronizada')).toBeVisible();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Exportar JSON' }).click();
+    const download = await downloadPromise;
+    const backupPath = testInfo.outputPath('biblioteca.json');
+    await download.saveAs(backupPath);
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.getByRole('button', { name: 'Eliminar' }).click();
+    await expect(page.getByText('Todavía no hay canciones')).toBeVisible();
+
+    await page.getByLabel('Archivo de copia de seguridad').setInputFiles(backupPath);
+    await expect(page.getByText('Demo sincronizada')).toBeVisible();
+    await expect(page.getByText(/Copia importada: 1 canción nueva/)).toBeVisible();
+  });
+
+  test('prepara una hoja de acordes para imprimir o guardar en PDF', async ({ page }) => {
+    await analyze(page);
+
+    await expect(page.getByRole('button', { name: 'Imprimir / PDF' })).toBeVisible();
+    await page.emulateMedia({ media: 'print' });
+
+    const sheet = page.getByTestId('print-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toContainText('Demo sincronizada');
+    await expect(sheet).toContainText('G mayor');
+    await expect(sheet).toContainText('IV');
+    await expect(sheet).toContainText('00:08');
+  });
+
   test('resalta el acorde activo en menos de 250 ms al buscar', async ({ page }) => {
     await analyze(page);
     const slider = page.getByLabel('Posición de reproducción');

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import type { SongSummary } from '../types';
+import { NoticeBanner } from './ErrorBanner';
 
 type SourceFilter = 'all' | 'youtube' | 'upload';
 
@@ -17,8 +18,17 @@ function normalize(value: string): string {
     .toLocaleLowerCase('es');
 }
 
+interface LibraryNotice {
+  message: string;
+  tone: 'info' | 'warning' | 'success';
+}
+
 interface LibraryListProps {
   songs: SongSummary[];
+  notice?: LibraryNotice | null;
+  onDismissNotice?: () => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onBack: () => void;
@@ -37,9 +47,20 @@ function formatDate(value: string): string {
   });
 }
 
-export function LibraryList({ songs, onOpen, onDelete, onBack, onHome }: LibraryListProps) {
+export function LibraryList({
+  songs,
+  notice,
+  onDismissNotice,
+  onExport,
+  onImport,
+  onOpen,
+  onDelete,
+  onBack,
+  onHome,
+}: LibraryListProps) {
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<SourceFilter>('all');
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const needle = normalize(query.trim());
@@ -70,6 +91,33 @@ export function LibraryList({ songs, onOpen, onDelete, onBack, onHome }: Library
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onExport}
+            disabled={songs.length === 0}
+          >
+            Exportar JSON
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => fileInput.current?.click()}
+          >
+            Importar JSON
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".json,application/json"
+            className="sr-only"
+            aria-label="Archivo de copia de seguridad"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) onImport(file);
+            }}
+          />
           <button type="button" className="btn btn-ghost" onClick={onBack}>
             Volver
           </button>
@@ -78,6 +126,16 @@ export function LibraryList({ songs, onOpen, onDelete, onBack, onHome }: Library
           </button>
         </div>
       </header>
+
+      {notice ? (
+        <div className="border-b border-line px-6 py-3 sm:px-8">
+          <NoticeBanner
+            message={notice.message}
+            tone={notice.tone}
+            onDismiss={onDismissNotice}
+          />
+        </div>
+      ) : null}
 
       {songs.length === 0 ? (
         <div className="p-10 text-center sm:p-16">

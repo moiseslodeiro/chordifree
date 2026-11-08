@@ -25,6 +25,8 @@ function renderLibrary(overrides: Partial<Parameters<typeof LibraryList>[0]> = {
   const onDelete = vi.fn();
   const onBack = vi.fn();
   const onHome = vi.fn();
+  const onExport = vi.fn();
+  const onImport = vi.fn();
   render(
     <LibraryList
       songs={songs}
@@ -32,10 +34,12 @@ function renderLibrary(overrides: Partial<Parameters<typeof LibraryList>[0]> = {
       onDelete={onDelete}
       onBack={onBack}
       onHome={onHome}
+      onExport={onExport}
+      onImport={onImport}
       {...overrides}
     />,
   );
-  return { onOpen, onDelete, onBack, onHome };
+  return { onOpen, onDelete, onBack, onHome, onExport, onImport };
 }
 
 afterEach(() => {
@@ -77,6 +81,33 @@ describe('LibraryList', () => {
   it('muestra un estado vacío', () => {
     renderLibrary({ songs: [] });
     expect(screen.getByText('Todavía no hay canciones')).toBeInTheDocument();
+  });
+
+  it('exporta la biblioteca y delega la importación del archivo', () => {
+    const { onExport, onImport } = renderLibrary();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar JSON' }));
+    expect(onExport).toHaveBeenCalledTimes(1);
+
+    const file = new File(['{}'], 'backup.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Archivo de copia de seguridad'), {
+      target: { files: [file] },
+    });
+    expect(onImport).toHaveBeenCalledWith(file);
+  });
+
+  it('deshabilita la exportación cuando no hay canciones', () => {
+    renderLibrary({ songs: [] });
+    expect(screen.getByRole('button', { name: 'Exportar JSON' })).toBeDisabled();
+  });
+
+  it('muestra el aviso de la copia de seguridad', () => {
+    renderLibrary({
+      notice: { message: 'Copia importada: 2 canciones nuevas y 0 actualizadas.', tone: 'success' },
+    });
+    expect(
+      screen.getByText('Copia importada: 2 canciones nuevas y 0 actualizadas.'),
+    ).toBeInTheDocument();
   });
 
   it('navega de vuelta y a analizar otra', () => {

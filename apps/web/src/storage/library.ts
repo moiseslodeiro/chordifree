@@ -1,5 +1,6 @@
 import type { Chord, ChordSegment } from '@chordifree/chords';
 import type { AnalysisResult, Song, SongSummary } from '../types';
+import { sourceKey } from '../types';
 import { listKeys, readEnvelope, removeKey, writeEnvelope } from './envelope';
 import { KEYS, PREFIX, StorageQuotaError, type StorageLike } from './keys';
 
@@ -32,7 +33,7 @@ function isSource(value: unknown): boolean {
   return false;
 }
 
-function isSong(value: unknown): value is Song {
+export function isSong(value: unknown): value is Song {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === 'string' &&
@@ -101,6 +102,11 @@ export function purgeAnalysisCache(storage: StorageLike, count = 5): number {
   return Math.min(count, entries.length);
 }
 
+export interface ImportResult {
+  added: number;
+  updated: number;
+}
+
 export class Library {
   constructor(private readonly storage: StorageLike) {}
 
@@ -111,6 +117,64 @@ export class Library {
 
   get(id: string): Song | null {
     return readEnvelope(this.storage, KEYS.song(id), isSong);
+  }
+
+  /** Todas las canciones completas, en el mismo orden que la biblioteca. */
+  exportSongs(): Song[] {
+    return this.list()
+      .map((summary) => this.get(summary.id))
+      .filter((song): song is Song => song !== null);
+  }
+
+  /**
+   * Fusiona una copia de seguridad con la biblioteca actual. Las canciones que
+   * comparten origen se actualizan conservando su id (y su práctica); el resto
+   * se añade. Si un id entra en conflicto con otra canción, se genera uno nuevo.
+   */
+  importSongs(songs: Song[]): ImportResult {
+    const unique = new Map<string, Song>();
+    for (const song of songs) unique.set(sourceKey(song.source), song);
+
+    try {
+      return this.writeImported([...unique.values()]);
+    } catch (error) {
+      if (!(error instanceof StorageQuotaError)) throw error;
+      purgeAnalysisCache(this.storage);
+      return this.writeImported([...unique.values()]);
+    }
+  }
+
+  private writeImported(songs: Song[]): ImportResult {
+    const summaries = new Map(this.list().map((summary) => [summary.id, summary] as const));
+    const bySource = new Map(
+      [...summaries.values()].map((summary) => [sourceKey(summary.source), summary] as const),
+    );
+    const ids = new Set(summaries.keys());
+    let added = 0;
+    let updated = 0;
+
+    for (const song of songs) {
+      const key = sourceKey(song.source);
+      const match = bySource.get(key);
+      let id = match?.id ?? song.id;
+      if (!id) id = crypto.randomUUID();
+      if (!match && ids.has(id)) id = crypto.randomUUID();
+
+      const stored: Song = { ...song, id };
+      writeEnvelope(this.storage, KEYS.song(id), stored);
+
+      const summary = summaryOf(stored);
+      summaries.set(id, summary);
+      bySource.set(key, summary);
+      ids.add(id);
+      if (match) updated += 1;
+      else added += 1;
+    }
+
+    writeEnvelope(this.storage, KEYS.library, {
+      songs: sortSummaries([...summaries.values()]),
+    });
+    return { added, updated };
   }
 
   save(song: Song): void {
