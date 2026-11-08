@@ -1,0 +1,557 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   CHORDIFREE — sistema visual derivado del logotipo
+   Azul eléctrico + negro, tipografía geométrica, superficies limpias y
+   radios suaves. El mono queda para etiquetas, tiempos y cifras.
+--------------------------------------------------------------------------- */
+
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-page: 246 247 249;
+  --color-panel: 255 255 255;
+  --color-panel-2: 238 241 246;
+  --color-line: 226 230 237;
+  --color-line-strong: 195 202 214;
+  --color-ink: 11 13 18;
+  --color-ink-2: 72 80 95;
+  --color-ink-3: 96 105 124;
+  --color-accent: 0 82 214; /* azul del logotipo, legible sobre blanco */
+  --color-accent-strong: 0 64 174;
+  --color-on-accent: 255 255 255;
+  --color-positive: 12 122 74;
+  --color-warning: 166 84 8;
+  --color-danger: 190 45 38;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-page: 9 11 15;
+  --color-panel: 17 20 25;
+  --color-panel-2: 25 30 38;
+  --color-line: 38 44 54;
+  --color-line-strong: 59 68 82;
+  --color-ink: 244 247 251;
+  --color-ink-2: 185 194 207;
+  --color-ink-3: 139 149 166;
+  --color-accent: 93 156 255;
+  --color-accent-strong: 137 183 255;
+  --color-on-accent: 5 15 35;
+  --color-positive: 95 211 155;
+  --color-warning: 250 190 90;
+  --color-danger: 255 138 122;
+}
+
+:root {
+  --font-display: 'Manrope', 'Avenir Next', 'Segoe UI', 'Arimo', 'Noto Sans', sans-serif;
+  --font-sans: 'Manrope', 'Avenir Next', 'Segoe UI', 'Arimo', 'Noto Sans', sans-serif;
+  --font-mono:
+    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, 'DejaVu Sans Mono', 'Liberation Mono',
+    monospace;
+
+  --step--2: 0.64rem;
+  --step--1: 0.8rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5625rem;
+  --step-3: 1.953rem;
+  --step-4: 2.441rem;
+  --step-5: 3.052rem;
+
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-s: 1rem;
+  --space-m: 1.5rem;
+  --space-l: 2rem;
+  --space-xl: 3rem;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --shadow-card: 0 1px 2px rgb(10 13 18 / 0.05), 0 10px 28px -22px rgb(10 13 18 / 0.35);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  background: rgb(var(--color-page));
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background-color: rgb(var(--color-page));
+  color: rgb(var(--color-ink));
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: lining-nums;
+}
+
+::selection {
+  background: rgb(var(--color-accent));
+  color: rgb(var(--color-on-accent));
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+*:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-color: rgb(var(--color-line-strong)) transparent;
+  scrollbar-width: thin;
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto flex min-h-screen w-full max-w-[88rem] flex-col px-5 py-5 sm:px-8 sm:py-6;
+  }
+
+  /* Marca: dos variantes del mismo logotipo según el tema. */
+  .brand-dark {
+    display: none;
+  }
+
+  [data-theme='dark'] .brand-light {
+    display: none;
+  }
+
+  [data-theme='dark'] .brand-dark {
+    display: block;
+  }
+
+  .card {
+    @apply border border-line bg-panel;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+  }
+
+  .eyebrow {
+    @apply font-mono text-[0.62rem] font-medium uppercase leading-none tracking-[0.14em] text-ink3;
+  }
+
+  .display {
+    @apply font-display font-extrabold text-ink;
+    letter-spacing: -0.035em;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 border border-line-strong bg-panel px-4 py-2 text-sm font-semibold text-ink transition;
+    border-radius: 8px;
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease);
+  }
+
+  .btn:hover {
+    border-color: rgb(var(--color-accent));
+    background: rgb(var(--color-accent) / 0.06);
+    color: rgb(var(--color-accent));
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .btn-primary {
+    @apply border-transparent bg-accent text-on-accent;
+  }
+
+  .btn-primary:hover {
+    background: rgb(var(--color-accent-strong));
+    color: rgb(var(--color-on-accent));
+  }
+
+  .btn-ghost {
+    @apply border-transparent bg-transparent px-2 text-ink2;
+  }
+
+  .btn-ghost:hover {
+    background: rgb(var(--color-accent) / 0.07);
+    color: rgb(var(--color-accent));
+  }
+
+  .btn-danger {
+    @apply border-danger/50 text-danger;
+  }
+
+  .btn-danger:hover {
+    border-color: rgb(var(--color-danger));
+    background: rgb(var(--color-danger) / 0.08);
+    color: rgb(var(--color-danger));
+  }
+
+  .field {
+    @apply w-full border border-line bg-panel px-3 py-2 text-sm text-ink placeholder:text-ink3 focus:border-accent focus:outline-none;
+    border-radius: 8px;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  .field:focus {
+    box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.14);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 border border-line bg-panel-2/70 px-2 py-0.5 font-mono text-[0.62rem] font-medium uppercase leading-5 tracking-[0.08em] text-ink3;
+    border-radius: var(--radius-sm);
+  }
+
+  .link {
+    color: rgb(var(--color-accent));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  .link:hover {
+    color: rgb(var(--color-accent-strong));
+  }
+
+  .tab {
+    @apply border-b-2 border-transparent px-1 pb-2 pt-0.5 font-mono text-[0.7rem] font-medium uppercase tracking-[0.12em] text-ink3 transition;
+    border-radius: 0;
+  }
+
+  .tab:hover {
+    color: rgb(var(--color-ink));
+  }
+
+  .tab[aria-selected='true'],
+  .tab[aria-pressed='true'] {
+    border-bottom-color: rgb(var(--color-accent));
+    color: rgb(var(--color-accent));
+  }
+
+  .note {
+    @apply border-l-[3px] px-4 py-3 text-sm;
+    border-radius: var(--radius-sm);
+  }
+
+  .note-warning {
+    @apply border-warning bg-warning/5 text-ink;
+  }
+
+  .note-info {
+    @apply border-line-strong bg-panel-2/70 text-ink2;
+  }
+
+  .note-danger {
+    @apply border-danger bg-danger/5 text-ink;
+  }
+
+  .note-success {
+    @apply border-positive bg-positive/5 text-ink;
+  }
+
+  /* Barra de herramientas: celdas separadas por reglas finas. */
+  .tool {
+    @apply flex min-w-[8.5rem] flex-1 basis-0 flex-col justify-start gap-1.5 border-l border-line px-4 py-3 text-left first:border-l-0;
+  }
+
+  .tool-head {
+    @apply flex items-center gap-1.5;
+  }
+
+  .tool-icon {
+    @apply shrink-0 text-ink3;
+  }
+
+  .tool-label {
+    @apply font-mono text-[0.6rem] font-medium uppercase leading-none tracking-[0.14em] text-ink3;
+  }
+
+  .tool-value {
+    @apply flex min-h-[1.75rem] flex-wrap items-center gap-1 text-xs font-medium text-ink;
+  }
+
+  .tool-chip {
+    @apply border border-transparent px-2 py-1 text-[0.72rem] font-semibold text-ink2 transition;
+    border-radius: var(--radius-sm);
+  }
+
+  .tool-chip:hover {
+    color: rgb(var(--color-ink));
+    background: rgb(var(--color-ink) / 0.05);
+  }
+
+  .tool-chip[aria-pressed='true'] {
+    color: rgb(var(--color-accent));
+    background: rgb(var(--color-accent) / 0.1);
+  }
+
+  .tool-chip:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+
+  .tool-chip:disabled:hover {
+    color: rgb(var(--color-ink2));
+    background: transparent;
+  }
+
+  .tool-chip-a[aria-pressed='true'] {
+    color: rgb(var(--color-positive));
+    background: rgb(var(--color-positive) / 0.12);
+  }
+
+  .tool-chip-b[aria-pressed='true'] {
+    color: rgb(var(--color-warning));
+    background: rgb(var(--color-warning) / 0.14);
+  }
+
+  .tool-chip-active {
+    @apply px-2 py-1 text-[0.72rem] font-semibold text-accent transition;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-accent) / 0.1);
+  }
+
+  .tool-chip-active:hover {
+    background: rgb(var(--color-accent) / 0.16);
+  }
+
+  .tool-step {
+    @apply flex h-7 w-7 items-center justify-center border border-line bg-panel text-xs font-semibold text-ink2 transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40;
+    border-radius: var(--radius-sm);
+  }
+
+  .tool-select {
+    @apply max-w-[9rem] border border-line bg-panel px-2 py-1 text-[0.72rem] text-ink focus:border-accent focus:outline-none;
+    border-radius: var(--radius-sm);
+  }
+
+  .measure-rule {
+    height: 1px;
+    background: rgb(var(--color-line));
+  }
+
+  /* Fila de tiempo en la vista de lista. */
+  .chord-row {
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  .chord-row:hover {
+    background: rgb(var(--color-ink) / 0.025);
+  }
+
+  .chord-row[data-active='true'] {
+    background: rgb(var(--color-accent) / 0.07);
+    box-shadow: inset 3px 0 0 rgb(var(--color-accent));
+  }
+
+  /* Detalles con puntos guía, como una ficha técnica. */
+  .leader {
+    flex: 1;
+    min-width: var(--space-s);
+    margin-inline: var(--space-2xs);
+    border-bottom: 1px dotted rgb(var(--color-line-strong));
+    transform: translateY(-0.2em);
+  }
+
+  .range {
+    @apply h-5 w-full min-w-[8rem] flex-1 cursor-pointer appearance-none bg-transparent;
+  }
+
+  .range::-webkit-slider-runnable-track {
+    height: 3px;
+    background: rgb(var(--color-line-strong));
+    border-radius: 999px;
+  }
+
+  .range::-moz-range-track {
+    height: 3px;
+    background: rgb(var(--color-line-strong));
+    border-radius: 999px;
+  }
+
+  .range::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -5.5px;
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(var(--color-accent));
+    box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.16);
+  }
+
+  .range::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(var(--color-accent));
+    box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.16);
+  }
+
+  .range:focus-visible {
+    outline-offset: 6px;
+  }
+}
+
+/* Celdas de la parrilla de pulsos. */
+.beat-cell {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 4rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden;
+  border-right: 1px solid rgb(var(--color-line));
+  padding: var(--space-2xs);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+/* Compases marcados para el bucle A-B. El color va acompañado de la letra
+   para no depender solo del tono. */
+.beat-cell[data-loop='a'] {
+  background-color: rgb(var(--color-positive) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-positive) / 0.28);
+}
+
+.beat-cell[data-loop='b'] {
+  background-color: rgb(var(--color-warning) / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-warning) / 0.3);
+}
+
+.beat-cell[data-loop='ab'] {
+  background-image: linear-gradient(
+    135deg,
+    rgb(var(--color-positive) / 0.14) 0 50%,
+    rgb(var(--color-warning) / 0.16) 50% 100%
+  );
+  box-shadow: inset 0 0 0 1px rgb(var(--color-line-strong));
+}
+
+.beat-cell[data-loop='range'] {
+  background-color: rgb(var(--color-accent) / 0.06);
+}
+
+.beat-loop-mark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 600;
+  line-height: 1rem;
+  letter-spacing: 0.06em;
+  color: #fff;
+  pointer-events: none;
+}
+
+.beat-cell[data-loop='a'] .beat-loop-mark {
+  background: rgb(var(--color-positive));
+}
+
+.beat-cell[data-loop='b'] .beat-loop-mark {
+  background: rgb(var(--color-warning));
+}
+
+.beat-cell[data-loop='ab'] .beat-loop-mark {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-positive)) 0 50%,
+    rgb(var(--color-warning)) 50% 100%
+  );
+}
+
+.beat-cell:hover {
+  background: rgb(var(--color-ink) / 0.035);
+}
+
+.beat-cell[data-active='true'] {
+  background: rgb(var(--color-accent) / 0.1);
+}
+
+.beat-cell[data-active='true']::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgb(var(--color-accent));
+}
+
+.beat-cell[data-change='true'] .beat-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: rgb(var(--color-ink));
+}
+
+.beat-cell[data-change='true']::before {
+  content: '';
+  position: absolute;
+  left: var(--space-2xs);
+  bottom: var(--space-2xs);
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(var(--color-accent));
+}
+
+@media (min-width: 40em) {
+  .beat-cell {
+    height: 4.5rem;
+  }
+}
+
+/* La barra de herramientas se apila con dignidad en pantallas pequeñas. */
+@media (max-width: 40em) {
+  .tool {
+    min-width: calc(50% - 1px);
+    padding: var(--space-2xs) var(--space-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

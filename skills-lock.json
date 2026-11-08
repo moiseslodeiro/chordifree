@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "designing-frontend-interfaces": {
+      "source": "osmontero/opencode-skills",
+      "sourceType": "github",
+      "skillPath": "skills/designing-frontend-interfaces/SKILL.md",
+      "computedHash": "ce02f3782c73a63a2dcf194603cc3c855c110f2b31295f327202b3859679d72b"
+    }
+  }
+}

@@ -1,0 +1,68 @@
+services:
+  analyzer:
+    build:
+      context: ./services/analyzer
+      args:
+        PYTHON_VERSION: '3.11'
+    environment:
+      ANALYZER_VERSION: essentia-1.2
+    ports:
+      - '8000:8000'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8000/health']
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      args:
+        YTDLP_VERSION: '2026.10.26'
+        FFMPEG_IMAGE: mwader/static-ffmpeg:7.1
+    environment:
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:3000
+      ANALYZER_URL: http://analyzer:8000
+      TEMP_DIR: /tmp/chordifree
+      MAX_DURATION_SECONDS: 900
+      MAX_UPLOAD_BYTES: 26214400
+      RATE_LIMIT_MAX: 5
+      RATE_LIMIT_WINDOW_MS: 3600000
+    ports:
+      - '3001:3001'
+    volumes:
+      - chordifree-tmp:/tmp/chordifree
+    depends_on:
+      analyzer:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:3001/api/health']
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '3000:80'
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://localhost/']
+      interval: 15s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+
+volumes:
+  chordifree-tmp:

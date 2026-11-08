@@ -1,0 +1,329 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import App from '../src/App';
+
+function response(body: unknown, status = 200): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  } as Response;
+}
+
+const result: {
+  source: { type: 'youtube'; videoId: string; title: string };
+  duration: number;
+  segments: Array<{
+    start: number;
+    end: number;
+    chord: { root: number; quality: string } | null;
+  }>;
+  beats?: number[];
+  beatsPerBar?: number;
+  analyzerVersion: string;
+  createdAt: string;
+} = {
+  source: { type: 'youtube', videoId: 'dQw4w9WgXcQ', title: 'Demo sincronizada' },
+  duration: 8,
+  segments: [
+    { start: 0, end: 4, chord: { root: 0, quality: 'major' } },
+    { start: 4, end: 8, chord: { root: 7, quality: 'major' } },
+  ],
+  analyzerVersion: 'essentia-1.0',
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
+
+function stubApi(analysis: typeof result = result) {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/api/health') {
+      return response({ status: 'ok', analyzer: 'ok', analyzerVersion: 'essentia-1.0' });
+    }
+    if (init?.method === 'POST') {
+      return response({
+        id: 'job-1',
+        status: 'queued',
+        progress: 0,
+        source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+      });
+    }
+    return response({ id: 'job-1', status: 'done', progress: 100, result: analysis });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+async function analyze() {
+  const view = render(<App />);
+  fireEvent.change(screen.getByLabelText('Enlace del video'), {
+    target: { value: 'https://youtu.be/dQw4w9WgXcQ' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Detectar acordes' }));
+  expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
+  return view;
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('App', () => {
+  it('analiza, cambia notación y trasposición, guarda y recarga desde la biblioteca', async () => {
+    stubApi();
+    const view = await analyze();
+
+    expect(screen.getByTestId('chord-row-0')).toHaveTextContent('C');
+    expect(screen.getByTestId('chord-row-1')).toHaveTextContent('G');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Española' }));
+    expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do');
+    expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol');
+
+    // La alteración automática elige bemoles para la tonalidad resultante.
+    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
+    expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
+    expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    expect(await screen.findByText('Demo sincronizada')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir' }));
+    expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
+    expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
+
+    view.unmount();
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
+    expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
+    expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
+  });
+
+  it('edita un acorde, guarda y conserva la corrección al reabrir', async () => {
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
+    const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
+    fireEvent.change(field, { target: { value: 'A7' } });
+    fireEvent.blur(field);
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(screen.getByTestId('chord-row-0')).toHaveTextContent('A7');
+    // Guardar en el editor ya persiste la corrección en la biblioteca.
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    expect(await screen.findByTestId('chord-row-0')).toHaveTextContent('A7');
+  });
+
+  it('muestra el estado de error y permite reintentar', async () => {
+    let attempts = 0;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/health') {
+        return response({ status: 'ok', analyzer: 'down', analyzerVersion: 'essentia-1.0' });
+      }
+      if (init?.method === 'POST') {
+        attempts += 1;
+        return response({ error: { code: 'VIDEO_UNAVAILABLE', message: 'Video privado' } }, 422);
+      }
+      return response({});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Enlace del video'), {
+      target: { value: 'https://youtu.be/dQw4w9WgXcQ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Detectar acordes' }));
+
+    expect(await screen.findByText('Video privado')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(attempts).toBe(2));
+  });
+
+  it('simplifica solo la visualización y recupera el cifrado original al desactivar', async () => {
+    stubApi({
+      ...result,
+      segments: [
+        { start: 0, end: 4, chord: { root: 0, quality: 'maj7' } },
+        { start: 4, end: 8, chord: { root: 9, quality: 'm7' } },
+      ],
+    });
+    await analyze();
+
+    expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
+    expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Simplificar acordes/ }));
+    expect(within(screen.getByTestId('chord-row-0')).getByText('C')).toBeInTheDocument();
+    expect(within(screen.getByTestId('chord-row-1')).getByText('Am')).toBeInTheDocument();
+
+    // El editor sigue viendo los acordes originales.
+    fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
+    expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Cmaj7');
+    fireEvent.click(screen.getByRole('button', { name: 'Salir de edición' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Simplificar acordes/ }));
+    expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
+    expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
+  });
+
+  it('reduce los acordes de paso solo en la visualización', async () => {
+    stubApi({
+      ...result,
+      beats: [0, 1, 2, 3, 4, 5, 6, 7],
+      beatsPerBar: 4,
+      segments: [
+        { start: 0, end: 4, chord: { root: 0, quality: 'major' } },
+        { start: 4, end: 4.4, chord: { root: 7, quality: 'major' } },
+        { start: 4.4, end: 8, chord: { root: 9, quality: 'm7' } },
+      ],
+    });
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+    expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
+    const grid = within(screen.getByTestId('song-grid-column'));
+    expect(grid.queryByText('G')).not.toBeInTheDocument();
+    expect(grid.getByText('Am')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
+    expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(3);
+    expect(screen.getAllByLabelText('Acorde del segmento')[1]).toHaveValue('G');
+  });
+
+  it('reduce al máximo a un acorde por compás solo en la visualización', async () => {
+    stubApi({
+      ...result,
+      beats: [0, 1, 2, 3, 4, 5, 6, 7],
+      beatsPerBar: 4,
+      segments: [
+        { start: 0, end: 2, chord: { root: 0, quality: 'major' } },
+        { start: 2, end: 4, chord: { root: 7, quality: 'major' } },
+        { start: 4, end: 6, chord: { root: 9, quality: 'minor' } },
+        { start: 6, end: 8, chord: { root: 5, quality: 'major' } },
+      ],
+    });
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+    expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
+
+    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
+    const grid = within(screen.getByTestId('song-grid-column'));
+    expect(grid.getByText('C')).toBeInTheDocument();
+    expect(grid.getByText('Am')).toBeInTheDocument();
+
+    // La edición sigue trabajando sobre la línea original.
+    fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
+    expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(4);
+  });
+
+  it('organiza la rejilla a la izquierda y el video con las herramientas a la derecha', async () => {
+    stubApi({
+      ...result,
+      beats: [0, 1, 2, 3, 4, 5, 6, 7],
+      beatsPerBar: 4,
+    });
+    await analyze();
+
+    const gridColumn = screen.getByTestId('song-grid-column');
+    const toolsColumn = screen.getByTestId('song-tools-column');
+    expect(within(gridColumn).getByTestId('beat-row-0')).toBeInTheDocument();
+    expect(within(toolsColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
+    const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
+    expect(details).toBeInTheDocument();
+    const activeChord = within(toolsColumn).getByText('Acorde activo');
+    // El bloque de información va debajo de los acordes gráficos.
+    expect(
+      activeChord.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Presentación e instrumento viven en la barra superior, no en la columna.
+    expect(screen.getByLabelText('Instrumento')).toBeInTheDocument();
+    expect(within(toolsColumn).queryByLabelText('Instrumento')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
+    expect(
+      within(gridColumn).getByRole('region', { name: 'Editor de acordes' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Instrumento')).toBeInTheDocument();
+  });
+
+  it('muestra los detalles de la canción y el tempo estimado bajo el video', async () => {
+    stubApi({
+      ...result,
+      beats: [0, 1, 2, 3, 4, 5, 6, 7],
+      beatsPerBar: 4,
+    });
+    await analyze();
+
+    const details = screen.getByRole('region', { name: 'Detalles de la canción' });
+    expect(within(details).getByText('BPM')).toBeInTheDocument();
+    expect(within(details).getByText('60')).toBeInTheDocument();
+    expect(within(details).getByText('4/4')).toBeInTheDocument();
+    expect(within(details).getByText('00:08')).toBeInTheDocument();
+    expect(within(details).getByText('—')).toBeInTheDocument();
+    expect(
+      within(details).getByRole('list', { name: 'Acordes de la canción' }),
+    ).toBeInTheDocument();
+  });
+
+  it('persiste la vista de lista y la usa al reabrir la canción', async () => {
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+    expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
+    expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('abre una canción antigua sin pulsos en la vista de lista con aviso', async () => {
+    stubApi({ ...result, beats: undefined, beatsPerBar: undefined });
+    await analyze();
+
+    expect(
+      await screen.findByText(
+        'No se detectaron pulsos en esta canción; se muestra la vista de lista.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
+  });
+
+  it('empieza en tema claro y permite cambiar a oscuro', async () => {
+    stubApi();
+    await analyze();
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    fireEvent.click(screen.getByRole('button', { name: /Tema claro/ }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    fireEvent.click(screen.getByRole('button', { name: /Tema oscuro/ }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+  });
+
+  it('abre la biblioteca vacía desde la pantalla de inicio', async () => {
+    stubApi();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Biblioteca \(0\)/ }));
+    expect(await screen.findByText('Todavía no hay canciones')).toBeInTheDocument();
+  });
+});
