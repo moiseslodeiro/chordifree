@@ -158,20 +158,53 @@ function rootDuration(root: PitchClass, profile: HarmonyProfile): number {
 }
 
 /**
- * Un acorde es estructural si dura al menos pulsación y media o si su
+ * Un acorde es estructural si dura al menos pulsación y media, si su
  * fundamental y su familia de calidad forman parte de la armonía recurrente de
- * la canción. Todo lo demás es un acorde de paso.
+ * la canción, o si no está rodeado por acordes más largos. Solo los cambios
+ * breves entre acordes estables se consideran de paso; así las progresiones con
+ * cambios en cada pulsación se conservan.
  */
-function isStructural(segment: ChordSegment, profile: HarmonyProfile, beat: number): boolean {
+function isStructural(
+  segment: ChordSegment,
+  segments: ChordSegment[],
+  index: number,
+  profile: HarmonyProfile,
+  beat: number,
+): boolean {
   const chord = segment.chord;
   if (!chord) return false;
-  if (duration(segment) >= MIN_KEEP_BEATS * beat - EPSILON) return true;
+  const size = duration(segment);
+  if (size >= MIN_KEEP_BEATS * beat - EPSILON) return true;
 
   const rootTotal = rootDuration(chord.root, profile);
-  if (rootTotal < MIN_ROOT_BEATS * beat - EPSILON) return false;
+  if (rootTotal >= MIN_ROOT_BEATS * beat - EPSILON) {
+    const familyTotal =
+      profile.familyTotals.get(chord.root)?.get(qualityFamily(chord.quality)) ?? 0;
+    if (familyTotal / rootTotal >= MIN_FAMILY_SHARE - EPSILON) return true;
+  }
 
-  const familyTotal = profile.familyTotals.get(chord.root)?.get(qualityFamily(chord.quality)) ?? 0;
-  return familyTotal / rootTotal >= MIN_FAMILY_SHARE - EPSILON;
+  if (size < 0.5 * beat - EPSILON) return false;
+  if (size <= beat + EPSILON) {
+    const previous = segments[index - 1];
+    const next = segments[index + 1];
+    const previousChord = previous?.chord ? previous : undefined;
+    const nextChord = next?.chord ? next : undefined;
+    const betweenLonger =
+      previousChord !== undefined &&
+      nextChord !== undefined &&
+      duration(previousChord) > beat + EPSILON &&
+      duration(nextChord) > beat + EPSILON;
+    const sameBothSides =
+      previousChord !== undefined &&
+      nextChord !== undefined &&
+      previousChord.chord !== null &&
+      nextChord.chord !== null &&
+      chordEquals(previousChord.chord, chord) &&
+      chordEquals(nextChord.chord, chord);
+    if (betweenLonger || sameBothSides) return false;
+  }
+
+  return true;
 }
 
 /** Duración más peso armónico global de la fundamental, para desempatar. */
@@ -294,7 +327,9 @@ export function reduceChordSegments(
   const beat = beatDuration(beats);
   const working = mergeAdjacent(simplified);
   const profile = buildProfile(working);
-  const structural = working.map((segment) => isStructural(segment, profile, beat));
+  const structural = working.map((segment, index) =>
+    isStructural(segment, working, index, profile, beat),
+  );
 
   if (!structural.some(Boolean)) {
     const longest = [...working]

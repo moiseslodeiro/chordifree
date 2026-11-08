@@ -5,23 +5,34 @@ import {
   formatTime,
   noteName,
   reduceChordSegments,
+  relativeKey,
   resolveAccidental,
   simplifyChord,
   transposeChord,
+  transposeKey,
   type Accidental,
   type ChordSegment,
   type Notation,
   type AccidentalPreference,
+  type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
+import { usePracticeSession } from '../practice/usePracticeSession';
 import { PlaybackClock } from '../sync/clock';
-import type { GridView, Instrument, Preferences, Song } from '../types';
+import {
+  supportsCapo,
+  type GridView,
+  type Instrument,
+  type Preferences,
+  type Song,
+} from '../types';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
 import { DisplayControls } from './DisplayControls';
 import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
+import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
@@ -69,8 +80,8 @@ export function SongView({
   const [clock, setClock] = useState<PlaybackClock | null>(null);
   const [editing, setEditing] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [loopA, setLoopA] = useState<number | null>(null);
-  const [loopB, setLoopB] = useState<number | null>(null);
+  const { practice, updatePractice } = usePracticeSession(song.id);
+  const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
 
   const handleAdapter = useCallback((next: PlayerAdapter | null) => {
     setAdapter(next);
@@ -89,6 +100,23 @@ export function SongView({
     [song.segments, song.transpose],
   );
 
+  const capo = song.capo ?? 0;
+  /** El piano no admite cejilla: el capo se ignora al mostrar las formas. */
+  const capoAvailable = supportsCapo(instrument);
+  const effectiveCapo = capoAvailable ? capo : 0;
+
+  /** Acordes que se muestran: con cejilla, las formas bajan `capo` semitonos. */
+  const shapeSegments = useMemo(
+    () =>
+      effectiveCapo === 0
+        ? transposedSegments
+        : transposedSegments.map((segment) => ({
+            ...segment,
+            chord: segment.chord ? transposeChord(segment.chord, -effectiveCapo) : null,
+          })),
+    [transposedSegments, effectiveCapo],
+  );
+
   const beats = useMemo(
     () => extendBeats(song.beats ?? [], song.duration),
     [song.beats, song.duration],
@@ -99,22 +127,34 @@ export function SongView({
   const displaySegments = useMemo(() => {
     const simplified =
       simplifyChords || reduceChords
-        ? transposedSegments.map((segment) => ({
+        ? shapeSegments.map((segment) => ({
             ...segment,
             chord: segment.chord ? simplifyChord(segment.chord) : null,
           }))
-        : transposedSegments;
+        : shapeSegments;
     if (!reduceChords) return simplified;
     return reduceChordSegments(simplified, beats, reduceChordsMax ? 'max' : 'normal');
-  }, [transposedSegments, simplifyChords, reduceChords, reduceChordsMax, beats]);
+  }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats]);
 
   const estimatedKey = useMemo(() => estimateKey(transposedSegments), [transposedSegments]);
   const accidental: Accidental = resolveAccidental(estimatedKey, song.accidentalPreference);
-  const keyLabel = estimatedKey
-    ? `${noteName(estimatedKey.tonic, song.notation, accidental)} ${
-        estimatedKey.mode === 'major' ? 'mayor' : 'menor'
-      }`
-    : null;
+
+  const keyName = useCallback(
+    (key: EstimatedKey | null) => {
+      if (!key) return null;
+      const keyAccidental = resolveAccidental(key, song.accidentalPreference);
+      return `${noteName(key.tonic, song.notation, keyAccidental)} ${
+        key.mode === 'major' ? 'mayor' : 'menor'
+      }`;
+    },
+    [song.notation, song.accidentalPreference],
+  );
+
+  const keyLabel = keyName(estimatedKey);
+  const relativeKeyLabel = keyName(estimatedKey ? relativeKey(estimatedKey) : null);
+  const capoKeyLabel = keyName(
+    estimatedKey ? transposeKey(estimatedKey, -effectiveCapo) : null,
+  );
 
   const chordList = useMemo(() => {
     const seen = new Set<string>();
@@ -157,13 +197,17 @@ export function SongView({
     reduceChordsMax?: boolean;
     instrument?: Instrument;
     gridView?: GridView;
+    capo?: number;
   }) => {
-    const songPatch: Partial<Pick<Song, 'notation' | 'accidentalPreference' | 'transpose'>> = {};
+    const songPatch: Partial<
+      Pick<Song, 'notation' | 'accidentalPreference' | 'transpose' | 'capo'>
+    > = {};
     if (patch.notation !== undefined) songPatch.notation = patch.notation;
     if (patch.accidentalPreference !== undefined) {
       songPatch.accidentalPreference = patch.accidentalPreference;
     }
     if (patch.transpose !== undefined) songPatch.transpose = patch.transpose;
+    if (patch.capo !== undefined) songPatch.capo = Math.max(0, Math.min(7, patch.capo));
     if (Object.keys(songPatch).length > 0) onChange({ ...song, ...songPatch });
     onPreferences(patch);
   };
@@ -243,8 +287,14 @@ export function SongView({
             duration={song.duration}
             loopA={loopA}
             loopB={loopB}
-            onLoopAChange={setLoopA}
-            onLoopBChange={setLoopB}
+            loopEnabled={loopEnabled}
+            onLoopAChange={(value) => updatePractice({ loopA: value })}
+            onLoopBChange={(value) => updatePractice({ loopB: value })}
+            onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
+            rate={rate}
+            onRateChange={(value) => updatePractice({ rate: value })}
+            manualBpm={manualBpm}
+            onManualBpmChange={(value) => updatePractice({ bpm: value })}
           />
         </div>
       ) : (
@@ -269,6 +319,7 @@ export function SongView({
           reduceChords={reduceChords}
           reduceChordsMax={reduceChordsMax}
           instrument={instrument}
+          capo={capo}
           onChange={changePreferences}
         />
       </section>
@@ -341,11 +392,23 @@ export function SongView({
 
           <SongDetails
             keyLabel={keyLabel}
+            relativeKeyLabel={relativeKeyLabel}
+            capo={effectiveCapo}
+            capoKeyLabel={capoKeyLabel}
+            showCapo={capoAvailable}
             bpm={bpm}
             beatsPerBar={beatsPerBar}
             duration={song.duration}
             artist={artist}
             chords={chordList}
+          />
+
+          <HarmonicAnalysis
+            segments={transposedSegments}
+            harmonyKey={estimatedKey}
+            notation={song.notation}
+            accidental={accidental}
+            capo={effectiveCapo}
           />
         </aside>
       </div>

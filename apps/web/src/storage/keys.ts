@@ -6,6 +6,7 @@ export const KEYS = {
   preferences: `${PREFIX}:preferences`,
   library: `${PREFIX}:library`,
   song: (id: string) => `${PREFIX}:song:${id}`,
+  practice: (id: string) => `${PREFIX}:practice:${id}`,
   analysis: (key: string) => `${PREFIX}:analysis:${key}`,
   corrupt: (timestamp: number) => `${PREFIX}:corrupt:${timestamp}`,
 };

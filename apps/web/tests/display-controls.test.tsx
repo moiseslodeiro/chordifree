@@ -4,17 +4,18 @@ import { DisplayControls } from '../src/components/DisplayControls';
 
 function renderControls(overrides: Partial<Parameters<typeof DisplayControls>[0]> = {}) {
   const onChange = vi.fn();
-  render(
+  const view = render(
     <DisplayControls
       simplifyChords={false}
       reduceChords={false}
       reduceChordsMax={false}
       instrument="guitar"
+      capo={0}
       onChange={onChange}
       {...overrides}
     />,
   );
-  return { onChange };
+  return { onChange, unmount: view.unmount };
 }
 
 describe('DisplayControls', () => {
@@ -56,10 +57,29 @@ describe('DisplayControls', () => {
     expect(onChange).toHaveBeenCalledWith({ instrument: 'piano' });
   });
 
+  it('cambia el capo desde el selector etiquetado', () => {
+    const { onChange } = renderControls({ capo: 2 });
+    const select = screen.getByLabelText('Capo');
+    expect(select).toHaveValue('2');
+    fireEvent.change(select, { target: { value: '5' } });
+    expect(onChange).toHaveBeenCalledWith({ capo: 5 });
+  });
+
+  it('oculta el capo en piano y lo mantiene en instrumentos de cuerda', () => {
+    const piano = renderControls({ instrument: 'piano', capo: 3 });
+    expect(screen.queryByLabelText('Capo')).not.toBeInTheDocument();
+    piano.unmount();
+
+    renderControls({ instrument: 'ukelele', capo: 2 });
+    expect(screen.getByLabelText('Capo')).toHaveValue('2');
+  });
+
   it('anuncia el estado actual de simplificación y reducción', () => {
-    renderControls({ simplifyChords: true, reduceChords: true, instrument: 'piano' });
+    renderControls({ simplifyChords: true, reduceChords: true, instrument: 'guitar', capo: 3 });
     expect(
-      screen.getByText('Simplificación activada. Reducción activada. Instrumento: Piano.'),
+      screen.getByText(
+        'Simplificación activada. Reducción activada. Instrumento: Guitarra. Capo: traste 3.',
+      ),
     ).toBeInTheDocument();
   });
 });

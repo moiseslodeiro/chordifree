@@ -16,32 +16,46 @@ function Harness({
   adapter,
   clock,
   beats: beatTimes,
+  beatsPerBar,
   duration,
 }: {
   adapter: FakePlayerAdapter;
   clock: PlaybackClock;
   beats: number[];
+  beatsPerBar: number;
   duration: number;
 }) {
   const [loopA, setLoopA] = useState<number | null>(null);
   const [loopB, setLoopB] = useState<number | null>(null);
+  const [loopEnabled, setLoopEnabled] = useState(false);
+  const [rate, setRate] = useState(1);
+  const [manualBpm, setManualBpm] = useState(90);
 
   return (
     <PracticeBar
       adapter={adapter}
       clock={clock}
       beats={beatTimes}
-      beatsPerBar={4}
+      beatsPerBar={beatsPerBar}
       duration={duration}
       loopA={loopA}
       loopB={loopB}
+      loopEnabled={loopEnabled}
       onLoopAChange={setLoopA}
       onLoopBChange={setLoopB}
+      onLoopEnabledChange={setLoopEnabled}
+      rate={rate}
+      onRateChange={setRate}
+      manualBpm={manualBpm}
+      onManualBpmChange={setManualBpm}
     />
   );
 }
 
-function setup(initialTime = 0, options: { beats?: number[]; duration?: number } = {}) {
+function setup(
+  initialTime = 0,
+  options: { beats?: number[]; duration?: number; beatsPerBar?: number } = {},
+) {
   const adapter = new FakePlayerAdapter(initialTime, false);
   const clock = new PlaybackClock(adapter);
   clock.setSegments(segments);
@@ -52,6 +66,7 @@ function setup(initialTime = 0, options: { beats?: number[]; duration?: number }
       adapter={adapter}
       clock={clock}
       beats={options.beats ?? beats}
+      beatsPerBar={options.beatsPerBar ?? 4}
       duration={options.duration ?? 30}
     />,
   );
@@ -102,14 +117,31 @@ describe('PracticeBar', () => {
     expect(adapter.getPlaybackRate()).toBe(1);
 
     fireEvent.change(select, { target: { value: '0.75' } });
-
     expect(adapter.getPlaybackRate()).toBe(0.75);
     expect(select).toHaveValue('0.75');
+
+    fireEvent.change(select, { target: { value: '1.25' } });
+    expect(adapter.getPlaybackRate()).toBe(1.25);
+    expect(select).toHaveValue('1.25');
+
+    fireEvent.change(select, { target: { value: '1.5' } });
+    expect(adapter.getPlaybackRate()).toBe(1.5);
+    expect(select).toHaveValue('1.5');
   });
 
-  it('desactiva el metrónomo cuando no hay pulsos detectados', () => {
+  it('habilita el metrónomo manual con BPM cuando no hay pulsos', () => {
     setup(0, { beats: [] });
-    expect(screen.getByRole('button', { name: 'Metrónomo' })).toBeDisabled();
+    const metronome = screen.getByRole('button', { name: 'Metrónomo' });
+    expect(metronome).toBeEnabled();
+
+    const bpm = screen.getByLabelText('BPM del metrónomo');
+    expect(bpm).toHaveValue(90);
+    fireEvent.change(bpm, { target: { value: '120' } });
+    fireEvent.blur(bpm);
+    expect(screen.getByLabelText('BPM del metrónomo')).toHaveValue(120);
+
+    fireEvent.click(metronome);
+    expect(metronome).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('limpia el rango y desactiva el bucle', () => {
@@ -147,6 +179,27 @@ describe('PracticeBar', () => {
 
       expect(adapter.isPlaying()).toBe(true);
       expect(screen.getByRole('button', { name: 'Cuenta atrás' })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ajusta la cuenta atrás al compás de tres tiempos', () => {
+    vi.useFakeTimers();
+    try {
+      const { adapter } = setup(0, { beatsPerBar: 3 });
+      fireEvent.click(screen.getByRole('button', { name: 'Cuenta atrás' }));
+
+      act(() => {
+        vi.advanceTimersByTime(2900);
+      });
+      expect(screen.getByRole('button', { name: 'Contando…' })).toBeDisabled();
+      expect(adapter.isPlaying()).toBe(false);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(adapter.isPlaying()).toBe(true);
     } finally {
       vi.useRealTimers();
     }

@@ -7,6 +7,7 @@ import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
 import { Library } from './storage/library';
 import { loadPreferences, savePreferences } from './storage/preferences';
+import { removePractice } from './storage/practice';
 import type { Preferences, Song } from './types';
 
 type Route = { name: 'home' } | { name: 'library' } | { name: 'song'; id: string };
@@ -186,6 +187,7 @@ export default function App() {
 
   const deleteSong = (id: string) => {
     library.remove(id);
+    removePractice(storage, id);
     setSongs(library.list());
     if (songRef.current?.id === id) {
       songRef.current = null;

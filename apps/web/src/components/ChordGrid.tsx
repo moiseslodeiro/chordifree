@@ -84,6 +84,14 @@ const ChordRow = memo(function ChordRow({
         <span className="truncate font-display text-xl font-bold leading-tight text-ink">{label}</span>
         <span className="flex items-center gap-2">
           {segment.chord === null ? <span className="badge shrink-0">silencio</span> : null}
+          {segment.confidence !== undefined && segment.confidence < 0.6 ? (
+            <span
+              className="badge shrink-0 border-warning/50 text-warning"
+              title={`Confianza del detector: ${Math.round(segment.confidence * 100)}%`}
+            >
+              dudoso
+            </span>
+          ) : null}
           {active ? (
             <span className="badge shrink-0 border-accent/50 text-accent">sonando</span>
           ) : null}

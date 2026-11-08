@@ -4,6 +4,7 @@ export * from './parse';
 export * from './format';
 export * from './transpose';
 export * from './key';
+export * from './degrees';
 export * from './segments';
 export * from './simplify';
 export * from './reduce';

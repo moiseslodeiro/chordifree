@@ -131,3 +131,19 @@ export function resolveAccidental(
 export function relativeMajor(tonic: PitchClass): PitchClass {
   return mod12(tonic + 3);
 }
+
+/** Tonalidad relativa: cambia entre mayor y menor conservando la armadura. */
+export function relativeKey(key: EstimatedKey): EstimatedKey {
+  return {
+    tonic: mod12(key.tonic + (key.mode === 'major' ? 9 : 3)),
+    mode: key.mode === 'major' ? 'minor' : 'major',
+  };
+}
+
+/** Transporta una tonalidad completa manteniendo el modo. */
+export function transposeKey(key: EstimatedKey, semitones: number): EstimatedKey {
+  return {
+    tonic: mod12(key.tonic + Math.trunc(semitones)),
+    mode: key.mode,
+  };
+}

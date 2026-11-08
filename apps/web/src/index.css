@@ -229,6 +229,11 @@ p {
     border-radius: var(--radius-sm);
   }
 
+  .degree-chip {
+    @apply inline-flex items-center border border-accent/25 bg-accent/5 px-2 py-0.5 text-accent;
+    border-radius: var(--radius-sm);
+  }
+
   .link {
     color: rgb(var(--color-accent));
     text-decoration: underline;
@@ -493,6 +498,25 @@ p {
     rgb(var(--color-positive)) 0 50%,
     rgb(var(--color-warning)) 50% 100%
   );
+}
+
+.beat-confidence {
+  position: absolute;
+  right: var(--space-2xs);
+  bottom: var(--space-2xs);
+  display: flex;
+  width: 0.95rem;
+  height: 0.95rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgb(var(--color-warning));
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .beat-cell:hover {

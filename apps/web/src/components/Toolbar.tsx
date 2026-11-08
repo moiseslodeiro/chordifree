@@ -102,3 +102,13 @@ export function IconClock() {
     </svg>
   );
 }
+
+export function IconCapo() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M4 8h16M4 16h16" />
+      <path d="M8 8v8M16 8v8" />
+      <path d="M19 5v14" />
+    </svg>
+  );
+}
