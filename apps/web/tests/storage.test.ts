@@ -188,6 +188,12 @@ describe('preferencias', () => {
     expect(loaded.simplifyChords).toBe(true);
   });
 
+  it('persiste y restaura la vista Letra', () => {
+    const storage = createMemoryStorage();
+    savePreferences(storage, { ...DEFAULT_PREFERENCES, gridView: 'lyrics' });
+    expect(loadPreferences(storage).gridView).toBe('lyrics');
+  });
+
   it('tolera preferencias antiguas sin los campos nuevos', () => {
     const storage = createMemoryStorage();
     writeEnvelope(storage, KEYS.preferences, {
@@ -257,6 +263,27 @@ describe('Library', () => {
     library.remove('b');
     expect(library.list().map((item) => item.id)).toEqual(['a']);
     expect(library.get('b')).toBeNull();
+  });
+
+  it('guarda, recupera y elimina la letra junto con la canción', () => {
+    const storage = createMemoryStorage();
+    const library = new Library(storage);
+    library.save({ ...song('a', 'Primera'), lyrics: 'Primera línea\nSegunda línea' });
+
+    expect(library.get('a')?.lyrics).toBe('Primera línea\nSegunda línea');
+
+    library.save({ ...song('a', 'Primera'), lyrics: undefined });
+    expect(library.get('a')?.lyrics).toBeUndefined();
+
+    library.remove('a');
+    expect(library.get('a')).toBeNull();
+  });
+
+  it('carga canciones antiguas sin letra', () => {
+    const storage = createMemoryStorage();
+    const library = new Library(storage);
+    library.save(song('a', 'Sin letra'));
+    expect(library.get('a')?.lyrics).toBeUndefined();
   });
 
   it('actualiza updatedAt al guardar y reordena', async () => {

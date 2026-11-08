@@ -101,6 +101,162 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
   });
 
+  it('guarda la letra con acordes y la recupera al reabrir', async () => {
+    stubApi();
+    const view = await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Letra' }));
+    expect(screen.getByText('Todavía no hay letra')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir letra' }));
+
+    const field = screen.getByLabelText('Letra de la canción');
+    fireEvent.change(field, { target: { value: 'Primera línea\nSegunda línea' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar letra' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    const grid = within(screen.getByTestId('song-grid-column'));
+    expect(grid.getByText('Primera línea')).toBeInTheDocument();
+    expect(grid.getByText('Segunda línea')).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: 'C en 00:00' })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar letra' }));
+    fireEvent.change(screen.getByLabelText('Letra de la canción'), {
+      target: { value: 'Borrador sin guardar' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(grid.getByText('Primera línea')).toBeInTheDocument();
+    expect(grid.queryByText('Borrador sin guardar')).not.toBeInTheDocument();
+
+    view.unmount();
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Letra' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText('Primera línea')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
+  });
+
+  it('normaliza una letra vacía a sin letra', async () => {
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Letra' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir letra' }));
+    fireEvent.change(screen.getByLabelText('Letra de la canción'), {
+      target: { value: '   \n  \n' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar letra' }));
+
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+    expect(screen.getByText('Todavía no hay letra')).toBeInTheDocument();
+  });
+
+  it('actualiza los acordes de la letra con la presentación y no toca el texto', async () => {
+    stubApi({
+      ...result,
+      segments: [
+        { start: 0, end: 2, chord: { root: 0, quality: 'maj7' } },
+        { start: 2, end: 2.4, chord: { root: 7, quality: 'major' } },
+        { start: 2.4, end: 8, chord: { root: 9, quality: 'm7' } },
+      ],
+    });
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Letra' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir letra' }));
+    fireEvent.change(screen.getByLabelText('Letra de la canción'), {
+      target: { value: 'Línea uno\nLínea dos' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar letra' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    const grid = within(screen.getByTestId('song-grid-column'));
+    expect(grid.getByRole('button', { name: /^Cmaj7 en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^Am7 en/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Simplificar acordes/ }));
+    expect(grid.getByRole('button', { name: /^C en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    expect(grid.queryByRole('button', { name: /^G en/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Española' }));
+    expect(grid.getByRole('button', { name: /^Do en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^Lam en/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
+    expect(grid.getByRole('button', { name: /^Do♯ en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^La♯m en/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Capo'), { target: { value: '2' } });
+    expect(grid.getByRole('button', { name: /^Si en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^Sol♯m en/ })).toBeInTheDocument();
+
+    expect(grid.getByText('Línea uno')).toBeInTheDocument();
+    expect(grid.getByText('Línea dos')).toBeInTheDocument();
+  });
+
+  it('mantiene los tiempos de la letra con la reducción máxima', async () => {
+    stubApi({
+      ...result,
+      duration: 8,
+      beats: [0, 1, 2, 3, 4, 5, 6, 7],
+      beatsPerBar: 4,
+      segments: [
+        { start: 0, end: 2, chord: { root: 0, quality: 'major' } },
+        { start: 2, end: 4, chord: { root: 7, quality: 'major' } },
+        { start: 4, end: 6, chord: { root: 9, quality: 'minor' } },
+        { start: 6, end: 8, chord: { root: 5, quality: 'major' } },
+      ],
+    });
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Letra' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir letra' }));
+    fireEvent.change(screen.getByLabelText('Letra de la canción'), {
+      target: { value: 'Primera línea\nSegunda línea' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar letra' }));
+
+    const grid = within(screen.getByTestId('song-grid-column'));
+    expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+
+    expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^C en/ })).toBeInTheDocument();
+    expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
+  });
+
+  it('coloca el acorde dominante en su tiempo real al reducir al máximo', async () => {
+    stubApi({
+      ...result,
+      duration: 4,
+      beats: [0, 1, 2, 3],
+      beatsPerBar: 4,
+      segments: [
+        { start: 0, end: 1.6, chord: { root: 0, quality: 'major' } },
+        { start: 1.6, end: 4, chord: { root: 7, quality: 'major' } },
+      ],
+    });
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+
+    expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
+    expect(screen.getByTestId('beat-cell-1')).not.toHaveTextContent('G');
+    expect(screen.getByTestId('beat-cell-2')).toHaveTextContent('G');
+  });
+
   it('edita un acorde, guarda y conserva la corrección al reabrir', async () => {
     stubApi();
     await analyze();

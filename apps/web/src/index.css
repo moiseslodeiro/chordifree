@@ -580,6 +580,111 @@ p {
   }
 }
 
+/* Vista de letra con acordes alineados por tiempo. */
+.lyrics-view {
+  margin-top: var(--space-xs);
+}
+
+.lyrics-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+}
+
+.lyrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: var(--space-s) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lyrics-line {
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3xs) var(--space-2xs) var(--space-3xs) var(--space-xs);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.lyrics-line[aria-current='true'] {
+  border-left-color: rgb(var(--color-accent));
+  background: rgb(var(--color-accent) / 0.07);
+}
+
+.lyrics-chords {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.3rem;
+  min-height: 1.6rem;
+}
+
+.lyrics-chord {
+  border: 1px solid rgb(var(--color-accent) / 0.28);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--color-accent) / 0.06);
+  color: rgb(var(--color-accent));
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 0.05rem 0.4rem;
+}
+
+.lyrics-chord:hover {
+  background: rgb(var(--color-accent) / 0.12);
+}
+
+.lyrics-chord[aria-current='true'] {
+  border-color: rgb(var(--color-accent));
+  background: rgb(var(--color-accent));
+  color: rgb(var(--color-on-accent));
+}
+
+.lyrics-text {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: rgb(var(--color-ink));
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 0.1rem 0 0.3rem;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.lyrics-text:hover {
+  color: rgb(var(--color-accent));
+}
+
+.lyrics-line[aria-current='true'] .lyrics-text {
+  font-weight: 600;
+}
+
+.lyrics-text:focus-visible,
+.lyrics-chord:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
+}
+
+.lyrics-gap {
+  height: 0.6rem;
+}
+
+.lyrics-empty {
+  padding: var(--space-l) var(--space-s);
+  text-align: center;
+}
+
 /* Hoja de acordes para imprimir o guardar como PDF. */
 .print-sheet {
   display: none;

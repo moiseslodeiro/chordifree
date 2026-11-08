@@ -11,9 +11,6 @@ const EPSILON = 1e-6;
  */
 export type ReduceLevel = 'normal' | 'max';
 
-/** Compás de referencia del modo máximo (4/4). */
-const MAX_BAR_BEATS = 4;
-
 /** Ventana mínima del modo máximo para evitar compases absurdos. */
 const MIN_BAR_SECONDS = 0.5;
 
@@ -233,12 +230,17 @@ function dominantChord(slots: ChordSegment[]): Chord | null {
  * dentro de él. Los silencios se respetan y los compases consecutivos con el
  * mismo acorde se fusionan al final.
  */
-function collapseToBars(segments: ChordSegment[], beats: number[]): ChordSegment[] {
+function collapseToBars(
+  segments: ChordSegment[],
+  beats: number[],
+  beatsPerBar: number,
+): ChordSegment[] {
   if (segments.length === 0) return [];
 
   const times = sanitizeBeats(beats);
   const anchor = times[0] ?? segments[0]!.start;
-  const window = Math.max(beatDuration(beats) * MAX_BAR_BEATS, MIN_BAR_SECONDS);
+  const barBeats = Number.isFinite(beatsPerBar) && beatsPerBar > 0 ? Math.floor(beatsPerBar) : 4;
+  const window = Math.max(beatDuration(beats) * barBeats, MIN_BAR_SECONDS);
   const first = segments[0]!.start;
   const last = segments[segments.length - 1]!.end;
 
@@ -288,13 +290,40 @@ function collapseToBars(segments: ChordSegment[], beats: number[]): ChordSegment
     else windows.set(key, [slot]);
   }
 
-  const dominant = new Map<number, Chord | null>();
-  for (const [key, list] of windows) dominant.set(key, dominantChord(list));
+  const collapsed: ChordSegment[] = [];
+  const keys = [...windows.keys()].sort((a, b) => a - b);
+  for (const key of keys) {
+    const list = windows.get(key)!;
+    const windowStart = list[0]!.start;
+    const windowEnd = list[list.length - 1]!.end;
+    const dominant = dominantChord(list);
 
-  const collapsed = slots.map((slot) => ({
-    ...slot,
-    chord: slot.chord === null ? null : (dominant.get(windowKey(slot.start)) ?? slot.chord),
-  }));
+    if (dominant === null) {
+      collapsed.push({ start: windowStart, end: windowEnd, chord: null });
+      continue;
+    }
+
+    const firstDominant = list.find(
+      (slot) => slot.chord !== null && chordEquals(slot.chord, dominant),
+    );
+    const dominantStart = firstDominant?.start ?? windowStart;
+
+    if (dominantStart > windowStart + EPSILON) {
+      const before = list.filter((slot) => slot.start < dominantStart - EPSILON);
+      const lead = before[before.length - 1];
+      collapsed.push({
+        start: windowStart,
+        end: dominantStart,
+        chord: lead?.chord ?? null,
+      });
+    }
+
+    collapsed.push({
+      start: Math.max(windowStart, dominantStart),
+      end: windowEnd,
+      chord: dominant,
+    });
+  }
 
   return mergeAdjacent(collapsed);
 }
@@ -312,12 +341,14 @@ function collapseToBars(segments: ChordSegment[], beats: number[]): ChordSegment
  * todos los acordes, se mantiene el de mayor duración.
  *
  * Con `level: 'max'` se añade una pasada que deja como mucho un acorde por
- * compás, útil para cifrados muy simplificados.
+ * compás, conservando el acorde dominante en su tiempo real. Si el dominante
+ * entra a mitad del compás, el acorde anterior se mantiene hasta ese punto.
  */
 export function reduceChordSegments(
   segments: ChordSegment[],
   beats: number[] = [],
   level: ReduceLevel = 'normal',
+  beatsPerBar = 4,
 ): ChordSegment[] {
   if (segments.length === 0) return [];
 
@@ -388,5 +419,5 @@ export function reduceChordSegments(
       .sort((a, b) => duration(b) - duration(a))[0];
     return longest ? [longest] : [];
   }
-  return level === 'max' ? collapseToBars(result, beats) : result;
+  return level === 'max' ? collapseToBars(result, beats, beatsPerBar) : result;
 }

@@ -36,6 +36,21 @@ misma reconstrucción usa un tempo constante anclado en el primer pulso detectad
 las pequeñas irregularidades del analizador no hagan que las celdas se desalineen con la
 canción.
 
+La línea de tiempo incluye una tercera vista, **Letra**, junto a Parrilla y Lista. La letra se
+pega manualmente desde el editor de la propia vista y se guarda con la canción; no se descarga
+de YouTube ni de servicios externos. Chordifree reparte las líneas no vacías entre el primer y
+el último acorde y coloca encima cada cambio de acorde según su tiempo. Para no repartir letra
+sobre una intro o un interludio, una heurística conservadora busca la frase de cuatro compases
+más repetida y descarta el tramo anterior a su primera aparición, el posterior a la última y los
+huecos internos largos que usan como mucho dos acordes. Si no hay una estructura fiable, usa el
+reparto uniforme. La detección es aproximada: puedes fijar una línea con un ancla `[mm:ss]` al
+inicio o colocar el cursor en una línea y pulsar «Anclar línea al tiempo actual». Las líneas
+vacías solo separan estrofas; no reservan tiempo por sí mismas. Los acordes reflejan la misma
+notación, alteraciones, transporte, capo, simplificación y reducción que la parrilla, y la línea
+y el acorde activos se resaltan durante la reproducción. Pulsar una línea o un acorde salta a su
+momento. La reducción máxima solo colapsa la parrilla; la letra conserva los cambios y tiempos
+reales para no desalinearse.
+
 - **Simplificar acordes**: reduce las tensiones, extensiones, suspensiones e inversiones a la
   tríada básica (`Cmaj7` → `C`, `C/G` → `C`) y conserva la séptima de dominante porque define
   la función armónica (`G7` → `G7`). Solo afecta a la presentación; el editor conserva el

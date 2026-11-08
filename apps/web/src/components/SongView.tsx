@@ -36,6 +36,7 @@ import { DisplayControls } from './DisplayControls';
 import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
 import { HarmonicAnalysis } from './HarmonicAnalysis';
+import { LyricsEditor } from './LyricsEditor';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
@@ -82,9 +83,16 @@ export function SongView({
   const [adapter, setAdapter] = useState<PlayerAdapter | null>(null);
   const [clock, setClock] = useState<PlaybackClock | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingLyrics, setEditingLyrics] = useState(false);
+  const [lyricsDraft, setLyricsDraft] = useState('');
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
+
+  useEffect(() => {
+    setEditingLyrics(false);
+    setLyricsDraft('');
+  }, [song.id]);
 
   const handleAdapter = useCallback((next: PlayerAdapter | null) => {
     setAdapter(next);
@@ -136,8 +144,26 @@ export function SongView({
           }))
         : shapeSegments;
     if (!reduceChords) return simplified;
-    return reduceChordSegments(simplified, beats, reduceChordsMax ? 'max' : 'normal');
-  }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats]);
+    return reduceChordSegments(
+      simplified,
+      beats,
+      reduceChordsMax ? 'max' : 'normal',
+      beatsPerBar,
+    );
+  }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats, beatsPerBar]);
+
+  /** La letra conserva los tiempos reales: la reducción máxima solo afecta a la parrilla. */
+  const lyricsSegments = useMemo(() => {
+    const simplified =
+      simplifyChords || reduceChords
+        ? shapeSegments.map((segment) => ({
+            ...segment,
+            chord: segment.chord ? simplifyChord(segment.chord) : null,
+          }))
+        : shapeSegments;
+    if (!reduceChords) return simplified;
+    return reduceChordSegments(simplified, beats, 'normal', beatsPerBar);
+  }, [shapeSegments, simplifyChords, reduceChords, beats, beatsPerBar]);
 
   const estimatedKey = useMemo(() => estimateKey(transposedSegments), [transposedSegments]);
   const accidental: Accidental = resolveAccidental(estimatedKey, song.accidentalPreference);
@@ -246,6 +272,40 @@ export function SongView({
     setEditing(false);
   };
 
+  const openLyricsEditor = () => {
+    setLyricsDraft(song.lyrics ?? '');
+    setEditingLyrics(true);
+  };
+
+  const closeLyricsEditor = () => {
+    setEditingLyrics(false);
+    setLyricsDraft('');
+  };
+
+  const saveLyrics = () => {
+    const updated: Song = {
+      ...song,
+      lyrics: lyricsDraft.trim().length > 0 ? lyricsDraft : undefined,
+      updatedAt: new Date().toISOString(),
+    };
+    onChange(updated);
+    onSave(updated);
+    setEditingLyrics(false);
+    setLyricsDraft('');
+  };
+
+  const deleteLyrics = () => {
+    const updated: Song = {
+      ...song,
+      lyrics: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+    onChange(updated);
+    onSave(updated);
+    setEditingLyrics(false);
+    setLyricsDraft('');
+  };
+
   const sourceLabel =
     song.source.type === 'youtube'
       ? `YouTube · ${song.source.videoId}`
@@ -289,17 +349,21 @@ export function SongView({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
-              {editing ? 'Salir de edición' : 'Editar acordes'}
-            </button>
-            {!editing && printRows.length > 0 ? (
+            {!editingLyrics ? (
+              <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
+                {editing ? 'Salir de edición' : 'Editar acordes'}
+              </button>
+            ) : null}
+            {!editing && !editingLyrics && printRows.length > 0 ? (
               <button type="button" className="btn" onClick={() => window.print()}>
                 Imprimir / PDF
               </button>
             ) : null}
-            <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
-              {saved ? 'Guardar cambios' : 'Guardar en biblioteca'}
-            </button>
+            {!editingLyrics ? (
+              <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
+                {saved ? 'Guardar cambios' : 'Guardar en biblioteca'}
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
@@ -365,7 +429,19 @@ export function SongView({
         className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
       >
         <div data-testid="song-grid-column" className="order-2 min-w-0 lg:order-none">
-          {editing ? (
+          {editingLyrics ? (
+            <LyricsEditor
+              value={lyricsDraft}
+              initialValue={song.lyrics ?? ''}
+              canDelete={Boolean(song.lyrics)}
+              canAnchor={Boolean(adapter)}
+              getCurrentTime={() => adapter?.getCurrentTime() ?? null}
+              onChange={setLyricsDraft}
+              onSave={saveLyrics}
+              onCancel={closeLyricsEditor}
+              onDelete={deleteLyrics}
+            />
+          ) : editing ? (
             <EditorPanel
               song={song}
               notation={song.notation}
@@ -376,6 +452,7 @@ export function SongView({
           ) : (
             <ChordGrid
               segments={displaySegments}
+              lyricsSegments={lyricsSegments}
               notation={song.notation}
               accidental={accidental}
               clock={clock}
@@ -385,6 +462,8 @@ export function SongView({
               duration={song.duration}
               loopA={loopA}
               loopB={loopB}
+              lyrics={song.lyrics}
+              onEditLyrics={openLyricsEditor}
               view={gridView}
               onViewChange={(view) => onPreferences({ gridView: view })}
             />
