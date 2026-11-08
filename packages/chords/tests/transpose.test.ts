@@ -29,7 +29,7 @@ describe('transposeChord', () => {
   it('mantiene el bajo al trasponer', () => {
     const transposed = transposeChord(chord('C/E'), 4);
     expect(transposed.bass).toBe(8);
-    expect(formatChord(transposed)).toBe('E/G#');
+    expect(formatChord(transposed)).toBe('E/G♯');
   });
 
   it('mantiene la cualidad y descarta la etiqueta original', () => {

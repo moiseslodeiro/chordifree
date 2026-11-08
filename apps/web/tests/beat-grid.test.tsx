@@ -23,6 +23,7 @@ function setup({
   duration,
   loopA = null,
   loopB = null,
+  chords = segments,
 }: {
   beats?: number[];
   view?: GridView;
@@ -30,16 +31,17 @@ function setup({
   duration?: number;
   loopA?: number | null;
   loopB?: number | null;
+  chords?: ChordSegment[];
 } = {}) {
   const adapter = new FakePlayerAdapter(0, false);
   const clock = new PlaybackClock(adapter);
   const clockBeats = duration === undefined ? beats : extendBeats(beats, duration);
-  clock.setSegments(segments);
+  clock.setSegments(chords);
   clock.setBeats(clockBeats);
   const onViewChange = vi.fn();
   const view_result = render(
     <ChordGrid
-      segments={segments}
+      segments={chords}
       notation="english"
       accidental="sharp"
       clock={clock}
@@ -69,6 +71,58 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(within(secondRow).getByText('C3')).toBeInTheDocument();
     expect(screen.getAllByText('C')).toHaveLength(1);
     expect(screen.getAllByText('G')).toHaveLength(1);
+  });
+
+  it('colorea los compases A y B y atenúa los intermedios', () => {
+    setup({ beats: twentyFourBeats, loopA: 0, loopB: 16 });
+
+    for (const index of [0, 1, 2, 3]) {
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'a');
+    }
+    for (const index of [4, 5, 6, 7]) {
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'range');
+    }
+    for (const index of [8, 9, 10, 11]) {
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'range');
+    }
+    for (const index of [12, 13, 14, 15]) {
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'b');
+    }
+    expect(screen.getByTestId('beat-cell-16')).not.toHaveAttribute('data-loop');
+  });
+
+  it('marca con A·B el compás que contiene todo el bucle', () => {
+    setup({ beats: twentyFourBeats, loopA: 0, loopB: 4 });
+
+    for (const index of [0, 1, 2, 3]) {
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'ab');
+    }
+    expect(screen.getByTestId('beat-cell-4')).not.toHaveAttribute('data-loop');
+  });
+
+  it('señala los acordes con confianza baja', () => {
+    const chords: ChordSegment[] = [
+      { start: 0, end: 4, chord: parseChord('C'), confidence: 0.35 },
+      { start: 4, end: 8, chord: parseChord('G'), confidence: 0.9 },
+    ];
+    setup({ beats: eightBeats, chords });
+
+    expect(screen.getByTestId('beat-cell-0')).toHaveAttribute('data-confidence', '35');
+    expect(screen.getByTestId('beat-cell-0').getAttribute('aria-label')).toContain(
+      'confianza baja',
+    );
+    expect(screen.getByTestId('beat-cell-4')).toHaveAttribute('data-confidence', '90');
+    expect(screen.getAllByText('?')).toHaveLength(1);
+  });
+
+  it('muestra una insignia de dudoso en la vista de lista', () => {
+    const chords: ChordSegment[] = [
+      { start: 0, end: 4, chord: parseChord('C'), confidence: 0.35 },
+      { start: 4, end: 8, chord: parseChord('G'), confidence: 0.9 },
+    ];
+    setup({ beats: eightBeats, chords, view: 'list' });
+
+    expect(screen.getByText('dudoso')).toBeInTheDocument();
   });
 
   it('deja vacías y no focusables las celdas de la última fila incompleta', () => {

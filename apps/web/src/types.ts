@@ -33,6 +33,8 @@ export interface Song {
   detectedSegments: ChordSegment[];
   beats?: number[];
   beatsPerBar?: number;
+  /** Cejilla virtual: los acordes se muestran transportados -capo semitonos. */
+  capo?: number;
   analyzerVersion: string;
   transpose: number;
   notation: Notation;
@@ -65,6 +67,11 @@ export type Instrument = 'guitar' | 'piano' | 'ukelele';
 export type GridView = 'beats' | 'list';
 export type Theme = 'light' | 'dark';
 
+/** La cejilla solo tiene sentido en instrumentos de cuerda. */
+export function supportsCapo(instrument: Instrument): boolean {
+  return instrument === 'guitar' || instrument === 'ukelele';
+}
+
 export function sourceKey(source: AnalysisSource): string {
   return source.type === 'youtube' ? `yt:${source.videoId}` : `upload:${source.filename}`;
 }
@@ -87,6 +94,7 @@ export function songFromResult(result: AnalysisResult, preferences: Preferences)
     detectedSegments: result.segments,
     beats: result.beats ?? [],
     beatsPerBar: result.beatsPerBar ?? 4,
+    capo: 0,
     analyzerVersion: result.analyzerVersion,
     transpose: preferences.transpose,
     notation: preferences.notation,

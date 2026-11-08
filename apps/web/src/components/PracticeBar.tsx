@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { tempoFromBeats } from '../grid/beats';
 import type { PlayerAdapter } from '../player/types';
+import { MAX_BPM, MIN_BPM, PLAYBACK_RATES } from '../storage/practice';
 import type { PlaybackClock } from '../sync/clock';
 import { barRangeAt, firstBeatAtOrAfter } from '../practice/range';
 
@@ -13,15 +14,20 @@ interface PracticeBarProps {
   duration: number;
   loopA: number | null;
   loopB: number | null;
+  loopEnabled: boolean;
   onLoopAChange: (value: number | null) => void;
   onLoopBChange: (value: number | null) => void;
+  onLoopEnabledChange: (value: boolean) => void;
+  rate: number;
+  onRateChange: (value: number) => void;
+  manualBpm: number;
+  onManualBpmChange: (value: number) => void;
 }
 
-const SPEEDS = [
-  { value: 0.5, label: '0,5×' },
-  { value: 0.75, label: '0,75×' },
-  { value: 1, label: '1×' },
-];
+const SPEEDS = PLAYBACK_RATES.map((value) => ({
+  value,
+  label: `${String(value).replace('.', ',')}×`,
+}));
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -55,17 +61,26 @@ export function PracticeBar({
   duration,
   loopA,
   loopB,
+  loopEnabled,
   onLoopAChange,
   onLoopBChange,
+  onLoopEnabledChange,
+  rate,
+  onRateChange,
+  manualBpm,
+  onManualBpmChange,
 }: PracticeBarProps) {
-  const [loopEnabled, setLoopEnabled] = useState(false);
-  const [rate, setRate] = useState(() => adapter.getPlaybackRate?.() ?? 1);
   const [metronome, setMetronome] = useState(false);
   const [countingIn, setCountingIn] = useState(false);
+  const [bpmDraft, setBpmDraft] = useState(String(manualBpm));
 
   const audioRef = useRef<AudioContext | null>(null);
   const countInTimer = useRef<number | null>(null);
   const lastLoopSeek = useRef(0);
+
+  useEffect(() => {
+    setBpmDraft(String(manualBpm));
+  }, [manualBpm]);
 
   const ensureAudio = useCallback(() => {
     const current = audioRef.current;
@@ -82,18 +97,14 @@ export function PracticeBar({
   }, []);
 
   useEffect(() => {
-    setRate(adapter.getPlaybackRate?.() ?? 1);
-  }, [adapter]);
-
-  useEffect(() => {
     adapter.setPlaybackRate?.(rate);
   }, [adapter, rate]);
 
   useEffect(() => {
     if (loopEnabled && (loopA === null || loopB === null || loopB <= loopA)) {
-      setLoopEnabled(false);
+      onLoopEnabledChange(false);
     }
-  }, [loopA, loopB, loopEnabled]);
+  }, [loopA, loopB, loopEnabled, onLoopEnabledChange]);
 
   useEffect(() => {
     if (!loopEnabled || loopA === null || loopB === null || loopB <= loopA) return;
@@ -109,6 +120,13 @@ export function PracticeBar({
     }, 80);
     return () => window.clearInterval(timer);
   }, [loopEnabled, loopA, loopB, adapter, clock]);
+
+  const metronomeBeats = useMemo(() => {
+    if (beats.length > 0) return beats;
+    const interval = 60 / Math.max(MIN_BPM, Math.min(MAX_BPM, manualBpm));
+    const count = Math.max(1, Math.ceil(Math.max(0, duration) / interval));
+    return Array.from({ length: count }, (_, index) => index * interval);
+  }, [beats, manualBpm, duration]);
 
   useEffect(() => {
     if (!metronome) return;
@@ -127,11 +145,11 @@ export function PracticeBar({
       const currentRate = Math.max(0.25, adapter.getPlaybackRate?.() ?? 1);
       if (now < lastTime - 0.2 || now > lastTime + 1.5) nextIndex = -1;
       lastTime = now;
-      if (nextIndex < 0) nextIndex = firstBeatAtOrAfter(beats, now);
+      if (nextIndex < 0) nextIndex = firstBeatAtOrAfter(metronomeBeats, now);
 
       const horizon = now + 0.2 * currentRate;
-      while (nextIndex >= 0 && nextIndex < beats.length) {
-        const beatTime = beats[nextIndex]!;
+      while (nextIndex >= 0 && nextIndex < metronomeBeats.length) {
+        const beatTime = metronomeBeats[nextIndex]!;
         if (beatTime >= horizon) break;
         if (beatTime >= now - 0.04) {
           const when = context.currentTime + Math.max(0, (beatTime - now) / currentRate);
@@ -144,7 +162,7 @@ export function PracticeBar({
     schedule();
     const timer = window.setInterval(schedule, 50);
     return () => window.clearInterval(timer);
-  }, [metronome, adapter, beats, beatsPerBar, ensureAudio]);
+  }, [metronome, adapter, metronomeBeats, beatsPerBar, ensureAudio]);
 
   useEffect(() => {
     return () => {
@@ -170,14 +188,14 @@ export function PracticeBar({
     const range = barRangeAt(adapter.getCurrentTime(), beats, beatsPerBar, duration);
     onLoopAChange(range.start);
     onLoopBChange(range.end);
-    setLoopEnabled(true);
+    onLoopEnabledChange(true);
     adapter.seekTo(range.start);
     clock.tickOnce();
   };
 
   const toggleLoop = () => {
     if (loopEnabled) {
-      setLoopEnabled(false);
+      onLoopEnabledChange(false);
       return;
     }
     if (loopA === null || loopB === null) return;
@@ -186,13 +204,22 @@ export function PracticeBar({
       adapter.seekTo(loopA);
       clock.tickOnce();
     }
-    setLoopEnabled(true);
+    onLoopEnabledChange(true);
   };
 
   const clearLoop = () => {
-    setLoopEnabled(false);
+    onLoopEnabledChange(false);
     onLoopAChange(null);
     onLoopBChange(null);
+  };
+
+  const commitManualBpm = () => {
+    const parsed = Number(bpmDraft);
+    const next = Number.isFinite(parsed)
+      ? Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(parsed)))
+      : manualBpm;
+    setBpmDraft(String(next));
+    onManualBpmChange(next);
   };
 
   const startCountIn = () => {
@@ -203,10 +230,11 @@ export function PracticeBar({
       clock.tickOnce();
     }
     const context = ensureAudio();
-    const bpm = tempoFromBeats(beats) ?? 90;
-    const interval = 60 / Math.max(40, bpm);
+    const bpm = tempoFromBeats(beats) ?? manualBpm;
+    const interval = 60 / Math.max(MIN_BPM, bpm);
+    const countBeats = Math.max(1, Math.floor(beatsPerBar) || 4);
     if (context) {
-      for (let index = 0; index < 4; index += 1) {
+      for (let index = 0; index < countBeats; index += 1) {
         playClick(context, context.currentTime + index * interval, index === 0);
       }
     }
@@ -215,7 +243,7 @@ export function PracticeBar({
       setCountingIn(false);
       countInTimer.current = null;
       adapter.play();
-    }, interval * 4 * 1000);
+    }, interval * countBeats * 1000);
   };
 
   const hasRange = loopA !== null && loopB !== null && loopB > loopA;
@@ -288,7 +316,7 @@ export function PracticeBar({
         <select
           className="tool-select font-mono text-xs normal-case tracking-normal"
           value={rate}
-          onChange={(event) => setRate(Number(event.target.value))}
+          onChange={(event) => onRateChange(Number(event.target.value))}
           aria-label="Velocidad de reproducción"
         >
           {SPEEDS.map((speed) => (
@@ -299,12 +327,36 @@ export function PracticeBar({
         </select>
       </label>
 
+      {beats.length === 0 ? (
+        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          BPM
+          <input
+            type="number"
+            className="tool-select w-16 font-mono text-xs tabular-nums normal-case tracking-normal"
+            min={MIN_BPM}
+            max={MAX_BPM}
+            step={1}
+            value={bpmDraft}
+            onChange={(event) => setBpmDraft(event.target.value)}
+            onBlur={commitManualBpm}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur();
+            }}
+            aria-label="BPM del metrónomo"
+          />
+        </label>
+      ) : null}
+
       <button
         type="button"
         className={metronome ? 'tool-chip-active' : 'tool-chip'}
         aria-pressed={metronome}
-        disabled={beats.length === 0}
-        title="Activar o desactivar el clic del metrónomo"
+        disabled={duration <= 0}
+        title={
+          beats.length === 0
+            ? 'Activar o desactivar el clic del metrónomo con el BPM manual'
+            : 'Activar o desactivar el clic del metrónomo'
+        }
         onClick={() => setMetronome((value) => !value)}
       >
         Metrónomo

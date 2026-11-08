@@ -19,7 +19,7 @@ describe('formatChord', () => {
   it('formatea en notación española sin traducir cualidades', () => {
     expect(formatChord(chord('Am'), 'spanish')).toBe('Lam');
     expect(formatChord(chord('Cmaj7'), 'spanish')).toBe('Domaj7');
-    expect(formatChord(chord('F#'), 'spanish')).toBe('Fa#');
+    expect(formatChord(chord('F#'), 'spanish')).toBe('Fa♯');
     expect(formatChord(chord('C/G'), 'spanish')).toBe('Do/Sol');
   });
 

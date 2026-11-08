@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   accidentalForKey,
   estimateKey,
+  relativeKey,
   relativeMajor,
   resolveAccidental,
+  transposeKey,
 } from '../src/key';
 import { formatChord } from '../src/format';
 import { parseChord } from '../src/parse';
@@ -56,5 +58,21 @@ describe('resolveAccidental', () => {
 describe('relativeMajor', () => {
   it('calcula la relativa mayor', () => {
     expect(relativeMajor(9)).toBe(0);
+  });
+});
+
+describe('relativeKey', () => {
+  it('cambia entre mayor y menor conservando la armadura', () => {
+    expect(relativeKey({ tonic: 0, mode: 'major' })).toEqual({ tonic: 9, mode: 'minor' });
+    expect(relativeKey({ tonic: 9, mode: 'minor' })).toEqual({ tonic: 0, mode: 'major' });
+    expect(relativeKey({ tonic: 5, mode: 'major' })).toEqual({ tonic: 2, mode: 'minor' });
+  });
+});
+
+describe('transposeKey', () => {
+  it('transporta la tónica y conserva el modo', () => {
+    expect(transposeKey({ tonic: 2, mode: 'major' }, -2)).toEqual({ tonic: 0, mode: 'major' });
+    expect(transposeKey({ tonic: 9, mode: 'minor' }, 3)).toEqual({ tonic: 0, mode: 'minor' });
+    expect(transposeKey({ tonic: 0, mode: 'major' }, 14)).toEqual({ tonic: 2, mode: 'major' });
   });
 });

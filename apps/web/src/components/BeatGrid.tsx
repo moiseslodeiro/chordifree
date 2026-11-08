@@ -37,11 +37,10 @@ const LOOP_LABELS: Record<Exclude<LoopRole, null>, string> = {
   range: ', dentro del bucle',
 };
 
-const LOOP_MARKS: Record<Exclude<LoopRole, null>, string> = {
+const LOOP_MARKS: Record<'a' | 'b' | 'ab', string> = {
   a: 'A',
   b: 'B',
   ab: 'A·B',
-  range: '',
 };
 
 const BeatCellButton = memo(function BeatCellButton({
@@ -61,11 +60,12 @@ const BeatCellButton = memo(function BeatCellButton({
   const active = useIsBeatActive(clock, cell.beatIndex);
   const label = formatChordOrSilence(cell.chord, notation, accidental);
   const chordDescription = cell.chord ? `acorde ${label}` : 'silencio';
+  const lowConfidence = cell.confidence !== undefined && cell.confidence < 0.6;
   const accessibleLabel = `Fila ${rowIndex + 1}, compás ${
     Math.floor(cell.beatIndex / beatsPerBar) + 1
   }, tiempo ${(cell.beatIndex % beatsPerBar) + 1}, ${chordDescription}, en ${formatTime(
     cell.time,
-  )}${loopRole ? LOOP_LABELS[loopRole] : ''}`;
+  )}${loopRole ? LOOP_LABELS[loopRole] : ''}${lowConfidence ? ', confianza baja' : ''}`;
 
   return (
     <button
@@ -77,6 +77,9 @@ const BeatCellButton = memo(function BeatCellButton({
       data-active={active ? 'true' : 'false'}
       data-change={cell.change ? 'true' : 'false'}
       data-loop={loopRole ?? undefined}
+      data-confidence={
+        cell.confidence === undefined ? undefined : Math.round(cell.confidence * 100)
+      }
       aria-current={active ? 'true' : undefined}
       aria-label={accessibleLabel}
       className={`beat-cell ${barStart && cellIndex > 0 ? 'border-l-2 border-l-line-strong' : ''}`}
@@ -84,9 +87,18 @@ const BeatCellButton = memo(function BeatCellButton({
       onKeyDown={(event) => onNavigate(event, rowIndex, cellIndex)}
     >
       {cell.change ? <span className="beat-label max-w-full truncate">{label}</span> : null}
-      {showLoopMark && loopRole ? (
+      {showLoopMark && loopRole && loopRole !== 'range' ? (
         <span className="beat-loop-mark" aria-hidden="true">
           {LOOP_MARKS[loopRole]}
+        </span>
+      ) : null}
+      {cell.change && lowConfidence ? (
+        <span
+          className="beat-confidence"
+          aria-hidden="true"
+          title={`Confianza ${Math.round((cell.confidence ?? 0) * 100)}%`}
+        >
+          ?
         </span>
       ) : null}
     </button>

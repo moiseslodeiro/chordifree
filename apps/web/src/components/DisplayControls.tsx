@@ -1,16 +1,18 @@
-import type { Instrument } from '../types';
-import { IconGuitar, IconSliders, Tool } from './Toolbar';
+import { supportsCapo, type Instrument } from '../types';
+import { IconCapo, IconGuitar, IconSliders, Tool } from './Toolbar';
 
 interface DisplayControlsProps {
   simplifyChords: boolean;
   reduceChords: boolean;
   reduceChordsMax: boolean;
   instrument: Instrument;
+  capo: number;
   onChange: (patch: {
     simplifyChords?: boolean;
     reduceChords?: boolean;
     reduceChordsMax?: boolean;
     instrument?: Instrument;
+    capo?: number;
   }) => void;
 }
 
@@ -25,11 +27,14 @@ export function DisplayControls({
   reduceChords,
   reduceChordsMax,
   instrument,
+  capo,
   onChange,
 }: DisplayControlsProps) {
   const instrumentLabel =
     INSTRUMENTS.find((item) => item.value === instrument)?.label ?? 'Guitarra';
   const maxActive = reduceChords && reduceChordsMax;
+  /** La cejilla solo tiene sentido en instrumentos de cuerda. */
+  const capoAvailable = supportsCapo(instrument);
 
   return (
     <section className="contents" aria-label="Presentación de acordes">
@@ -98,10 +103,37 @@ export function DisplayControls({
         </div>
       </div>
 
+      {capoAvailable ? (
+        <div className="tool">
+          <span className="tool-icon" aria-hidden="true">
+            <IconCapo />
+          </span>
+          <label htmlFor="capo-select" className="tool-label">
+            Capo
+          </label>
+          <div className="tool-value">
+            <select
+              id="capo-select"
+              className="tool-select"
+              value={capo}
+              onChange={(event) => onChange({ capo: Number(event.target.value) })}
+            >
+              {Array.from({ length: 8 }, (_, fret) => (
+                <option key={fret} value={fret}>
+                  {fret === 0 ? 'Sin capo' : `Traste ${fret}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : null}
+
       <p className="sr-only" aria-live="polite">
         {`Simplificación ${simplifyChords ? 'activada' : 'desactivada'}. Reducción ${
           reduceChords ? (reduceChordsMax ? 'máxima' : 'activada') : 'desactivada'
-        }. Instrumento: ${instrumentLabel}.`}
+        }. Instrumento: ${instrumentLabel}.${
+          capoAvailable ? ` Capo: ${capo === 0 ? 'sin capo' : `traste ${capo}`}.` : ''
+        }`}
       </p>
     </section>
   );

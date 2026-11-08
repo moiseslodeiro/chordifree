@@ -3,6 +3,10 @@ import type { ReactNode } from 'react';
 
 interface SongDetailsProps {
   keyLabel: string | null;
+  relativeKeyLabel: string | null;
+  capo: number;
+  capoKeyLabel: string | null;
+  showCapo?: boolean;
   bpm: number | null;
   beatsPerBar: number;
   duration: number;
@@ -26,6 +30,10 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 export function SongDetails({
   keyLabel,
+  relativeKeyLabel,
+  capo,
+  capoKeyLabel,
+  showCapo = true,
   bpm,
   beatsPerBar,
   duration,
@@ -43,6 +51,14 @@ export function SongDetails({
 
       <dl className="space-y-2.5 px-4 py-4">
         <Row label="Tonalidad">{keyLabel ?? '—'}</Row>
+        <Row label="Relativa">{relativeKeyLabel ?? '—'}</Row>
+        {showCapo ? (
+          <Row label="Capo">
+            {capo === 0
+              ? 'Sin capo'
+              : `Traste ${capo}${capoKeyLabel ? ` · ${capoKeyLabel}` : ''}`}
+          </Row>
+        ) : null}
         <Row label="BPM">{bpm ?? '—'}</Row>
         <Row label="Compás">{`${beatsPerBar}/4`}</Row>
         <Row label="Duración">{formatTime(duration)}</Row>

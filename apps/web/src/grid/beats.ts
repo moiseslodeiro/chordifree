@@ -16,6 +16,8 @@ export interface BeatCell {
   change: boolean;
   /** Índice del segmento vigente, o -1 si no hay ninguno. */
   segmentIndex: number;
+  /** Confianza del detector para el acorde vigente, si está disponible. */
+  confidence?: number;
 }
 
 export interface BeatBar {
@@ -132,10 +134,19 @@ export function buildBeatGrid(
       const beatIndex = start + offset;
       const segmentIndex = findActiveSegmentIndex(segments, time + tolerance);
       const chord = segmentIndex >= 0 ? (segments[segmentIndex]?.chord ?? null) : null;
+      const confidence =
+        segmentIndex >= 0 ? segments[segmentIndex]?.confidence : undefined;
       const change = !hasPrevious || !chordEquals(previousChord, chord);
       previousChord = chord;
       hasPrevious = true;
-      return { time, beatIndex, chord, change, segmentIndex };
+      return {
+        time,
+        beatIndex,
+        chord,
+        change,
+        segmentIndex,
+        ...(confidence !== undefined ? { confidence } : {}),
+      };
     });
 
     while (cells.length < size) cells.push(null);

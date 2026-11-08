@@ -100,6 +100,71 @@ test.describe('flujo completo', () => {
     await expect(page.getByTestId('beat-cell-8')).toContainText('Sol♯');
   });
 
+  test('muestra grados, capo y confianza baja sin salir de la canción', async ({ page }) => {
+    await stubApi(page, {
+      ...RESULT,
+      segments: [
+        { start: 0, end: 8, chord: { root: 2, quality: 'major' }, confidence: 0.35 },
+        { start: 8, end: 16, chord: { root: 9, quality: 'major' }, confidence: 0.9 },
+        { start: 16, end: 24, chord: { root: 11, quality: 'minor' }, confidence: 0.8 },
+      ],
+    });
+    await analyze(page);
+
+    const analysis = page.getByRole('region', { name: 'Análisis armónico' });
+    const progression = analysis.getByRole('list', { name: 'Progresión por grados' });
+    await expect(progression).toContainText('I');
+    await expect(progression).toContainText('V');
+    await expect(progression).toContainText('vi');
+
+    const firstCell = page.getByTestId('beat-cell-0');
+    await expect(firstCell).toHaveAttribute('data-confidence', '35');
+    await expect(firstCell).toContainText('?');
+    expect(await firstCell.getAttribute('aria-label')).toContain('confianza baja');
+
+    await page.getByLabel('Capo').selectOption('2');
+    await expect(firstCell).toContainText('C');
+    await expect(page.getByRole('region', { name: 'Detalles de la canción' })).toContainText(
+      'Traste 2',
+    );
+
+    await page.getByLabel('Instrumento').selectOption('piano');
+    await expect(page.getByLabel('Capo')).toHaveCount(0);
+    await expect(firstCell).toContainText('D');
+    await expect(page.getByRole('region', { name: 'Detalles de la canción' })).not.toContainText(
+      'Traste 2',
+    );
+
+    await page.getByLabel('Instrumento').selectOption('guitar');
+    await expect(firstCell).toContainText('C');
+  });
+
+  test('conserva el rango A-B y la velocidad al recargar', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Marcar inicio A en el compás actual' }).click();
+    await page.getByRole('button', { name: 'Marcar final B en el compás actual' }).click();
+    await page.getByRole('button', { name: 'Bucle', exact: true }).click();
+    await page.getByLabel('Velocidad de reproducción').selectOption('1.25');
+
+    await expect(page.getByText('00:00 – 00:04')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bucle', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
+    await page.reload();
+
+    await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bucle', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByText('00:00 – 00:04')).toBeVisible();
+    await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1.25');
+  });
+
   test('resalta el acorde activo en menos de 250 ms al buscar', async ({ page }) => {
     await analyze(page);
     const slider = page.getByLabel('Posición de reproducción');
