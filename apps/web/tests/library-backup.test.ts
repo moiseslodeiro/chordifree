@@ -32,6 +32,18 @@ describe('exportación e importación de la biblioteca', () => {
     expect(exported[0]?.segments).toHaveLength(1);
   });
 
+  it('conserva la letra al exportar e importar', () => {
+    const source = new Library(createMemoryStorage());
+    source.save({ ...song('a', 'video-a', 'Con letra'), lyrics: 'Línea uno\nLínea dos' });
+    const exported = source.exportSongs();
+
+    const target = new Library(createMemoryStorage());
+    target.importSongs(exported);
+
+    expect(target.list()[0]?.title).toBe('Con letra');
+    expect(target.exportSongs()[0]?.lyrics).toBe('Línea uno\nLínea dos');
+  });
+
   it('añade canciones nuevas y actualiza las que comparten origen', () => {
     const library = new Library(createMemoryStorage());
     library.save(song('local', 'video-a', 'Versión antigua'));

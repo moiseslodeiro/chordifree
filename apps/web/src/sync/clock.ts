@@ -47,6 +47,10 @@ export class PlaybackClock {
     return this.beatIndex;
   };
 
+  getTime = (): number => {
+    return this.adapter.getCurrentTime();
+  };
+
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

@@ -35,6 +35,8 @@ export interface Song {
   beatsPerBar?: number;
   /** Cejilla virtual: los acordes se muestran transportados -capo semitonos. */
   capo?: number;
+  /** Letra opcional en texto plano, con saltos de línea significativos. */
+  lyrics?: string;
   analyzerVersion: string;
   transpose: number;
   notation: Notation;
@@ -64,7 +66,7 @@ export interface Preferences {
 }
 
 export type Instrument = 'guitar' | 'piano' | 'ukelele';
-export type GridView = 'beats' | 'list';
+export type GridView = 'beats' | 'list' | 'lyrics';
 export type Theme = 'light' | 'dark';
 
 /** La cejilla solo tiene sentido en instrumentos de cuerda. */

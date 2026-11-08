@@ -11,6 +11,7 @@ import type { PlaybackClock } from '../sync/clock';
 import { useBeatIndex, useIsRowActive, usePlaybackIndex } from '../sync/hooks';
 import type { GridView } from '../types';
 import { activeBeatDescription, BeatGrid } from './BeatGrid';
+import { LyricsChordView } from './LyricsChordView';
 
 interface ChordRowProps {
   index: number;
@@ -112,6 +113,9 @@ interface ChordGridProps {
   duration?: number;
   view?: GridView;
   onViewChange?: (view: GridView) => void;
+  lyrics?: string;
+  lyricsSegments?: ChordSegment[];
+  onEditLyrics?: () => void;
   loopA?: number | null;
   loopB?: number | null;
 }
@@ -127,6 +131,9 @@ export function ChordGrid({
   duration,
   view = 'list',
   onViewChange = () => undefined,
+  lyrics = '',
+  lyricsSegments,
+  onEditLyrics = () => undefined,
   loopA = null,
   loopB = null,
 }: ChordGridProps) {
@@ -139,7 +146,9 @@ export function ChordGrid({
   );
   const barCount = rows.reduce((total, row) => total + row.bars.length, 0);
   const canUseBeats = rows.length > 0;
-  const effectiveView: GridView = view === 'beats' && canUseBeats ? 'beats' : 'list';
+  const sheetDuration = duration ?? segments.at(-1)?.end ?? 0;
+  const effectiveView: GridView =
+    view === 'lyrics' ? 'lyrics' : view === 'beats' && canUseBeats ? 'beats' : 'list';
   const listRef = useRef<HTMLOListElement>(null);
   const manualUntil = useRef(0);
   const [follow, setFollow] = useState(true);
@@ -199,7 +208,9 @@ export function ChordGrid({
               ? `${rows.length} ${rows.length === 1 ? 'fila' : 'filas'} · ${barCount} ${
                   barCount === 1 ? 'compás' : 'compases'
                 }`
-              : `${segments.length} segmentos`}
+              : effectiveView === 'lyrics'
+                ? 'Letra con acordes'
+                : `${segments.length} segmentos`}
           </span>
         </div>
         <div
@@ -226,6 +237,14 @@ export function ChordGrid({
           </button>
           <button
             type="button"
+            aria-pressed={effectiveView === 'lyrics'}
+            className={effectiveView === 'lyrics' ? 'tool-chip-active' : 'tool-chip'}
+            onClick={() => onViewChange('lyrics')}
+          >
+            Letra
+          </button>
+          <button
+            type="button"
             aria-pressed={follow}
             className={follow ? 'tool-chip-active' : 'tool-chip'}
             title="Seguir la reproducción y desplazar la fila activa"
@@ -236,13 +255,26 @@ export function ChordGrid({
         </div>
       </div>
 
-      {!canUseBeats ? (
+      {!canUseBeats && effectiveView !== 'lyrics' ? (
         <p className="note note-warning mt-3 text-xs leading-relaxed">
           No se detectaron pulsos en esta canción; se muestra la vista de lista.
         </p>
       ) : null}
 
-      {effectiveView === 'beats' ? (
+      {effectiveView === 'lyrics' ? (
+        <LyricsChordView
+          lyrics={lyrics}
+          segments={lyricsSegments ?? segments}
+          beats={beats}
+          beatsPerBar={beatsPerBar}
+          duration={sheetDuration}
+          notation={notation}
+          accidental={accidental}
+          clock={clock}
+          onSeek={onSeek}
+          onEdit={onEditLyrics}
+        />
+      ) : effectiveView === 'beats' ? (
         <div className="mt-3">
           <BeatGrid
             rows={rows}
@@ -286,7 +318,9 @@ export function ChordGrid({
       <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
         {effectiveView === 'beats'
           ? 'Haz clic en un tiempo para saltar a su pulso. Usa las flechas para moverte, subir o bajar de fila, y Home o End para ir al primer o último pulso.'
-          : 'Haz clic en un acorde para saltar a su tiempo. Usa las flechas arriba y abajo para moverte y Intro para saltar.'}
+          : effectiveView === 'lyrics'
+            ? 'La letra se alinea de forma aproximada con los tiempos. Pulsa un acorde o una línea para saltar a su momento.'
+            : 'Haz clic en un acorde para saltar a su tiempo. Usa las flechas arriba y abajo para moverte y Intro para saltar.'}
       </p>
     </section>
   );

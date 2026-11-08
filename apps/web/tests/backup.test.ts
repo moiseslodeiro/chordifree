@@ -49,6 +49,15 @@ describe('copia de seguridad', () => {
     expect(parseBackup(raw)).toEqual(songs);
   });
 
+  it('conserva la letra de cada canción', () => {
+    const withLyrics = {
+      ...song('a', 'video-a', 'Con letra'),
+      lyrics: 'Primera línea\nSegunda línea',
+    };
+    const [restored] = parseBackup(serializeBackup([withLyrics], now));
+    expect(restored?.lyrics).toBe('Primera línea\nSegunda línea');
+  });
+
   it('rechaza un archivo que no es JSON', () => {
     expect(() => parseBackup('{')).toThrow(BackupError);
   });

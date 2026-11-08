@@ -200,6 +200,118 @@ test.describe('flujo completo', () => {
     await expect(sheet).toContainText('00:08');
   });
 
+  test('guarda la letra, actualiza los acordes con el capo y recupera la vista', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
+    await expect(page.getByText('Todavía no hay letra')).toBeVisible();
+    await page.getByRole('button', { name: 'Añadir letra' }).click();
+    await page.getByLabel('Letra de la canción').fill('Primera línea\nSegunda línea');
+    await page.getByRole('button', { name: 'Guardar letra' }).click();
+    await expect(page.getByText('Canción guardada en la biblioteca.')).toBeVisible();
+
+    await expect(page.getByRole('button', { name: 'C en 00:00' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'G en 00:08' })).toBeVisible();
+    await expect(page.getByText('Primera línea')).toBeVisible();
+
+    await page.getByLabel('Capo').selectOption('2');
+    await expect(page.getByRole('button', { name: 'A♯ en 00:00' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'F en 00:08' })).toBeVisible();
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Letra', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByText('Primera línea')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'A♯ en 00:00' })).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const overflow = await page
+      .getByTestId('song-grid-column')
+      .evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+    await expect(page.getByText('Segunda línea')).toBeVisible();
+  });
+
+  test('omite intro e interludio y permite anclar una línea al tiempo actual', async ({ page }) => {
+    const labels = ['C', 'Dm', 'C', 'G', 'Am', 'F', 'C', 'C', 'C', 'C', 'C', 'G', 'Am', 'F'];
+    const qualities: Record<string, { root: number; quality: string }> = {
+      C: { root: 0, quality: 'major' },
+      Dm: { root: 2, quality: 'minor' },
+      G: { root: 7, quality: 'major' },
+      Am: { root: 9, quality: 'minor' },
+      F: { root: 5, quality: 'major' },
+    };
+    const segments = labels.map((label, index) => ({
+      start: index * 4,
+      end: (index + 1) * 4,
+      chord: qualities[label]!,
+    }));
+
+    await stubApi(page, {
+      ...RESULT,
+      duration: 56,
+      beats: Array.from({ length: 56 }, (_, index) => index),
+      beatsPerBar: 4,
+      segments,
+    });
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
+    await page.getByRole('button', { name: 'Añadir letra' }).click();
+    await page.getByLabel('Letra de la canción').fill('Primera línea\nSegunda línea');
+    await page.getByRole('button', { name: 'Guardar letra' }).click();
+
+    await expect(page.getByRole('button', { name: 'C en 00:08' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'C en 00:40' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Dm en 00:04' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'C en 00:24' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Editar letra' }).click();
+    await page.getByLabel('Posición de reproducción').fill('40');
+    const textarea = page.getByLabel('Letra de la canción');
+    await textarea.evaluate((element) => {
+      const field = element as HTMLTextAreaElement;
+      field.setSelectionRange(field.value.length, field.value.length);
+    });
+    await page.getByRole('button', { name: 'Anclar línea' }).click();
+    await expect(textarea).toHaveValue('Primera línea\n[00:40] Segunda línea');
+    await page.getByRole('button', { name: 'Guardar letra' }).click();
+
+    await expect(page.getByText('Segunda línea')).toBeVisible();
+    await expect(page.getByText('[00:40]')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'F en 00:52' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Editar letra' }).click();
+    await expect(page.getByLabel('Letra de la canción')).toHaveValue(
+      'Primera línea\n[00:40] Segunda línea',
+    );
+  });
+
+  test('mantiene el tiempo real del acorde dominante con la reducción máxima', async ({ page }) => {
+    await stubApi(page, {
+      ...RESULT,
+      duration: 4,
+      beats: [0, 1, 2, 3],
+      beatsPerBar: 4,
+      segments: [
+        { start: 0, end: 1.6, chord: { root: 0, quality: 'major' } },
+        { start: 1.6, end: 4, chord: { root: 7, quality: 'major' } },
+      ],
+    });
+    await analyze(page);
+
+    await page.getByRole('button', { name: /Reducir acordes/ }).click();
+    await page.getByRole('button', { name: 'Reducir al máximo' }).click();
+
+    await expect(page.getByTestId('beat-cell-0')).toContainText('C');
+    await expect(page.getByTestId('beat-cell-1')).not.toContainText('G');
+    await expect(page.getByTestId('beat-cell-2')).toContainText('G');
+  });
+
   test('resalta el acorde activo en menos de 250 ms al buscar', async ({ page }) => {
     await analyze(page);
     const slider = page.getByLabel('Posición de reproducción');
@@ -320,6 +432,22 @@ test.describe('accesibilidad', () => {
 
   test('la vista de canción con dos columnas no tiene violaciones críticas', async ({ page }) => {
     await analyze(page);
+
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    const blocking = results.violations.filter(
+      (violation) => violation.impact === 'critical' || violation.impact === 'serious',
+    );
+    expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+  });
+
+  test('la vista de letra no tiene violaciones críticas', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
+    await page.getByRole('button', { name: 'Añadir letra' }).click();
+    await page.getByLabel('Letra de la canción').fill('Primera línea\nSegunda línea');
+    await page.getByRole('button', { name: 'Guardar letra' }).click();
+    await expect(page.getByText('Primera línea')).toBeVisible();
 
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
     const blocking = results.violations.filter(

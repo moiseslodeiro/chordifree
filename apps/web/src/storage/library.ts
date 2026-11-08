@@ -48,6 +48,7 @@ export function isSong(value: unknown): value is Song {
       (Array.isArray(value.beats) && value.beats.every((beat) => typeof beat === 'number'))) &&
     (value.beatsPerBar === undefined || typeof value.beatsPerBar === 'number') &&
     (value.capo === undefined || typeof value.capo === 'number') &&
+    (value.lyrics === undefined || typeof value.lyrics === 'string') &&
     typeof value.analyzerVersion === 'string' &&
     typeof value.transpose === 'number' &&
     (value.notation === 'english' || value.notation === 'spanish') &&

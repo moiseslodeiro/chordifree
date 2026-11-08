@@ -140,4 +140,37 @@ describe('reduceChordSegments', () => {
 
     expect(result.map((item) => [item.start, item.end, item.chord?.root])).toEqual([[0, 6, 0]]);
   });
+
+  it('en modo máximo respeta compases distintos de 4/4', () => {
+    const threeFour = [0, 1, 2, 3, 4, 5];
+    const result = reduceChordSegments(
+      [
+        segment(0, 1.5, 'C'),
+        segment(1.5, 3, 'G'),
+        segment(3, 4.5, 'F'),
+        segment(4.5, 6, 'C'),
+      ],
+      threeFour,
+      'max',
+      3,
+    );
+
+    expect(result.map((item) => [item.start, item.end, item.chord?.root])).toEqual([
+      [0, 3, 0],
+      [3, 6, 5],
+    ]);
+  });
+
+  it('en modo máximo conserva el inicio real del acorde dominante', () => {
+    const result = reduceChordSegments(
+      [segment(0, 1.6, 'C'), segment(1.6, 4, 'G')],
+      [0, 1, 2, 3],
+      'max',
+    );
+
+    expect(result.map((item) => [item.start, item.end, item.chord?.root])).toEqual([
+      [0, 1.6, 0],
+      [1.6, 4, 7],
+    ]);
+  });
 });

@@ -15,7 +15,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 };
 
 const INSTRUMENTS: Instrument[] = ['guitar', 'piano', 'ukelele'];
-const GRID_VIEWS: GridView[] = ['beats', 'list'];
+const GRID_VIEWS: GridView[] = ['beats', 'list', 'lyrics'];
 const THEMES: Theme[] = ['light', 'dark'];
 
 function clampTranspose(value: number): number {
