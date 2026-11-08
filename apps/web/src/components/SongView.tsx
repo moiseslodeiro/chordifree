@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  chordDegree,
+  chordEquals,
   estimateKey,
+  formatChord,
   formatChordOrSilence,
   formatTime,
   noteName,
@@ -169,6 +172,26 @@ export function SongView({
     return chords;
   }, [displaySegments, song.notation, accidental]);
 
+  /** Cambios de acorde para la hoja imprimible, con tiempo y grado. */
+  const printRows = useMemo(() => {
+    const rows: Array<{ time: string; chord: string; degree: string | null }> = [];
+    let previous: ChordSegment['chord'] = null;
+    for (const segment of displaySegments) {
+      if (!segment.chord) {
+        previous = null;
+        continue;
+      }
+      if (previous && chordEquals(previous, segment.chord)) continue;
+      previous = segment.chord;
+      rows.push({
+        time: formatTime(segment.start),
+        chord: formatChord(segment.chord, song.notation, accidental),
+        degree: estimatedKey ? chordDegree(segment.chord, estimatedKey) : null,
+      });
+    }
+    return rows;
+  }, [displaySegments, song.notation, accidental, estimatedKey]);
+
   const artist = useMemo(() => {
     const separator = song.title.indexOf(' - ');
     if (separator <= 0) return null;
@@ -269,6 +292,11 @@ export function SongView({
             <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
               {editing ? 'Salir de edición' : 'Editar acordes'}
             </button>
+            {!editing && printRows.length > 0 ? (
+              <button type="button" className="btn" onClick={() => window.print()}>
+                Imprimir / PDF
+              </button>
+            ) : null}
             <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
               {saved ? 'Guardar cambios' : 'Guardar en biblioteca'}
             </button>
@@ -412,6 +440,40 @@ export function SongView({
           />
         </aside>
       </div>
+
+      <section className="print-sheet" data-testid="print-sheet" aria-hidden="true">
+        <header className="print-sheet-header">
+          <p className="print-brand">chordifree</p>
+          <h1>{song.title}</h1>
+          <p className="print-meta">
+            {[
+              keyLabel ?? 'Tonalidad no determinada',
+              capoAvailable && capo > 0 ? `Capo ${capo}` : null,
+              bpm ? `${bpm} BPM` : null,
+              formatTime(song.duration),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        </header>
+
+        <ol className="print-chords" aria-label="Cambios de acorde">
+          {printRows.map((row, index) => (
+            <li key={`${row.time}-${row.chord}-${index}`}>
+              <span className="print-time">{row.time}</span>
+              <span className="print-chord">{row.chord}</span>
+              {row.degree ? <span className="print-degree">{row.degree}</span> : null}
+            </li>
+          ))}
+        </ol>
+
+        <footer className="print-footer">
+          {song.source.type === 'youtube'
+            ? `YouTube · ${song.source.videoId}`
+            : `Audio · ${song.source.filename}`}{' '}
+          · Generado el {new Date().toLocaleDateString('es-ES')}
+        </footer>
+      </section>
     </div>
   );
 }

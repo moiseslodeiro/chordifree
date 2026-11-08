@@ -5,6 +5,7 @@ import { LibraryList } from './components/LibraryList';
 import { SongView } from './components/SongView';
 import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
+import { BackupError, downloadBackup, parseBackup } from './storage/backup';
 import { Library } from './storage/library';
 import { loadPreferences, savePreferences } from './storage/preferences';
 import { removePractice } from './storage/practice';
@@ -197,6 +198,45 @@ export default function App() {
     setNotice({ message: 'Canción eliminada de la biblioteca.', tone: 'info' });
   };
 
+  const exportLibrary = () => {
+    const all = library.exportSongs();
+    if (all.length === 0) {
+      setNotice({ message: 'No hay canciones que exportar.', tone: 'warning' });
+      return;
+    }
+    downloadBackup(all);
+    setNotice({
+      message: `Copia de seguridad descargada con ${all.length} ${
+        all.length === 1 ? 'canción' : 'canciones'
+      }.`,
+      tone: 'success',
+    });
+  };
+
+  const importLibrary = async (file: File) => {
+    try {
+      const imported = parseBackup(await file.text());
+      const result = library.importSongs(imported);
+      setSongs(library.list());
+      setNotice({
+        message: `Copia importada: ${result.added} ${
+          result.added === 1 ? 'canción nueva' : 'canciones nuevas'
+        } y ${result.updated} ${
+          result.updated === 1 ? 'actualizada' : 'actualizadas'
+        }.`,
+        tone: 'success',
+      });
+    } catch (error) {
+      setNotice({
+        message:
+          error instanceof BackupError
+            ? error.message
+            : 'No se pudo importar la copia de seguridad.',
+        tone: 'warning',
+      });
+    }
+  };
+
   return (
     <div className="shell">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-line pb-4 sm:items-end">
@@ -254,6 +294,10 @@ export default function App() {
         {route.name === 'library' ? (
           <LibraryList
             songs={songs}
+            notice={notice}
+            onDismissNotice={() => setNotice(null)}
+            onExport={exportLibrary}
+            onImport={(file) => void importLibrary(file)}
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
             onBack={() => navigate({ name: 'home' })}
