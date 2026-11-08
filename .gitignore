@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+*.log
+.DS_Store
+.tmp/
+tmp/
+playwright-report/
+test-results/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
