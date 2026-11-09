@@ -80,9 +80,13 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = preferences.theme;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', preferences.theme === 'dark' ? '#090b0f' : '#f6f7f9');
   }, [preferences.theme]);
 
   useEffect(() => {
+    document.documentElement.lang = preferences.language;
     setLanguage(preferences.language);
   }, [preferences.language]);
 
@@ -405,6 +409,39 @@ export default function App() {
           />
         ) : null}
       </main>
+
+      <footer
+        data-testid="site-footer"
+        className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-ink3"
+      >
+        <span>{t('footer.tagline')}</span>
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
+          <a
+            className="transition hover:text-accent"
+            href="https://github.com/moiseslodeiro/chordifree"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('footer.github')}
+          </a>
+          <a
+            className="transition hover:text-accent"
+            href="https://www.gnu.org/licenses/agpl-3.0.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('footer.license')}
+          </a>
+          <a
+            className="transition hover:text-accent"
+            href="https://essentia.upf.edu/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('footer.essentia')}
+          </a>
+        </nav>
+      </footer>
     </div>
   );
 }

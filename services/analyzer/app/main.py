@@ -5,11 +5,13 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
 from .analysis import ANALYZER_VERSION, AnalyzerUnavailable, analyze_file
 
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".webm", ".mp4"}
+MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 
 app = FastAPI(title="Chordifree Analyzer", version=ANALYZER_VERSION)
 
@@ -25,15 +27,17 @@ async def analyze(file: UploadFile = File(...)) -> JSONResponse:
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=422, detail="Unsupported audio format")
 
-    payload = await file.read()
+    payload = await file.read(MAX_UPLOAD_BYTES + 1)
     if not payload:
         raise HTTPException(status_code=422, detail="Empty file")
+    if len(payload) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Audio file too large")
 
     handle, path = tempfile.mkstemp(suffix=suffix)
     os.close(handle)
     try:
         Path(path).write_bytes(payload)
-        result = analyze_file(path)
+        result = await run_in_threadpool(analyze_file, path)
     except AnalyzerUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - decoding errors

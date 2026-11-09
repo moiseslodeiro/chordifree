@@ -274,3 +274,7 @@ y comunicarlo mediante la red, revisando entonces este apartado y `LICENSE`.
 La descarga de audio puede contravenir los Términos de Servicio de YouTube y provocar bloqueos
 por IP. La aplicación no usa cookies de sesión ni elude restricciones técnicas, y ofrece la
 subida de audio como vía alternativa. Revisa los términos antes de desplegar el servicio.
+
+---
+
+<sub>Chordifree · AGPL-3.0 · Hecho con [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [English documentation](README.md)</sub>

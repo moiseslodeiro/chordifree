@@ -44,7 +44,8 @@
 ## Before publishing
 
 - [ ] Replace `<your-user>` in the README clone URL.
-- [ ] Add a short demo GIF or screenshot to the README.
+- [ ] Add a short demo GIF or screenshot to the README (the OG banner is already included).
+- [ ] After deploying, replace the relative `og:image` URL in `apps/web/index.html` with the absolute public URL.
 - [ ] Confirm the repository license is AGPL-3.0 and the model-license note is visible.
 - [ ] Run `pnpm typecheck`, `pnpm lint`, `pnpm -r test`, analyzer tests and E2E.
 - [ ] Test `docker compose up --build -d` on a clean machine.

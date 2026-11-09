@@ -4,6 +4,8 @@ Turn a YouTube video or your own audio file into a synchronized chord timeline y
 practice with. Chordifree estimates the key, beats, bars and chords, aligns lyrics with the
 sung sections, and lets you correct everything in the browser.
 
+![Chordifree](apps/web/public/og-image.png)
+
 > **Legal notice**: downloading YouTube audio may violate its Terms of Service. Use the
 > audio-upload option when you do not own the content. Chordifree does not bypass technical
 > restrictions or use session cookies.
@@ -18,6 +20,9 @@ git clone https://github.com/moiseslodeiro/chordifree.git
 cd chordifree
 docker compose up --build -d
 ```
+
+If your Docker installation only provides the standalone binary, use
+`docker-compose up --build -d` instead. The `Makefile` detects both.
 
 Open **http://localhost:3000**.
 
@@ -98,6 +103,7 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `MAX_UPLOAD_BYTES` | `26214400` | Maximum upload size (25 MB) |
 | `RATE_LIMIT_MAX` | `5` | Analysis requests per window and IP |
 | `RATE_LIMIT_WINDOW_MS` | `3600000` | Rate-limit window |
+| `TRUST_PROXY` | `1` | Trusted reverse-proxy hops |
 | `TEMP_DIR` | `./.tmp` | Temporary audio directory |
 | `YTDLP_PATH` | `yt-dlp` | yt-dlp binary |
 | `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
@@ -147,6 +153,9 @@ The end-to-end suite needs Playwright browsers installed
   emulation; add `platform: linux/amd64` to the analyzer service if needed.
 - **Port already in use**: change the host port in `docker-compose.yml` and update
   `CORS_ORIGIN` if you call the API directly.
+- **`KeyError: ContainerConfig` with `docker-compose` 1.29**: this is a known bug in the old
+  standalone Compose with recent Docker versions. Run `docker-compose down` and then
+  `docker-compose up -d`, or install Compose v2 and use `docker compose`.
 
 ## Licenses and commercial use
 
@@ -160,3 +169,7 @@ The end-to-end suite needs Playwright browsers installed
   for personal experimentation and for audio you own.
 
 Spanish documentation: [`README.es.md`](README.es.md).
+
+---
+
+<sub>Chordifree · AGPL-3.0 · Built with [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [Documentación en español](README.es.md)</sub>

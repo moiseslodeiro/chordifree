@@ -8,6 +8,7 @@ const EnvSchema = z.object({
   MAX_UPLOAD_BYTES: z.coerce.number().positive().default(25 * 1024 * 1024),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
+  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
   TEMP_DIR: z.string().default('./.tmp'),
   YTDLP_PATH: z.string().default('yt-dlp'),
   FFMPEG_PATH: z.string().default('ffmpeg'),
@@ -23,6 +24,7 @@ export interface AppConfig {
   maxUploadBytes: number;
   rateLimitMax: number;
   rateLimitWindowMs: number;
+  trustProxy: number;
   tempDir: string;
   ytdlpPath: string;
   ffmpegPath: string;
@@ -40,6 +42,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     maxUploadBytes: parsed.MAX_UPLOAD_BYTES,
     rateLimitMax: parsed.RATE_LIMIT_MAX,
     rateLimitWindowMs: parsed.RATE_LIMIT_WINDOW_MS,
+    trustProxy: parsed.TRUST_PROXY,
     tempDir: parsed.TEMP_DIR,
     ytdlpPath: parsed.YTDLP_PATH,
     ffmpegPath: parsed.FFMPEG_PATH,

@@ -1,16 +1,18 @@
+COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
 .PHONY: up down logs rebuild clean
 
 up:
-	docker compose up --build -d
+	$(COMPOSE) up --build -d
 
 down:
-	docker compose down
+	$(COMPOSE) down
 
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
 rebuild:
-	docker compose build --no-cache
+	$(COMPOSE) build --no-cache
 
 clean:
-	docker compose down -v --remove-orphans
+	$(COMPOSE) down -v --remove-orphans

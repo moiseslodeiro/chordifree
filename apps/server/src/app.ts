@@ -41,6 +41,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
 
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', config.trustProxy);
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -97,8 +98,8 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       res.status(error.status).json(errorBody(error.code, error.message));
       return;
     }
-    const message = error instanceof Error ? error.message : 'Internal error';
-    res.status(500).json(errorBody('ANALYSIS_FAILED', message));
+    console.error(error);
+    res.status(500).json(errorBody('ANALYSIS_FAILED', 'Unexpected analysis error'));
   });
 
   return app;
