@@ -7,12 +7,18 @@ const DEMO_RESULT: AnalysisResult = {
   source: { type: 'upload', filename: 'demo.wav' },
   duration: 8,
   segments: [
-    { start: 0.49, end: 2.0, chord: parseChord('C'), confidence: 0.8 },
-    { start: 2.0, end: 3.99, chord: parseChord('G'), confidence: 0.79 },
-    { start: 3.99, end: 6.01, chord: parseChord('Am'), confidence: 0.76 },
-    { start: 6.01, end: 8.0, chord: parseChord('F'), confidence: 0.8 },
+    { start: 0, end: 2, chord: parseChord('C'), confidence: 0.9 },
+    { start: 2, end: 4, chord: parseChord('G'), confidence: 0.9 },
+    { start: 4, end: 6, chord: parseChord('Am'), confidence: 0.9 },
+    { start: 6, end: 8, chord: parseChord('F'), confidence: 0.9 },
   ],
-  beats: [0.488, 0.987, 1.486, 1.997, 2.496, 2.995, 3.495, 3.994, 4.493, 4.992, 5.503, 6.014, 6.502, 7.001, 7.5],
+  // Curated grid: the demo is a controlled fixture, so the first beat is 0
+  // and each chord starts exactly on a bar. The analyzer's first detected
+  // beat can be off by one beat and would make the demo look wrong.
+  beats: [
+    0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5,
+    4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5,
+  ],
   beatsPerBar: 4,
   vocalRegions: [],
   analyzerVersion: 'essentia-1.6',

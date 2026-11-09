@@ -5,6 +5,8 @@ import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT, setLanguage } from './i18n';
 import { Home } from './components/Home';
 import { LibraryList } from './components/LibraryList';
+import { SetlistList } from './components/SetlistList';
+import { SetlistView } from './components/SetlistView';
 import { SongView } from './components/SongView';
 import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
@@ -12,9 +14,24 @@ import { BackupError, downloadBackup, parseBackup } from './storage/backup';
 import { Library } from './storage/library';
 import { loadPreferences, savePreferences } from './storage/preferences';
 import { removePractice } from './storage/practice';
-import type { Preferences, Song } from './types';
+import {
+  addSongToSetlist,
+  createSetlist,
+  loadSetlists,
+  moveSongInSetlist,
+  removeSongFromSetlist,
+  renameSetlist,
+  saveSetlists,
+} from './storage/setlists';
+import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
+import type { Preferences, Setlist, Song } from './types';
 
-type Route = { name: 'home' } | { name: 'library' } | { name: 'song'; id: string };
+type Route =
+  | { name: 'home' }
+  | { name: 'library' }
+  | { name: 'setlists' }
+  | { name: 'setlist'; id: string }
+  | { name: 'song'; id: string };
 
 interface Notice {
   message: string;
@@ -25,6 +42,9 @@ function parseHash(): Route {
   if (typeof window === 'undefined') return { name: 'home' };
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (hash === 'library') return { name: 'library' };
+  if (hash === 'setlists') return { name: 'setlists' };
+  const setlistMatch = /^setlist\/(.+)$/.exec(hash);
+  if (setlistMatch?.[1]) return { name: 'setlist', id: decodeURIComponent(setlistMatch[1]) };
   const match = /^song\/(.+)$/.exec(hash);
   if (match?.[1]) return { name: 'song', id: decodeURIComponent(match[1]) };
   return { name: 'home' };
@@ -32,6 +52,8 @@ function parseHash(): Route {
 
 function hashFor(route: Route): string {
   if (route.name === 'library') return '#/library';
+  if (route.name === 'setlists') return '#/setlists';
+  if (route.name === 'setlist') return `#/setlist/${encodeURIComponent(route.id)}`;
   if (route.name === 'song') return `#/song/${encodeURIComponent(route.id)}`;
   return '#/';
 }
@@ -54,12 +76,19 @@ export default function App() {
   const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
   const analysisRunner = useAnalysisRunner();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
+  const [setlists, setSetlists] = useState<Setlist[]>(() => loadSetlists(storage));
+  const [history, setHistory] = useState<HistoryMap>(() => loadHistory(storage));
   const [initial] = useState(() => {
     const route = parseHash();
     if (route.name === 'song') {
       const found = library.get(route.id);
       if (found) return { route, song: found as Song | null };
       return { route: { name: 'home' } as Route, song: null };
+    }
+    if (route.name === 'setlist') {
+      const found = setlists.some((setlist) => setlist.id === route.id);
+      if (found) return { route, song: null as Song | null };
+      return { route: { name: 'setlists' } as Route, song: null };
     }
     return { route, song: null as Song | null };
   });
@@ -118,10 +147,26 @@ export default function App() {
     });
   }, []);
 
+  const recordOpen = useCallback(
+    (songId: string) => {
+      setHistory((previous) => {
+        const next = markOpened(previous, songId);
+        try {
+          saveHistory(storage, next);
+        } catch {
+          // History is best-effort; a full quota must not block playback.
+        }
+        return next;
+      });
+    },
+    [storage],
+  );
+
   const openSong = useCallback(
     (next: Song, nextAudioUrl: string | null) => {
       songRef.current = next;
       setSong(next);
+      recordOpen(next.id);
       replaceAudioUrl(nextAudioUrl);
       const nextRoute: Route = { name: 'song', id: next.id };
       setRoute(nextRoute);
@@ -129,7 +174,7 @@ export default function App() {
         window.location.hash = hashFor(nextRoute);
       }
     },
-    [replaceAudioUrl],
+    [recordOpen, replaceAudioUrl],
   );
 
   const applyRoute = useCallback(
@@ -139,6 +184,7 @@ export default function App() {
         if (found) {
           songRef.current = found;
           setSong(found);
+          recordOpen(found.id);
           replaceAudioUrl(audioUrlForSong(found));
           setRoute(next);
           return;
@@ -156,9 +202,18 @@ export default function App() {
         return;
       }
       if (next.name === 'library') setSongs(library.list());
+      if (next.name === 'setlist') {
+        const found = setlists.some((setlist) => setlist.id === next.id);
+        if (!found) {
+          setNotice({ message: t('setlists.notFound'), tone: 'warning' });
+          setRoute({ name: 'setlists' });
+          if (window.location.hash !== '#/setlists') window.location.hash = '#/setlists';
+          return;
+        }
+      }
       setRoute(next);
     },
-    [library, replaceAudioUrl],
+    [library, recordOpen, replaceAudioUrl, setlists, t],
   );
 
   useEffect(() => {
@@ -170,6 +225,63 @@ export default function App() {
   const navigate = (next: Route) => {
     if (window.location.hash !== hashFor(next)) window.location.hash = hashFor(next);
     applyRoute(next);
+  };
+
+  const updateSetlists = (updater: (current: Setlist[]) => Setlist[]) => {
+    setSetlists((current) => {
+      const next = updater(current);
+      try {
+        saveSetlists(storage, next);
+      } catch {
+        setNotice({ message: t('app.saveFailed'), tone: 'warning' });
+      }
+      return next;
+    });
+  };
+
+  const handleCreateSetlist = (name: string) => {
+    const created = createSetlist(name);
+    updateSetlists((current) => [...current, created]);
+    const nextRoute: Route = { name: 'setlist', id: created.id };
+    setRoute(nextRoute);
+    if (window.location.hash !== hashFor(nextRoute)) window.location.hash = hashFor(nextRoute);
+  };
+
+  const handleDeleteSetlist = (id: string) => {
+    updateSetlists((current) => current.filter((setlist) => setlist.id !== id));
+    if (route.name === 'setlist' && route.id === id) {
+      navigate({ name: 'setlists' });
+    }
+  };
+
+  const handleRenameSetlist = (id: string, name: string) => {
+    updateSetlists((current) =>
+      current.map((setlist) => (setlist.id === id ? renameSetlist(setlist, name) : setlist)),
+    );
+  };
+
+  const handleAddSongToSetlist = (id: string, songId: string) => {
+    updateSetlists((current) =>
+      current.map((setlist) =>
+        setlist.id === id ? addSongToSetlist(setlist, songId) : setlist,
+      ),
+    );
+  };
+
+  const handleRemoveSongFromSetlist = (id: string, songId: string) => {
+    updateSetlists((current) =>
+      current.map((setlist) =>
+        setlist.id === id ? removeSongFromSetlist(setlist, songId) : setlist,
+      ),
+    );
+  };
+
+  const handleMoveSongInSetlist = (id: string, songId: string, direction: -1 | 1) => {
+    updateSetlists((current) =>
+      current.map((setlist) =>
+        setlist.id === id ? moveSongInSetlist(setlist, songId, direction) : setlist,
+      ),
+    );
   };
 
   const updatePreferences = (patch: Partial<Preferences>) => {
@@ -300,6 +412,11 @@ export default function App() {
     }
   };
 
+  const currentSetlist =
+    route.name === 'setlist'
+      ? setlists.find((setlist) => setlist.id === route.id) ?? null
+      : null;
+
   return (
     <div className="shell">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-line pb-4 sm:items-end">
@@ -324,6 +441,13 @@ export default function App() {
         </button>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>
+          <button
+            type="button"
+            className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em]"
+            onClick={() => navigate({ name: 'setlists' })}
+          >
+            {t('nav.setlists')}
+          </button>
           <div className="flex items-center gap-1" role="group" aria-label={t('app.language')}>
             <button
               type="button"
@@ -375,6 +499,7 @@ export default function App() {
         {route.name === 'library' ? (
           <LibraryList
             songs={songs}
+            history={history}
             notice={notice}
             onDismissNotice={() => setNotice(null)}
             onExport={exportLibrary}
@@ -383,6 +508,33 @@ export default function App() {
             onDelete={deleteSong}
             onBack={() => navigate({ name: 'home' })}
             onHome={() => navigate({ name: 'home' })}
+          />
+        ) : null}
+
+        {route.name === 'setlists' ? (
+          <SetlistList
+            setlists={setlists}
+            songs={songs}
+            onCreate={handleCreateSetlist}
+            onDelete={handleDeleteSetlist}
+            onOpen={(id) => navigate({ name: 'setlist', id })}
+            onBack={() => navigate({ name: 'home' })}
+          />
+        ) : null}
+
+        {route.name === 'setlist' && currentSetlist ? (
+          <SetlistView
+            setlist={currentSetlist}
+            songs={songs}
+            onRename={(name) => handleRenameSetlist(currentSetlist.id, name)}
+            onDelete={() => handleDeleteSetlist(currentSetlist.id)}
+            onAddSong={(songId) => handleAddSongToSetlist(currentSetlist.id, songId)}
+            onRemoveSong={(songId) => handleRemoveSongFromSetlist(currentSetlist.id, songId)}
+            onMoveSong={(songId, direction) =>
+              handleMoveSongInSetlist(currentSetlist.id, songId, direction)
+            }
+            onOpenSong={(songId) => navigate({ name: 'song', id: songId })}
+            onBack={() => navigate({ name: 'setlists' })}
           />
         ) : null}
 

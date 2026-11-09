@@ -527,6 +527,26 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Guardar en biblioteca' })).toBeInTheDocument();
   });
 
+  it('crea una lista, añade una canción y la abre', async () => {
+    stubApi();
+    await analyze();
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Listas' }));
+
+    const prompt = vi.spyOn(window, 'prompt').mockReturnValue('Ensayo');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nueva lista' })[0]!);
+    prompt.mockRestore();
+
+    expect(await screen.findByRole('heading', { name: 'Ensayo' })).toBeInTheDocument();
+    const select = screen.getByLabelText('Añadir canción');
+    const option = within(select).getByRole('option', {
+      name: 'Demo sincronizada',
+    }) as HTMLOptionElement;
+    fireEvent.change(select, { target: { value: option.value } });
+
+    expect(await screen.findByText('Demo sincronizada')).toBeInTheDocument();
+  });
+
   it('abre la biblioteca vacía desde la pantalla de inicio', async () => {
     stubApi();
     render(<App />);
