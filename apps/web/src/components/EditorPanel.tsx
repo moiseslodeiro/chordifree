@@ -106,6 +106,32 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
   const editor = useEditor(song.segments, song.duration);
   const [inputError, setInputError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) editor.redo();
+        else editor.undo();
+      } else if (key === 'y') {
+        event.preventDefault();
+        editor.redo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [editor.undo, editor.redo]);
+
   const displayChord = (chord: Chord | null): string =>
     formatChordOrSilence(
       chord ? transposeChord(chord, song.transpose) : null,
@@ -137,7 +163,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
   return (
     <section
       className="rounded-xl border border-line bg-panel p-4 shadow-sm sm:p-5"
-      aria-label="Editor de acordes"
+      aria-label={t('editor.aria')}
     >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-4">
         <div>
@@ -154,7 +180,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
             onClick={editor.undo}
             disabled={!editor.canUndo}
           >
-            Deshacer
+            {t('editor.undo')}
           </button>
           <button
             type="button"
@@ -162,7 +188,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
             onClick={editor.redo}
             disabled={!editor.canRedo}
           >
-            Rehacer
+            {t('editor.redo')}
           </button>
           <button
             type="button"
@@ -184,7 +210,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
             className="btn min-h-0 px-3 py-1.5 text-xs"
             onClick={onDiscard}
           >
-            Descartar
+            {t('editor.discard')}
           </button>
           <button
             type="button"
@@ -202,7 +228,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
         </div>
       ) : null}
 
-      <ol className="mt-4 border-t border-line" aria-label="Segmentos editables">
+      <ol className="mt-4 border-t border-line" aria-label={t('editor.segmentsAria')}>
         {editor.segments.map((segment, index) => {
           const following = editor.segments[index + 1];
           const canMerge = Boolean(
@@ -222,7 +248,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
                   onCommit={(seconds) => commitBoundary(index, 'start', seconds)}
                 />
                 <TimeField
-                  label="Fin"
+                  label={t('editor.end')}
                   value={segment.end}
                   onCommit={(seconds) => commitBoundary(index, 'end', seconds)}
                 />
@@ -253,7 +279,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
                       editor.split(index, (segment.start + segment.end) / 2);
                     }}
                   >
-                    Dividir
+                    {t('editor.split')}
                   </button>
                   <button
                     type="button"
@@ -264,7 +290,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
                       editor.merge(index);
                     }}
                   >
-                    Fusionar
+                    {t('editor.merge')}
                   </button>
                 </div>
               </div>
@@ -274,8 +300,8 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
       </ol>
 
       <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
-        {t('editor.minDuration', { seconds: MIN_SEGMENT_SECONDS })}
-        vecino para no dejar huecos ni solapamientos.
+        {t('editor.minDuration', { seconds: MIN_SEGMENT_SECONDS })}{' '}
+        {t('editor.minDurationTail')}
       </p>
     </section>
   );

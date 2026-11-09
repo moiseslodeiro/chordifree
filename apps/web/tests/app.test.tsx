@@ -514,6 +514,19 @@ describe('App', () => {
     );
   });
 
+  it('abre la demo integrada sin subir archivos', async () => {
+    stubApi();
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Probar la demo' }));
+
+    expect(
+      await screen.findByRole('heading', { name: /Chordifree demo/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
+    expect(screen.getByRole('button', { name: 'Guardar en biblioteca' })).toBeInTheDocument();
+  });
+
   it('abre la biblioteca vacía desde la pantalla de inicio', async () => {
     stubApi();
     render(<App />);

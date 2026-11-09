@@ -170,6 +170,13 @@ The end-to-end suite needs Playwright browsers installed
 
 Spanish documentation: [`README.es.md`](README.es.md).
 
+## Project policies
+
+- [Security policy](SECURITY.md)
+- [Privacy](PRIVACY.md)
+- [Terms of use](TERMS.md)
+
+
 ---
 
 <sub>Chordifree · AGPL-3.0 · Built with [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [Documentación en español](README.es.md)</sub>

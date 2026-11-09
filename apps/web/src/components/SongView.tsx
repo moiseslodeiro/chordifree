@@ -21,6 +21,7 @@ import {
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
 import { useT } from '../i18n';
+import { buildChordPro, downloadChordPro } from '../lib/chordpro';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
@@ -275,6 +276,42 @@ export function SongView({
   };
 
   useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.tagName === 'BUTTON' ||
+          target.tagName === 'A' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (event.code === 'Space') {
+        event.preventDefault();
+        if (adapter?.isPlaying()) adapter.pause();
+        else adapter?.play();
+        return;
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const delta = event.key === 'ArrowLeft' ? -5 : 5;
+        const next = Math.max(
+          0,
+          Math.min(song.duration, (adapter?.getCurrentTime() ?? 0) + delta),
+        );
+        adapter?.seekTo(next);
+        clock?.tickOnce();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [adapter, clock, song.duration]);
+
+  useEffect(() => {
     if (markMode === null) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMarkMode(null);
@@ -352,6 +389,25 @@ export function SongView({
     setLyricsDraft('');
   };
 
+  const exportChordProFile = () => {
+    const content = buildChordPro({
+      title: song.title,
+      artist,
+      key: estimatedKey,
+      tempo: bpm,
+      lyrics: song.lyrics,
+      segments: lyricsSegments,
+      beats,
+      beatsPerBar,
+      duration: song.duration,
+      notation: song.notation,
+      accidental,
+      vocalRegions: song.vocalRegions,
+    });
+    const base = song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    downloadChordPro(`${base}.cho`, content);
+  };
+
   const sourceLabel =
     song.source.type === 'youtube'
       ? t('song.sourceYoutube', { id: song.source.videoId })
@@ -403,9 +459,14 @@ export function SongView({
               </button>
             ) : null}
             {!editing && !editingLyrics && printRows.length > 0 ? (
-              <button type="button" className="btn" onClick={() => window.print()}>
-                {t('song.print')}
-              </button>
+              <>
+                <button type="button" className="btn" onClick={() => window.print()}>
+                  {t('song.print')}
+                </button>
+                <button type="button" className="btn" onClick={exportChordProFile}>
+                  {t('song.chordpro')}
+                </button>
+              </>
             ) : null}
             {!editing && !editingLyrics && song.source.type === 'youtube' ? (
               <button
