@@ -36,6 +36,13 @@ function hashFor(route: Route): string {
   return '#/';
 }
 
+/** Static audio shipped with the app (the built-in demo) has no object URL. */
+function audioUrlForSong(song: Song): string | null {
+  return song.source.type === 'upload' && song.source.filename === 'demo.wav'
+    ? '/demo.wav'
+    : null;
+}
+
 function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
   return listKeys(storage, `${PREFIX}:corrupt:`).length > 0;
 }
@@ -59,7 +66,9 @@ export default function App() {
   const [route, setRoute] = useState<Route>(initial.route);
   const [song, setSong] = useState<Song | null>(initial.song);
   const songRef = useRef<Song | null>(initial.song);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(
+    initial.song ? audioUrlForSong(initial.song) : null,
+  );
   const [songs, setSongs] = useState(() => library.list());
   const [notice, setNotice] = useState<Notice | null>(() =>
     hasQuarantinedData(storage)
@@ -130,7 +139,7 @@ export default function App() {
         if (found) {
           songRef.current = found;
           setSong(found);
-          replaceAudioUrl(null);
+          replaceAudioUrl(audioUrlForSong(found));
           setRoute(next);
           return;
         }

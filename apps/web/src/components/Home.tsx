@@ -3,6 +3,7 @@ import type { Preferences, Song } from '../types';
 import { songFromResult } from '../types';
 import { createUploadAnalysis, createYoutubeAnalysis, sha256File } from '../lib/api';
 import { useAnalysisRunner } from '../lib/useAnalysis';
+import { createDemoSong, DEMO_AUDIO_URL } from '../demo';
 import { useT } from '../i18n';
 import { videoIdFromUrl } from '../lib/youtube';
 import { AnalysisCache } from '../storage/library';
@@ -210,6 +211,13 @@ export function Home({
             <div className="flex flex-wrap items-center gap-3">
               <button type="submit" className="btn btn-primary" disabled={busy}>
                 {busy ? t('home.analyzing') : t('home.detect')}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => onAnalyzed(createDemoSong(preferences), DEMO_AUDIO_URL)}
+              >
+                {t('home.demo')}
               </button>
               <button type="button" className="btn" onClick={onOpenLibrary}>
                 {t('home.library', { count: libraryCount })}
