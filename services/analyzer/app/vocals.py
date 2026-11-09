@@ -6,6 +6,7 @@ classifier. Both models run with ONNX Runtime, without TensorFlow.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import shutil
@@ -30,6 +31,8 @@ MODEL_DIR = Path(
 )
 YAMNET_PATH = MODEL_DIR / "yamnet.onnx"
 VOICE_PATH = MODEL_DIR / "voice_instrumental.onnx"
+YAMNET_SHA256 = "04e27fca08e7a3aea2630d1a63a51e6b437c803e0ff6e26399f80870ac251dda"
+VOICE_SHA256 = "f619b35a95a44d8c3ec27a205d4c93ec988401fca443ff552ed007b3f1c018a0"
 YAMNET_URL = (
     "https://huggingface.co/jafet21/yamnetonnx/resolve/"
     "337f563004630f00673d4a773a0d657d0233ce56/yamnet.onnx"
@@ -43,7 +46,15 @@ ALLOW_DOWNLOAD = os.environ.get("ANALYZER_DOWNLOAD_MODELS", "1") != "0"
 _sessions: dict[str, Any] = {}
 
 
-def _ensure_model(path: Path, url: str) -> bool:
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _ensure_model(path: Path, url: str, expected_sha256: str) -> bool:
     if path.is_file() and path.stat().st_size > 0:
         return True
     if not ALLOW_DOWNLOAD:
@@ -54,6 +65,9 @@ def _ensure_model(path: Path, url: str) -> bool:
         with urllib.request.urlopen(url, timeout=120) as response:
             with partial.open("wb") as target:
                 shutil.copyfileobj(response, target)
+        if _sha256(partial) != expected_sha256:
+            partial.unlink(missing_ok=True)
+            return False
         partial.replace(path)
         return True
     except Exception:
@@ -140,9 +154,9 @@ def detect_vocal_regions(
     try:
         import numpy as np  # type: ignore
 
-        if not _ensure_model(YAMNET_PATH, YAMNET_URL):
+        if not _ensure_model(YAMNET_PATH, YAMNET_URL, YAMNET_SHA256):
             return []
-        if not _ensure_model(VOICE_PATH, VOICE_URL):
+        if not _ensure_model(VOICE_PATH, VOICE_URL, VOICE_SHA256):
             return []
 
         resample = essentia["Resample"](

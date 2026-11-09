@@ -391,6 +391,11 @@ const en = {
   'api.invalidResponse': 'Invalid analyzer response',
 
   'time.justNow': 'just now',
+  'footer.tagline': 'Local-first chord practice · no accounts, no tracking',
+  'footer.links': 'Project links',
+  'footer.github': 'GitHub',
+  'footer.license': 'AGPL-3.0',
+  'footer.essentia': 'Essentia',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -794,6 +799,11 @@ const es: Record<MessageKey, string> = {
   'api.invalidResponse': 'Respuesta del analizador inválida',
 
   'time.justNow': 'ahora mismo',
+  'footer.tagline': 'Práctica de acordes local · sin cuentas ni seguimiento',
+  'footer.links': 'Enlaces del proyecto',
+  'footer.github': 'GitHub',
+  'footer.license': 'AGPL-3.0',
+  'footer.essentia': 'Essentia',
 };
 
 export const messages: Record<Language, Record<MessageKey, string>> = { en, es };

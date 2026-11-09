@@ -39,6 +39,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL -o /usr/local/bin/yt-dlp \
         "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp_linux" \
+    && echo '767ba9dce7052aa196f8b12652f433d76de128ba168966fa84b6394d5e6c6795  /usr/local/bin/yt-dlp' | sha256sum -c - \
     && chmod +x /usr/local/bin/yt-dlp \
     && corepack enable \
     && corepack prepare pnpm@${PNPM_VERSION} --activate
@@ -53,6 +54,6 @@ USER node
 
 EXPOSE 3001
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
-    CMD curl -fsS http://localhost:3001/api/health || exit 1
+    CMD curl -fsS http://127.0.0.1:3001/api/health || exit 1
 
 CMD ["pnpm", "--filter", "@chordifree/server", "start"]

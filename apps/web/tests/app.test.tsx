@@ -501,6 +501,19 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Detectar acordes' })).toBeInTheDocument();
   });
 
+  it('muestra el pie de página con enlaces al proyecto', () => {
+    stubApi();
+    render(<App />);
+
+    const footer = screen.getByTestId('site-footer');
+    expect(footer).toHaveTextContent('GitHub');
+    expect(footer).toHaveTextContent('AGPL-3.0');
+    expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/moiseslodeiro/chordifree',
+    );
+  });
+
   it('abre la biblioteca vacía desde la pantalla de inicio', async () => {
     stubApi();
     render(<App />);

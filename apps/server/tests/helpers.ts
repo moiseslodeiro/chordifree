@@ -15,6 +15,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     maxUploadBytes: 25 * 1024 * 1024,
     rateLimitMax: 100,
     rateLimitWindowMs: 60_000,
+    trustProxy: 1,
     tempDir: join(tmpdir(), 'chordifree-test'),
     ytdlpPath: 'yt-dlp',
     ffmpegPath: 'ffmpeg',
