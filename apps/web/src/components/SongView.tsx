@@ -21,6 +21,7 @@ import {
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
+import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
 import { PlaybackClock } from '../sync/clock';
 import {
@@ -57,6 +58,9 @@ interface SongViewProps {
   onDismissNotice: () => void;
   onChange: (song: Song) => void;
   onSave: (song: Song) => void;
+  onReanalyze: () => void;
+  reanalyzing: boolean;
+  reanalyzeProgress: number | null;
   onBack: () => void;
   onOpenLibrary: () => void;
   onPreferences: (patch: Partial<Preferences>) => void;
@@ -76,6 +80,9 @@ export function SongView({
   onDismissNotice,
   onChange,
   onSave,
+  onReanalyze,
+  reanalyzing,
+  reanalyzeProgress,
   onBack,
   onOpenLibrary,
   onPreferences,
@@ -85,6 +92,7 @@ export function SongView({
   const [editing, setEditing] = useState(false);
   const [editingLyrics, setEditingLyrics] = useState(false);
   const [lyricsDraft, setLyricsDraft] = useState('');
+  const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
@@ -233,9 +241,45 @@ export function SongView({
   }, [clock, beats]);
 
   const seek = (time: number) => {
+    setMarkMode(null);
     adapter?.seekTo(time);
     clock?.tickOnce();
   };
+
+  /**
+   * Con A o B armados, el clic solo fija ese extremo del bucle y no reproduce.
+   * Sin modo de marcado, el clic busca el punto y empieza a tocar desde ahí.
+   */
+  const selectBar = (time: number) => {
+    if (markMode !== null) {
+      const range = barRangeAt(time, beats, beatsPerBar, song.duration);
+      if (markMode === 'a') {
+        updatePractice({
+          loopA: range.start,
+          loopB: loopB !== null && loopB <= range.start ? null : loopB,
+        });
+      } else {
+        updatePractice({
+          loopB: range.end,
+          loopA: loopA === null || loopA >= range.end ? range.start : loopA,
+        });
+      }
+      setMarkMode(null);
+      return;
+    }
+
+    seek(time);
+    adapter?.play();
+  };
+
+  useEffect(() => {
+    if (markMode === null) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMarkMode(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [markMode]);
 
   const changePreferences = (patch: {
     notation?: Notation;
@@ -359,6 +403,26 @@ export function SongView({
                 Imprimir / PDF
               </button>
             ) : null}
+            {!editing && !editingLyrics && song.source.type === 'youtube' ? (
+              <button
+                type="button"
+                className="btn"
+                disabled={reanalyzing}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Se reemplazarán los acordes actuales por un análisis nuevo. La letra y los ajustes se conservan. ¿Continuar?',
+                    )
+                  ) {
+                    onReanalyze();
+                  }
+                }}
+              >
+                {reanalyzing
+                  ? `Reanalizando${reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'}`
+                  : 'Reanalizar'}
+              </button>
+            ) : null}
             {!editingLyrics ? (
               <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
                 {saved ? 'Guardar cambios' : 'Guardar en biblioteca'}
@@ -370,7 +434,14 @@ export function SongView({
 
       {adapter && clock ? (
         <div className="space-y-2">
-          <Transport adapter={adapter} clock={clock} duration={song.duration} />
+          <Transport
+            adapter={adapter}
+            clock={clock}
+            duration={song.duration}
+            loopA={loopA}
+            loopB={loopB}
+            loopEnabled={loopEnabled}
+          />
           <PracticeBar
             adapter={adapter}
             clock={clock}
@@ -383,6 +454,8 @@ export function SongView({
             onLoopAChange={(value) => updatePractice({ loopA: value })}
             onLoopBChange={(value) => updatePractice({ loopB: value })}
             onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
+            markMode={markMode}
+            onMarkModeChange={setMarkMode}
             rate={rate}
             onRateChange={(value) => updatePractice({ rate: value })}
             manualBpm={manualBpm}
@@ -457,6 +530,8 @@ export function SongView({
               accidental={accidental}
               clock={clock}
               onSeek={seek}
+              onSelectBar={selectBar}
+              markMode={markMode}
               beats={beats}
               beatsPerBar={beatsPerBar}
               duration={song.duration}

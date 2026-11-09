@@ -7,11 +7,22 @@ interface TransportProps {
   adapter: PlayerAdapter;
   clock: PlaybackClock;
   duration: number;
+  loopA?: number | null;
+  loopB?: number | null;
+  loopEnabled?: boolean;
 }
 
-export function Transport({ adapter, clock, duration }: TransportProps) {
+export function Transport({
+  adapter,
+  clock,
+  duration,
+  loopA = null,
+  loopB = null,
+  loopEnabled = false,
+}: TransportProps) {
   const [playing, setPlaying] = useState(adapter.isPlaying());
   const [time, setTime] = useState(adapter.getCurrentTime());
+  const hasRange = loopA !== null && loopB !== null && loopB > loopA;
 
   useEffect(() => {
     setPlaying(adapter.isPlaying());
@@ -24,9 +35,34 @@ export function Transport({ adapter, clock, duration }: TransportProps) {
     return () => window.clearInterval(timer);
   }, [adapter]);
 
+  /** Con un rango marcado, Reproducir empieza en A si el cursor está fuera. */
+  useEffect(() => {
+    if (!hasRange || loopEnabled) return;
+    const timer = window.setInterval(() => {
+      if (!adapter.isPlaying()) return;
+      if (adapter.getCurrentTime() < loopB - 0.05) return;
+      adapter.pause();
+      adapter.seekTo(loopB);
+      clock.tickOnce();
+      setTime(loopB);
+    }, 80);
+    return () => window.clearInterval(timer);
+  }, [adapter, clock, hasRange, loopA, loopB, loopEnabled]);
+
   const toggle = () => {
-    if (adapter.isPlaying()) adapter.pause();
-    else adapter.play();
+    if (adapter.isPlaying()) {
+      adapter.pause();
+      return;
+    }
+    if (hasRange) {
+      const current = adapter.getCurrentTime();
+      if (current < loopA - 0.05 || current >= loopB - 0.05) {
+        adapter.seekTo(loopA);
+        clock.tickOnce();
+        setTime(loopA);
+      }
+    }
+    adapter.play();
   };
 
   const seek = (value: number) => {

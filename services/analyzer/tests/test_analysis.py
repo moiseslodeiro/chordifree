@@ -113,10 +113,60 @@ def test_analyze_etiqueta_acordes_conocidos(chord_wav: Path) -> None:
     result = analyze_file(str(chord_wav))
     labels = {segment["label"] for segment in result["segments"] if segment["label"]}
     assert labels, "Debe detectar al menos una etiqueta"
-    assert any(label[0] in "ABCDEFG" for label in labels)
+    assert {"C", "F", "G"} <= labels
+
+
+def test_analyze_detecta_progresion_f_g_am(fga_wav: Path) -> None:
+    result = analyze_file(str(fga_wav))
+    labels = [segment["label"] for segment in result["segments"]]
+    assert "F" in labels
+    assert "G" in labels
+    assert "Am" in labels
 
 
 def test_analyze_acepta_audio_estereo(stereo_wav: Path) -> None:
     result = analyze_file(str(stereo_wav))
     assert result["duration"] > 0
     assert result["segments"]
+
+
+def test_apply_silence_marca_tramos_sin_energia() -> None:
+    import numpy as np
+
+    rate = 100
+    tones = 0.2 * np.sin(2 * np.pi * 440 * np.arange(rate) / rate)
+    audio = np.concatenate([np.zeros(rate), tones]).astype("float32")
+    segments = [
+        {"start": 0.0, "end": 1.0, "label": "C", "confidence": 0.9},
+        {"start": 1.0, "end": 2.0, "label": "C", "confidence": 0.9},
+    ]
+
+    result = analysis._apply_silence(segments, audio, rate)
+
+    assert result[0]["label"] is None
+    assert result[0]["confidence"] == 0.0
+    assert result[1]["label"] == "C"
+
+
+def test_smooth_chords_elimina_un_parpadeo_aislado() -> None:
+    segments = [
+        {"start": 0, "end": 1, "label": "C", "confidence": 0.9},
+        {"start": 1, "end": 2, "label": "A", "confidence": 0.3},
+        {"start": 2, "end": 3, "label": "C", "confidence": 0.9},
+    ]
+
+    result = analysis._smooth_chords(segments)
+
+    assert [segment["label"] for segment in result] == ["C", "C", "C"]
+
+
+def test_smooth_chords_conserva_cambios_reales() -> None:
+    segments = [
+        {"start": 0, "end": 1, "label": "C", "confidence": 0.9},
+        {"start": 1, "end": 2, "label": "A", "confidence": 0.9},
+        {"start": 2, "end": 3, "label": "G", "confidence": 0.9},
+    ]
+
+    result = analysis._smooth_chords(segments)
+
+    assert [segment["label"] for segment in result] == ["C", "A", "G"]

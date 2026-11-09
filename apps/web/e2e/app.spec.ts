@@ -142,8 +142,10 @@ test.describe('flujo completo', () => {
   test('conserva el rango A-B y la velocidad al recargar', async ({ page }) => {
     await analyze(page);
 
-    await page.getByRole('button', { name: 'Marcar inicio A en el compás actual' }).click();
-    await page.getByRole('button', { name: 'Marcar final B en el compás actual' }).click();
+    await page.getByRole('button', { name: 'Marcar inicio A' }).click();
+    await page.getByTestId('beat-cell-0').click();
+    await page.getByRole('button', { name: 'Marcar final B' }).click();
+    await page.getByTestId('beat-cell-0').click();
     await page.getByRole('button', { name: 'Bucle', exact: true }).click();
     await page.getByLabel('Velocidad de reproducción').selectOption('1.25');
 
@@ -310,6 +312,123 @@ test.describe('flujo completo', () => {
     await expect(page.getByTestId('beat-cell-0')).toContainText('C');
     await expect(page.getByTestId('beat-cell-1')).not.toContainText('G');
     await expect(page.getByTestId('beat-cell-2')).toContainText('G');
+  });
+
+  test('sin modo A o B, el clic reproduce desde el compás elegido', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByTestId('beat-cell-8').click();
+
+    await expect(page.getByText('Marca A y B')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Marcar inicio A' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+  });
+
+  test('arma A o B, previsualiza el compás y marca sin reproducir', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Marcar inicio A' }).click();
+    await page.getByTestId('beat-cell-8').hover();
+    for (const index of [8, 9, 10, 11]) {
+      await expect(page.getByTestId(`beat-cell-${index}`)).toHaveAttribute(
+        'data-mark-preview',
+        'a',
+      );
+    }
+    await expect(page.getByTestId('beat-cell-12')).not.toHaveAttribute('data-mark-preview');
+
+    await page.getByTestId('beat-cell-8').click();
+    for (const index of [8, 9, 10, 11]) {
+      await expect(page.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'a');
+      await expect(page.getByTestId(`beat-cell-${index}`)).not.toHaveAttribute(
+        'data-mark-preview',
+      );
+    }
+    await expect(page.getByRole('button', { name: 'Marcar inicio A' })).toHaveAttribute(
+      'data-set',
+      'true',
+    );
+    await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Marcar final B' }).click();
+    await page.getByTestId('beat-cell-12').hover();
+    for (const index of [12, 13, 14, 15]) {
+      await expect(page.getByTestId(`beat-cell-${index}`)).toHaveAttribute(
+        'data-mark-preview',
+        'b',
+      );
+    }
+    await page.getByTestId('beat-cell-12').click();
+    for (const index of [12, 13, 14, 15]) {
+      await expect(page.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'b');
+    }
+    await expect(page.getByText('00:08 – 00:16')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
+  });
+
+  test('Reproducir empieza en A y para en B si el bucle está apagado', async ({
+    page,
+  }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Marcar inicio A' }).click();
+    await page.getByTestId('beat-cell-0').click();
+    await page.getByRole('button', { name: 'Marcar final B' }).click();
+    await page.getByTestId('beat-cell-0').click();
+
+    await page.getByRole('button', { name: 'Reproducir' }).click();
+    await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible({
+      timeout: 8000,
+    });
+  });
+
+  test('la vista Compases agrupa un acorde por compás y corrige el tempo', async ({ page }) => {
+    await stubApi(page, {
+      ...RESULT,
+      duration: 16,
+      beats: Array.from({ length: 32 }, (_, index) => index * 0.5),
+      beatsPerBar: 4,
+      segments: [
+        { start: 0, end: 4, chord: { root: 9, quality: 'major' } },
+        { start: 4, end: 8, chord: { root: 4, quality: 'major' } },
+        { start: 8, end: 12, chord: { root: 6, quality: 'minor' } },
+        { start: 12, end: 16, chord: { root: 2, quality: 'major' } },
+      ],
+    });
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Compases' }).click();
+
+    await expect(page.getByText(/mitad de tempo/)).toBeVisible();
+    await expect(page.getByTestId('bar-cell-0')).toContainText('A');
+    await expect(page.getByTestId('bar-cell-1')).toContainText('E');
+    await expect(page.getByTestId('bar-cell-2')).toContainText('F♯m');
+    await expect(page.getByTestId('bar-cell-3')).toContainText('D');
+  });
+
+  test('reanaliza una canción guardada y conserva la letra', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
+    await page.getByRole('button', { name: 'Añadir letra' }).click();
+    await page.getByLabel('Letra de la canción').fill('Línea que debe conservarse');
+    await page.getByRole('button', { name: 'Guardar letra' }).click();
+    await expect(page.getByText('Línea que debe conservarse')).toBeVisible();
+
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.getByRole('button', { name: 'Reanalizar' }).click();
+    await expect(page.getByText('Canción reanalizada con el analizador actual.')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('Línea que debe conservarse')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Letra', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   test('resalta el acorde activo en menos de 250 ms al buscar', async ({ page }) => {

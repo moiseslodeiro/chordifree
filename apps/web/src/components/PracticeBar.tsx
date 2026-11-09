@@ -18,6 +18,8 @@ interface PracticeBarProps {
   onLoopAChange: (value: number | null) => void;
   onLoopBChange: (value: number | null) => void;
   onLoopEnabledChange: (value: boolean) => void;
+  markMode: 'a' | 'b' | null;
+  onMarkModeChange: (value: 'a' | 'b' | null) => void;
   rate: number;
   onRateChange: (value: number) => void;
   manualBpm: number;
@@ -65,6 +67,8 @@ export function PracticeBar({
   onLoopAChange,
   onLoopBChange,
   onLoopEnabledChange,
+  markMode,
+  onMarkModeChange,
   rate,
   onRateChange,
   manualBpm,
@@ -172,23 +176,12 @@ export function PracticeBar({
     };
   }, []);
 
-  const markA = () => {
-    const range = barRangeAt(adapter.getCurrentTime(), beats, beatsPerBar, duration);
-    onLoopAChange(range.start);
-    if (loopB !== null && loopB <= range.start) onLoopBChange(null);
-  };
-
-  const markB = () => {
-    const range = barRangeAt(adapter.getCurrentTime(), beats, beatsPerBar, duration);
-    onLoopBChange(range.end);
-    if (loopA === null || loopA >= range.end) onLoopAChange(range.start);
-  };
-
   const repeatBar = () => {
     const range = barRangeAt(adapter.getCurrentTime(), beats, beatsPerBar, duration);
     onLoopAChange(range.start);
     onLoopBChange(range.end);
     onLoopEnabledChange(true);
+    onMarkModeChange(null);
     adapter.seekTo(range.start);
     clock.tickOnce();
   };
@@ -211,6 +204,7 @@ export function PracticeBar({
     onLoopEnabledChange(false);
     onLoopAChange(null);
     onLoopBChange(null);
+    onMarkModeChange(null);
   };
 
   const commitManualBpm = () => {
@@ -247,9 +241,25 @@ export function PracticeBar({
   };
 
   const hasRange = loopA !== null && loopB !== null && loopB > loopA;
-  const rangeLabel = hasRange
-    ? `${formatTime(loopA)} – ${formatTime(loopB)}`
-    : 'Marca A y B';
+  const rangeLabel =
+    markMode === 'a'
+      ? 'Pulsa un compás para A'
+      : markMode === 'b'
+        ? 'Pulsa un compás para B'
+        : hasRange
+          ? `${formatTime(loopA)} – ${formatTime(loopB)}`
+          : 'Marca A y B';
+
+  const toggleMarkMode = (mode: 'a' | 'b') => {
+    onMarkModeChange(markMode === mode ? null : mode);
+  };
+
+  const aClassName = `tool-chip${
+    markMode === 'a' ? ' tool-chip-a' : loopA !== null ? ' tool-chip-set tool-chip-set-a' : ''
+  }`;
+  const bClassName = `tool-chip${
+    markMode === 'b' ? ' tool-chip-b' : loopB !== null ? ' tool-chip-set tool-chip-set-b' : ''
+  }`;
 
   return (
     <section
@@ -261,21 +271,23 @@ export function PracticeBar({
       <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Bucle A-B">
         <button
           type="button"
-          className={loopA !== null ? 'tool-chip tool-chip-a' : 'tool-chip'}
-          aria-pressed={loopA !== null}
-          aria-label="Marcar inicio A en el compás actual"
-          title="Marcar el inicio del bucle en el compás actual"
-          onClick={markA}
+          className={aClassName}
+          aria-pressed={markMode === 'a'}
+          data-set={loopA !== null ? 'true' : undefined}
+          aria-label="Marcar inicio A"
+          title="Pulsa A y luego un compás de la parrilla para fijar el inicio"
+          onClick={() => toggleMarkMode('a')}
         >
           A
         </button>
         <button
           type="button"
-          className={loopB !== null ? 'tool-chip tool-chip-b' : 'tool-chip'}
-          aria-pressed={loopB !== null}
-          aria-label="Marcar final B en el compás actual"
-          title="Marcar el final del bucle al terminar el compás actual"
-          onClick={markB}
+          className={bClassName}
+          aria-pressed={markMode === 'b'}
+          data-set={loopB !== null ? 'true' : undefined}
+          aria-label="Marcar final B"
+          title="Pulsa B y luego un compás de la parrilla para fijar el final"
+          onClick={() => toggleMarkMode('b')}
         >
           B
         </button>

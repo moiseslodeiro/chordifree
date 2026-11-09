@@ -240,6 +240,12 @@ describe('detectInstrumentalSpans', () => {
     ]);
   });
 
+  it('no marca una intro gigante si la frase principal aparece tarde', () => {
+    const varied = ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim', 'C', 'Dm', 'F', 'G', 'C', 'Am', 'F', 'G', 'Dm', 'Em', 'C', 'F', 'G'];
+    const harmony = bars([...varied, ...main, ...main, ...main]);
+    expect(detectInstrumentalSpans(harmony, harmony.length * 4)).toEqual([]);
+  });
+
   it('detecta un outro después de la última frase principal', () => {
     const harmony = bars([...main, ...main, 'C', 'Dm']);
     expect(detectInstrumentalSpans(harmony, harmony.length * 4)).toEqual([

@@ -66,7 +66,7 @@ export interface Preferences {
 }
 
 export type Instrument = 'guitar' | 'piano' | 'ukelele';
-export type GridView = 'beats' | 'list' | 'lyrics';
+export type GridView = 'beats' | 'list' | 'bars' | 'lyrics';
 export type Theme = 'light' | 'dark';
 
 /** La cejilla solo tiene sentido en instrumentos de cuerda. */

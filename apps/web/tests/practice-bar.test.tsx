@@ -18,16 +18,23 @@ function Harness({
   beats: beatTimes,
   beatsPerBar,
   duration,
+  initialA = null,
+  initialB = null,
+  initialLoop = false,
 }: {
   adapter: FakePlayerAdapter;
   clock: PlaybackClock;
   beats: number[];
   beatsPerBar: number;
   duration: number;
+  initialA?: number | null;
+  initialB?: number | null;
+  initialLoop?: boolean;
 }) {
-  const [loopA, setLoopA] = useState<number | null>(null);
-  const [loopB, setLoopB] = useState<number | null>(null);
-  const [loopEnabled, setLoopEnabled] = useState(false);
+  const [loopA, setLoopA] = useState<number | null>(initialA);
+  const [loopB, setLoopB] = useState<number | null>(initialB);
+  const [loopEnabled, setLoopEnabled] = useState(initialLoop);
+  const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [rate, setRate] = useState(1);
   const [manualBpm, setManualBpm] = useState(90);
 
@@ -44,6 +51,8 @@ function Harness({
       onLoopAChange={setLoopA}
       onLoopBChange={setLoopB}
       onLoopEnabledChange={setLoopEnabled}
+      markMode={markMode}
+      onMarkModeChange={setMarkMode}
       rate={rate}
       onRateChange={setRate}
       manualBpm={manualBpm}
@@ -54,7 +63,14 @@ function Harness({
 
 function setup(
   initialTime = 0,
-  options: { beats?: number[]; duration?: number; beatsPerBar?: number } = {},
+  options: {
+    beats?: number[];
+    duration?: number;
+    beatsPerBar?: number;
+    initialA?: number | null;
+    initialB?: number | null;
+    initialLoop?: boolean;
+  } = {},
 ) {
   const adapter = new FakePlayerAdapter(initialTime, false);
   const clock = new PlaybackClock(adapter);
@@ -68,6 +84,9 @@ function setup(
       beats={options.beats ?? beats}
       beatsPerBar={options.beatsPerBar ?? 4}
       duration={options.duration ?? 30}
+      initialA={options.initialA}
+      initialB={options.initialB}
+      initialLoop={options.initialLoop}
     />,
   );
 
@@ -75,21 +94,34 @@ function setup(
 }
 
 describe('PracticeBar', () => {
-  it('marca A y B por compases y activa el bucle', () => {
-    const { adapter } = setup();
+  it('arma A y B para elegir el compás en la parrilla', () => {
+    setup();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Marcar inicio A en el compás actual' }));
-    expect(screen.getByRole('button', { name: 'Marcar inicio A en el compás actual' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    const a = screen.getByRole('button', { name: 'Marcar inicio A' });
+    const b = screen.getByRole('button', { name: 'Marcar final B' });
+
+    fireEvent.click(a);
+    expect(a).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Pulsa un compás para A')).toBeInTheDocument();
+    expect(b).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(a);
+    expect(a).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByText('Marca A y B')).toBeInTheDocument();
 
-    act(() => {
-      adapter.seekTo(4.2);
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Marcar final B en el compás actual' }));
+    fireEvent.click(b);
+    expect(b).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Pulsa un compás para B')).toBeInTheDocument();
+  });
+
+  it('activa el bucle cuando ya hay rango A-B', () => {
+    setup(0, { initialA: 0, initialB: 8 });
+
     expect(screen.getByText('00:00 – 00:08')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Marcar inicio A' })).toHaveAttribute(
+      'data-set',
+      'true',
+    );
 
     const loop = screen.getByRole('button', { name: 'Bucle' });
     expect(loop).toBeEnabled();
@@ -145,10 +177,7 @@ describe('PracticeBar', () => {
   });
 
   it('limpia el rango y desactiva el bucle', () => {
-    setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Marcar inicio A en el compás actual' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Marcar final B en el compás actual' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Bucle' }));
+    setup(0, { initialA: 0, initialB: 8, initialLoop: true });
     expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -158,9 +187,17 @@ describe('PracticeBar', () => {
 
     expect(screen.getByText('Marca A y B')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bucle' })).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: 'Marcar inicio A en el compás actual' }),
-    ).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Marcar inicio A' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Marcar final B' })).not.toHaveAttribute(
+      'data-set',
+    );
   });
 
   it('hace una cuenta de cuatro pulsos antes de reproducir', () => {

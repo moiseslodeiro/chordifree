@@ -41,22 +41,33 @@ pega manualmente desde el editor de la propia vista y se guarda con la canción;
 de YouTube ni de servicios externos. Chordifree reparte las líneas no vacías entre el primer y
 el último acorde y coloca encima cada cambio de acorde según su tiempo. Para no repartir letra
 sobre una intro o un interludio, una heurística conservadora busca la frase de cuatro compases
-más repetida y descarta el tramo anterior a su primera aparición, el posterior a la última y los
-huecos internos largos que usan como mucho dos acordes. Si no hay una estructura fiable, usa el
-reparto uniforme. La detección es aproximada: puedes fijar una línea con un ancla `[mm:ss]` al
-inicio o colocar el cursor en una línea y pulsar «Anclar línea al tiempo actual». Las líneas
-vacías solo separan estrofas; no reservan tiempo por sí mismas. Los acordes reflejan la misma
-notación, alteraciones, transporte, capo, simplificación y reducción que la parrilla, y la línea
-y el acorde activos se resaltan durante la reproducción. Pulsar una línea o un acorde salta a su
-momento. La reducción máxima solo colapsa la parrilla; la letra conserva los cambios y tiempos
-reales para no desalinearse.
+más repetida y descarta el tramo anterior a su primera aparición solo si esa aparición llega en
+los primeros 16 compases, el posterior a la última y los huecos internos largos que usan como
+mucho dos acordes. Si no hay una estructura fiable, usa el reparto uniforme sin inventar una
+intro gigante. La vista sigue la línea activa con un desplazamiento suave. La detección es
+aproximada: puedes fijar una línea con un ancla `[mm:ss]` al inicio o colocar el cursor en una
+línea y pulsar «Anclar línea» o «Anclar inicio». Las líneas vacías solo separan estrofas; no
+reservan tiempo por sí mismas. Los acordes reflejan la misma notación, alteraciones, transporte,
+capo, simplificación y reducción que la parrilla, y la línea y el acorde activos se resaltan
+durante la reproducción. Pulsar una línea o un acorde salta a su momento. La reducción máxima
+solo colapsa la parrilla; la letra conserva los cambios y tiempos reales para no desalinearse.
+
+La vista **Compases** agrupa un acorde por compás y muestra cuatro compases por fila, al estilo
+de Chordify. En modo automático prefiere mitad de tempo cuando el detector devuelve más de 100
+BPM (habitual en baladas detectadas al doble) y elige la fase de compás que mejor alinea los
+cambios. Puedes forzar «Normal» o «Mitad» desde la propia vista. Para practicar un tramo, pulsa
+**A** o **B** y luego el compás en la parrilla: al pasar el ratón se previsualiza el compás
+completo en el color claro correspondiente y el clic fija el extremo en color fuerte sin
+reproducir. Cuando A y B están fijados, **Reproducir** empieza en A y se detiene en B; si
+activas **Bucle**, repite el tramo. Sin A/B armados, un clic en la parrilla busca ese punto y
+empieza a tocar desde ahí.
 
 - **Simplificar acordes**: reduce las tensiones, extensiones, suspensiones e inversiones a la
   tríada básica (`Cmaj7` → `C`, `C/G` → `C`) y conserva la séptima de dominante porque define
   la función armónica (`G7` → `G7`). Solo afecta a la presentación; el editor conserva el
-  cifrado original. El analizador actual (Essentia `ChordsDetectionBeats`) devuelve sobre todo
-  tríadas mayores y menores, así que en canciones de YouTube el cambio se nota cuando hay
-  extensiones, suspensiones o inversiones.
+  cifrado original. El analizador actual (Essentia `NNLSChroma` con croma de bajos,
+  prior tonal y Viterbi) devuelve sobre todo tríadas mayores y menores, así que en canciones de
+  YouTube el cambio se nota cuando hay extensiones, suspensiones o inversiones.
 - **Reducir acordes**: además de simplificar, agrupa acordes repetidos y absorbe los acordes de
   paso que duran una pulsación o menos cuando están rodeados de acordes más largos. Las
   progresiones que cambian en cada pulsación se conservan. Es reversible y no modifica la línea

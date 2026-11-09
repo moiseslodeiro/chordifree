@@ -15,7 +15,9 @@ export interface InstrumentalSpan {
 
 const PHRASE_BARS = 4;
 const MIN_INTRO_BARS = 2;
+const MAX_INTRO_BARS = 16;
 const MIN_OUTRO_BARS = 2;
+const MAX_OUTRO_BARS = 16;
 const MIN_INTERLUDE_BARS = 4;
 const MAX_INTERLUDE_CHORDS = 2;
 
@@ -97,13 +99,14 @@ export function detectInstrumentalSpans(
 
   const spans: InstrumentalSpan[] = [];
   const first = occurrences[0]!;
-  if (first[0] >= MIN_INTRO_BARS) {
+  if (first[0] >= MIN_INTRO_BARS && first[0] <= MAX_INTRO_BARS) {
     spans.push({ start: bars[0]!.start, end: bars[first[0]]!.start, kind: 'intro' });
   }
 
   const last = occurrences[occurrences.length - 1]!;
   const lastBar = bars[last[1] - 1]!;
-  if (bars.length - last[1] >= MIN_OUTRO_BARS && duration > lastBar.end) {
+  const tailBars = bars.length - last[1];
+  if (tailBars >= MIN_OUTRO_BARS && tailBars <= MAX_OUTRO_BARS && duration > lastBar.end) {
     spans.push({ start: lastBar.end, end: duration, kind: 'outro' });
   }
 

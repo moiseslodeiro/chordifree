@@ -2,6 +2,12 @@
 
 Microservicio FastAPI que detecta acordes con Essentia sobre un archivo de audio.
 
+El motor usa `NNLSChroma` (croma de rango medio y de bajos con corrección de afinación),
+estima la tonalidad global con `KeyExtractor`, pondera la fundamental con el croma grave y
+decodifica la secuencia de acordes por pulso con un prior tonal y Viterbi. Los silencios se
+marcan por energía. La versión actual es `essentia-1.5`; al cambiarla se invalida la caché de
+las canciones guardadas.
+
 ## Ejecutar en local
 
 ```bash
@@ -17,7 +23,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 curl -fsS http://localhost:8000/health
-# {"status":"ok","analyzerVersion":"essentia-1.2"}
+# {"status":"ok","analyzerVersion":"essentia-1.5"}
 ```
 
 ### `POST /analyze`
@@ -39,7 +45,7 @@ Respuesta:
   "duration": 12.4,
   "beats": [0.42, 0.91, 1.38, 1.87],
   "beatsPerBar": 4,
-  "analyzerVersion": "essentia-1.2"
+  "analyzerVersion": "essentia-1.5"
 }
 ```
 

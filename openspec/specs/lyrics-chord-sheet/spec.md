@@ -97,13 +97,19 @@ El sistema SHALL repartir las líneas no vacías sobre el tramo comprendido entr
 
 ### Requirement: Intros, interludios y anclas de tiempo
 
-El sistema SHALL detectar de forma conservadora tramos instrumentales mediante la repetición de frases de acordes y SHALL excluirlos del reparto de líneas. También SHALL aceptar un ancla `[mm:ss]` al inicio de una línea para fijar su tiempo y SHALL ofrecer acciones para insertar el tiempo actual en la línea seleccionada o en la primera línea con texto.
+El sistema SHALL detectar de forma conservadora tramos instrumentales mediante la repetición de frases de acordes y SHALL excluirlos del reparto de líneas. La intro solo SHALL descartarse si la primera aparición de la frase principal llega dentro de los primeros 16 compases; si aparece más tarde, el sistema SHALL usar el reparto uniforme en lugar de inventar una intro gigante. También SHALL aceptar un ancla `[mm:ss]` al inicio de una línea para fijar su tiempo y SHALL ofrecer acciones para insertar el tiempo actual en la línea seleccionada o en la primera línea con texto.
 
 #### Scenario: Intro instrumental
 
-- **WHEN** la canción empieza con compases que no forman parte de la frase principal
+- **WHEN** la canción empieza con compases que no forman parte de la frase principal y esa frase aparece en los primeros 16 compases
 - **THEN** la primera línea de letra empieza después de esos compases
 - **AND** los acordes de la intro no se muestran sobre una línea de letra
+
+#### Scenario: Frase principal tardía
+
+- **WHEN** la primera aparición exacta de la frase más repetida llega después de los primeros 16 compases
+- **THEN** no se marca ese tramo como intro
+- **AND** la letra se reparte de forma uniforme para no desplazarla minutos fuera de su sitio
 
 #### Scenario: Interludio instrumental
 
