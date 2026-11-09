@@ -14,7 +14,7 @@ Requirements: Docker Engine or Docker Desktop with Compose v2, and an internet c
 the first build (the analyzer downloads its ONNX models).
 
 ```bash
-git clone https://github.com/<your-user>/chordifree.git
+git clone https://github.com/moiseslodeiro/chordifree.git
 cd chordifree
 docker compose up --build -d
 ```
