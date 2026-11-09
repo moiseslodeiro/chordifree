@@ -87,17 +87,17 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       if (error.code === 'LIMIT_FILE_SIZE') {
         res
           .status(413)
-          .json(errorBody('FILE_TOO_LARGE', 'El archivo supera el tamaño máximo permitido'));
+          .json(errorBody('FILE_TOO_LARGE', 'The file exceeds the maximum allowed size'));
         return;
       }
-      res.status(400).json(errorBody('INVALID_REQUEST', 'Subida de archivo no válida'));
+      res.status(400).json(errorBody('INVALID_REQUEST', 'Invalid file upload'));
       return;
     }
     if (error instanceof ApiError) {
       res.status(error.status).json(errorBody(error.code, error.message));
       return;
     }
-    const message = error instanceof Error ? error.message : 'Error interno';
+    const message = error instanceof Error ? error.message : 'Internal error';
     res.status(500).json(errorBody('ANALYSIS_FAILED', message));
   });
 

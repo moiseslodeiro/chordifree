@@ -6,6 +6,7 @@ import pytest
 
 from app import analysis
 from app.analysis import analyze_file
+from app.vocals import regions_from_probabilities
 
 
 def test_analyze_devuelve_segmentos_que_cubren_el_audio(chord_wav: Path) -> None:
@@ -170,3 +171,31 @@ def test_smooth_chords_conserva_cambios_reales() -> None:
     result = analysis._smooth_chords(segments)
 
     assert [segment["label"] for segment in result] == ["C", "A", "G"]
+
+
+def test_detecta_regiones_vocales_y_descarta_parpadeos_cortos() -> None:
+    import numpy as np
+
+    probabilities = np.zeros(20, dtype="float64")
+    probabilities[2:6] = 1.0  # 1,9 s: parpadeo corto, se descarta
+    probabilities[10:20] = 1.0  # 4,8 s: región vocal válida
+
+    regions = regions_from_probabilities(
+        probabilities, hop=0.48, smooth_frames=1, close_gap_frames=3, duration=10.0
+    )
+
+    assert regions == [{"start": 4.8, "end": 9.6}]
+
+
+def test_cierra_huecos_breves_entre_regiones_vocales() -> None:
+    import numpy as np
+
+    probabilities = np.zeros(20, dtype="float64")
+    probabilities[4:8] = 1.0
+    probabilities[10:16] = 1.0  # hueco de 2 frames (0,96 s)
+
+    regions = regions_from_probabilities(
+        probabilities, hop=0.48, smooth_frames=1, duration=10.0
+    )
+
+    assert regions == [{"start": 1.92, "end": 7.68}]

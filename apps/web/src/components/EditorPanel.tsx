@@ -12,6 +12,7 @@ import { MIN_SEGMENT_SECONDS } from '../editor/operations';
 import { useEditor } from '../editor/useEditor';
 import type { Song } from '../types';
 import { ErrorBanner } from './ErrorBanner';
+import { useT } from '../i18n';
 
 interface ChordFieldProps {
   value: string;
@@ -19,6 +20,7 @@ interface ChordFieldProps {
 }
 
 function ChordField({ value, onCommit }: ChordFieldProps) {
+  const t = useT();
   const [text, setText] = useState(value);
   const [invalid, setInvalid] = useState(false);
 
@@ -32,7 +34,7 @@ function ChordField({ value, onCommit }: ChordFieldProps) {
       type="text"
       className={`field font-display font-bold ${invalid ? 'border-danger' : ''}`}
       value={text}
-      aria-label="Acorde del segmento"
+      aria-label={t('editor.segmentChord')}
       aria-invalid={invalid}
       spellCheck={false}
       onChange={(event) => {
@@ -100,6 +102,7 @@ interface EditorPanelProps {
 }
 
 export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: EditorPanelProps) {
+  const t = useT();
   const editor = useEditor(song.segments, song.duration);
   const [inputError, setInputError] = useState<string | null>(null);
 
@@ -138,10 +141,10 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
     >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-4">
         <div>
-          <p className="eyebrow">Edición</p>
-          <h2 className="display mt-2 text-2xl">Modo edición</h2>
+          <p className="eyebrow">{t('editor.eyebrow')}</p>
+          <h2 className="display mt-2 text-2xl">{t('editor.title')}</h2>
           <p className="mt-1 max-w-[52ch] text-xs leading-relaxed text-ink3">
-            Los acordes se editan en afinación original; la rejilla aplica la trasposición.
+            {t('editor.help')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -167,14 +170,14 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
             onClick={() => {
               if (
                 window.confirm(
-                  '¿Restaurar la detección original? Se descartarán las correcciones de esta sesión.',
+                  t('editor.restoreConfirm'),
                 )
               ) {
                 editor.restore();
               }
             }}
           >
-            Restaurar detección
+            {t('editor.restore')}
           </button>
           <button
             type="button"
@@ -188,7 +191,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
             className="btn btn-primary min-h-0 px-3 py-1.5 text-xs"
             onClick={() => onSave(editor.segments)}
           >
-            Guardar cambios
+            {t('editor.save')}
           </button>
         </div>
       </div>
@@ -214,7 +217,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <TimeField
-                  label="Inicio"
+                  label={t('editor.start')}
                   value={segment.start}
                   onCommit={(seconds) => commitBoundary(index, 'start', seconds)}
                 />
@@ -224,7 +227,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
                   onCommit={(seconds) => commitBoundary(index, 'end', seconds)}
                 />
                 <div className="min-w-[9rem] flex-1 space-y-1">
-                  <span className="eyebrow block">Acorde</span>
+                  <span className="eyebrow block">{t('editor.chord')}</span>
                   <ChordField
                     value={displayChord(segment.chord)}
                     onCommit={(text) => commitChord(index, text)}
@@ -239,7 +242,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
                       editor.updateChord(index, null);
                     }}
                   >
-                    Silencio
+                    {t('common.silence')}
                   </button>
                   <button
                     type="button"
@@ -271,7 +274,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
       </ol>
 
       <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
-        Duración mínima por segmento: {MIN_SEGMENT_SECONDS} s. Los ajustes recortan el segmento
+        {t('editor.minDuration', { seconds: MIN_SEGMENT_SECONDS })}
         vecino para no dejar huecos ni solapamientos.
       </p>
     </section>

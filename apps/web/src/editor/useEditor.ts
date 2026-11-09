@@ -7,6 +7,7 @@ import {
   setBoundary,
   splitSegment,
 } from './operations';
+import { t } from '../i18n';
 
 const HISTORY_LIMIT = 50;
 
@@ -42,7 +43,7 @@ function sameChord(a: ChordSegment['chord'], b: ChordSegment['chord']): boolean 
   return a.root === b.root && a.quality === b.quality && a.bass === b.bass;
 }
 
-/** Compara por contenido para tolerar que el padre recree el array. */
+/** Compares by content to tolerate the parent recreating the array. */
 function sameSegments(a: ChordSegment[], b: ChordSegment[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
@@ -77,7 +78,7 @@ export function useEditor(initial: ChordSegment[], duration: number): EditorApi 
       } catch (caught) {
         return {
           ...current,
-          error: caught instanceof Error ? caught.message : 'No se pudo aplicar el cambio',
+          error: caught instanceof Error ? caught.message : t('editor.applyFailed'),
         };
       }
     });

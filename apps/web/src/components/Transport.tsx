@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
+import { useT } from '../i18n';
 import type { PlaybackClock } from '../sync/clock';
 
 interface TransportProps {
@@ -20,6 +21,7 @@ export function Transport({
   loopB = null,
   loopEnabled = false,
 }: TransportProps) {
+  const t = useT();
   const [playing, setPlaying] = useState(adapter.isPlaying());
   const [time, setTime] = useState(adapter.getCurrentTime());
   const hasRange = loopA !== null && loopB !== null && loopB > loopA;
@@ -35,7 +37,7 @@ export function Transport({
     return () => window.clearInterval(timer);
   }, [adapter]);
 
-  /** Con un rango marcado, Reproducir empieza en A si el cursor está fuera. */
+  /** With a marked range, Play starts at A if the cursor is outside. */
   useEffect(() => {
     if (!hasRange || loopEnabled) return;
     const timer = window.setInterval(() => {
@@ -77,9 +79,9 @@ export function Transport({
         type="button"
         className="btn btn-primary min-h-0 w-28 py-2 font-mono text-[0.66rem] uppercase tracking-[0.12em]"
         onClick={toggle}
-        aria-label={playing ? 'Pausar' : 'Reproducir'}
+        aria-label={playing ? t('transport.pause') : t('transport.play')}
       >
-        {playing ? 'Pausar' : 'Reproducir'}
+        {playing ? t('transport.pause') : t('transport.play')}
       </button>
       <span
         className="w-12 text-right font-mono text-sm tabular-nums text-ink"
@@ -95,7 +97,7 @@ export function Transport({
         value={Math.min(time, duration)}
         onChange={(event) => seek(Number(event.target.value))}
         className="range"
-        aria-label="Posición de reproducción"
+        aria-label={t('transport.position')}
         aria-valuetext={`${formatTime(time)} de ${formatTime(duration)}`}
       />
       <span className="w-12 font-mono text-xs tabular-nums text-ink3" aria-hidden="true">

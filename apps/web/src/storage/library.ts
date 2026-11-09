@@ -33,6 +33,15 @@ function isSource(value: unknown): boolean {
   return false;
 }
 
+function isVocalRegion(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.start === 'number' &&
+    typeof value.end === 'number' &&
+    value.end > value.start
+  );
+}
+
 export function isSong(value: unknown): value is Song {
   if (!isRecord(value)) return false;
   return (
@@ -47,6 +56,8 @@ export function isSong(value: unknown): value is Song {
     (value.beats === undefined ||
       (Array.isArray(value.beats) && value.beats.every((beat) => typeof beat === 'number'))) &&
     (value.beatsPerBar === undefined || typeof value.beatsPerBar === 'number') &&
+    (value.vocalRegions === undefined ||
+      (Array.isArray(value.vocalRegions) && value.vocalRegions.every(isVocalRegion))) &&
     (value.capo === undefined || typeof value.capo === 'number') &&
     (value.lyrics === undefined || typeof value.lyrics === 'string') &&
     typeof value.analyzerVersion === 'string' &&
@@ -83,7 +94,7 @@ function sortSummaries(songs: SongSummary[]): SongSummary[] {
   return [...songs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-/** Purga las entradas de caché de análisis más antiguas. */
+/** Purges the oldest analysis cache entries. */
 export function purgeAnalysisCache(storage: StorageLike, count = 5): number {
   const entries = listKeys(storage, `${PREFIX}:analysis:`)
     .map((key) => {
@@ -120,7 +131,7 @@ export class Library {
     return readEnvelope(this.storage, KEYS.song(id), isSong);
   }
 
-  /** Todas las canciones completas, en el mismo orden que la biblioteca. */
+  /** All complete songs, in the same order as the library. */
   exportSongs(): Song[] {
     return this.list()
       .map((summary) => this.get(summary.id))
@@ -128,9 +139,9 @@ export class Library {
   }
 
   /**
-   * Fusiona una copia de seguridad con la biblioteca actual. Las canciones que
-   * comparten origen se actualizan conservando su id (y su práctica); el resto
-   * se añade. Si un id entra en conflicto con otra canción, se genera uno nuevo.
+   * Merges a backup with the current library. Songs that share a source are
+   * updated while keeping their id (and their practice state); the rest are
+   * added. If an id conflicts with another song, a new one is generated.
    */
   importSongs(songs: Song[]): ImportResult {
     const unique = new Map<string, Song>();
@@ -183,8 +194,8 @@ export class Library {
     const write = () => {
       writeEnvelope(this.storage, KEYS.song(normalized.id), normalized);
       const others = this.list().filter((summary) => summary.id !== normalized.id);
-      // El nuevo resumen va primero para que, si dos guardados comparten el
-      // mismo milisegundo, el orden estable mantenga el más reciente arriba.
+      // The new summary goes first so that, if two saves share the
+      // same millisecond, the stable order keeps the most recent on top.
       writeEnvelope(this.storage, KEYS.library, {
         songs: sortSummaries([summaryOf(normalized), ...others]),
       });

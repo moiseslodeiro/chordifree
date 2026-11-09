@@ -1,7 +1,7 @@
 import { readEnvelope, removeKey, writeEnvelope } from './envelope';
 import { KEYS, type StorageLike } from './keys';
 
-/** Velocidades admitidas por el reproductor y por el selector de práctica. */
+/** Playback rates supported by the player and the practice selector. */
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 
 export const MIN_BPM = 40;
@@ -13,7 +13,7 @@ export interface PracticeSession {
   loopB: number | null;
   loopEnabled: boolean;
   rate: number;
-  /** BPM manual para el metrónomo cuando el análisis no trae pulsos. */
+  /** Manual BPM for the metronome when the analysis has no beats. */
   bpm: number;
 }
 
@@ -42,7 +42,7 @@ function pickRate(value: unknown): number {
   return PLAYBACK_RATES.find((rate) => rate === value) ?? 1;
 }
 
-/** Corrige rangos invertidos, velocidades no admitidas y BPM fuera de rango. */
+/** Fixes inverted ranges, unsupported rates and out-of-range BPM. */
 export function normalizePractice(value: unknown): PracticeSession {
   const candidate = isRecord(value) ? value : {};
   const loopA = timeOrNull(candidate.loopA);

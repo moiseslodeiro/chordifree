@@ -2,9 +2,9 @@ import { findActiveSegmentIndex, type ChordSegment } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
 
 /**
- * Publica el índice del segmento y del pulso activos. Solo notifica cuando
- * cambia cualquiera de los dos, de modo que las celdas puedan suscribirse de
- * forma selectiva sin añadir un segundo bucle de animación.
+ * Publishes the active segment and beat index. Only notifies when
+ * either of the two changes, so cells can subscribe
+ * selectively without adding a second animation loop.
  */
 export class PlaybackClock {
   private index = -1;

@@ -3,6 +3,8 @@ import type { Chord, ChordSegment } from '@chordifree/chords';
 export const MIN_SEGMENT_SECONDS = 0.25;
 const EPSILON = 0.001;
 
+import { t } from '../i18n';
+
 export class EditorError extends Error {
   constructor(message: string) {
     super(message);
@@ -34,7 +36,7 @@ export function setBoundary(
 ): ChordSegment[] {
   const segment = segments[index];
   if (!segment) throw new EditorError('Segmento inexistente');
-  if (!Number.isFinite(time)) throw new EditorError('Tiempo no válido');
+  if (!Number.isFinite(time)) throw new EditorError(t('editor.invalidTime'));
 
   const next = clone(segments);
 
@@ -45,7 +47,7 @@ export function setBoundary(
       throw new EditorError('El inicio no puede solaparse con el segmento anterior');
     }
     if (time > segment.end - MIN_SEGMENT_SECONDS) {
-      throw new EditorError('El segmento resultante sería demasiado corto');
+      throw new EditorError(t('editor.tooShort'));
     }
     if (previous) next[index - 1] = { ...previous, end: time };
     next[index] = { ...segment, start: time };
@@ -56,7 +58,7 @@ export function setBoundary(
       throw new EditorError('El fin no puede solaparse con el segmento siguiente');
     }
     if (time < segment.start + MIN_SEGMENT_SECONDS) {
-      throw new EditorError('El segmento resultante sería demasiado corto');
+      throw new EditorError(t('editor.tooShort'));
     }
     if (following) next[index + 1] = { ...following, start: time };
     next[index] = { ...segment, end: time };

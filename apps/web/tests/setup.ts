@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { setLanguage } from '../src/i18n';
 
 function createLocalStorage() {
   const data = new Map<string, string>();
@@ -30,6 +31,14 @@ try {
     value: createLocalStorage(),
   });
 }
+
+beforeEach(() => {
+  setLanguage('es');
+  window.localStorage.setItem(
+    'chordifree:v1:preferences',
+    JSON.stringify({ schemaVersion: 1, data: { language: 'es' } }),
+  );
+});
 
 afterEach(() => {
   cleanup();

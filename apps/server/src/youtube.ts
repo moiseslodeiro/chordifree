@@ -3,26 +3,26 @@ import { ApiError } from './errors';
 const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 
 /**
- * Extrae y valida el identificador de un enlace de YouTube.
- * Nunca devuelve la URL original: el resto del sistema solo maneja el ID.
+ * Extracts and validates the identifier from a YouTube link.
+ * Never returns the original URL: the rest of the system only handles the ID.
  */
 export function extractVideoId(input: string): string {
   let url: URL;
   try {
     url = new URL(input.trim());
   } catch {
-    throw new ApiError('INVALID_URL', 'El enlace no es una URL válida');
+    throw new ApiError('INVALID_URL', 'The link is not a valid URL');
   }
 
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new ApiError('INVALID_URL', 'El enlace debe usar http o https');
+    throw new ApiError('INVALID_URL', 'The link must use http or https');
   }
 
   const host = url.hostname.toLowerCase();
   const isYoutube = host === 'youtube.com' || host.endsWith('.youtube.com');
   const isShort = host === 'youtu.be' || host.endsWith('.youtu.be');
   if (!isYoutube && !isShort) {
-    throw new ApiError('UNSUPPORTED_HOST', 'Solo se admiten enlaces de YouTube');
+    throw new ApiError('UNSUPPORTED_HOST', 'Only YouTube links are supported');
   }
 
   let candidate: string | null = null;
@@ -35,10 +35,10 @@ export function extractVideoId(input: string): string {
   }
 
   if (!candidate) {
-    throw new ApiError('MISSING_VIDEO_ID', 'El enlace de YouTube no incluye un identificador de video');
+    throw new ApiError('MISSING_VIDEO_ID', 'The YouTube link does not include a video ID');
   }
   if (!VIDEO_ID_PATTERN.test(candidate)) {
-    throw new ApiError('INVALID_URL', 'El identificador del video no tiene un formato válido');
+    throw new ApiError('INVALID_URL', 'The video ID format is invalid');
   }
   return candidate;
 }

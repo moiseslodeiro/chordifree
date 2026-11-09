@@ -12,7 +12,7 @@ const EnvSchema = z.object({
   YTDLP_PATH: z.string().default('yt-dlp'),
   FFMPEG_PATH: z.string().default('ffmpeg'),
   FFPROBE_PATH: z.string().default('ffprobe'),
-  ANALYZER_VERSION: z.string().default('essentia-1.5'),
+  ANALYZER_VERSION: z.string().default('essentia-1.6'),
 });
 
 export interface AppConfig {

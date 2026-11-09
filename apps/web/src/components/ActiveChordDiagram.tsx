@@ -6,6 +6,7 @@ import {
 } from '@chordifree/chords';
 import type { PlaybackClock } from '../sync/clock';
 import { usePlaybackIndex } from '../sync/hooks';
+import { useT } from '../i18n';
 import type { Instrument } from '../types';
 import { ChordDiagram } from './ChordDiagram';
 
@@ -24,6 +25,7 @@ export function ActiveChordDiagram({
   notation,
   accidental,
 }: ActiveChordDiagramProps) {
+  const t = useT();
   const index = usePlaybackIndex(clock);
   const segment = index >= 0 ? segments[index] : undefined;
   const label = formatChordOrSilence(segment?.chord ?? null, notation, accidental);
@@ -31,11 +33,11 @@ export function ActiveChordDiagram({
   return (
     <section
       className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-      aria-label="Acorde activo"
+      aria-label={t('diagram.activeAria')}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-4 py-3">
         <h2 className="font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-          Acorde activo
+          {t('diagram.active')}
         </h2>
         <span className="font-display text-3xl font-extrabold leading-none text-ink">{label}</span>
       </div>

@@ -10,8 +10,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Migra sobres de versiones anteriores. Devuelve null para versiones no soportadas.
- * La v0 (anterior al versionado) guardaba `{ songs: [...] }` sin sobre.
+ * Migrates envelopes from previous versions. Returns null for unsupported versions.
+ * v0 (before versioning) stored `{ songs: [...] }` without an envelope.
  */
 export function migrateEnvelope(raw: unknown): unknown | null {
   if (!isRecord(raw)) return null;
@@ -28,7 +28,7 @@ export function quarantine(storage: StorageLike, key: string, raw: string): void
   try {
     storage.setItem(KEYS.corrupt(Date.now()), raw);
   } catch {
-    // Si tampoco cabe la cuarentena, se descarta el dato corrupto.
+    // If the quarantine does not fit either, the corrupt data is discarded.
   }
   storage.removeItem(key);
 }
@@ -50,7 +50,7 @@ export function readEnvelope<T>(
     const migrated = migrateEnvelope(JSON.parse(raw));
     if (migrated !== null && validate(migrated)) return migrated;
   } catch {
-    // JSON inválido: se trata como corrupción.
+    // Invalid JSON: treated as corruption.
   }
 
   quarantine(storage, key, raw);
@@ -71,7 +71,7 @@ export function removeKey(storage: StorageLike, key: string): void {
   try {
     storage.removeItem(key);
   } catch {
-    // Ignorar fallos de almacenamiento al limpiar.
+    // Ignore storage failures when cleaning up.
   }
 }
 

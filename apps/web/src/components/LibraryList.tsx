@@ -1,21 +1,22 @@
 import { useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import type { SongSummary } from '../types';
+import { useLanguage, useT, type MessageKey } from '../i18n';
 import { NoticeBanner } from './ErrorBanner';
 
 type SourceFilter = 'all' | 'youtube' | 'upload';
 
-const SOURCE_FILTERS: { value: SourceFilter; label: string }[] = [
-  { value: 'all', label: 'Todas' },
-  { value: 'youtube', label: 'Vídeos' },
-  { value: 'upload', label: 'Archivos' },
+const SOURCE_FILTERS: { value: SourceFilter; label: MessageKey }[] = [
+  { value: 'all', label: 'library.filterAll' },
+  { value: 'youtube', label: 'library.filterYoutube' },
+  { value: 'upload', label: 'library.filterUpload' },
 ];
 
 function normalize(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('es');
+    .toLocaleLowerCase();
 }
 
 interface LibraryNotice {
@@ -35,10 +36,10 @@ interface LibraryListProps {
   onHome: () => void;
 }
 
-function formatDate(value: string): string {
+function formatDate(value: string, language: 'en' | 'es'): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('es-ES', {
+  return date.toLocaleString(language === 'es' ? 'es-ES' : 'en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -58,6 +59,8 @@ export function LibraryList({
   onBack,
   onHome,
 }: LibraryListProps) {
+  const t = useT();
+  const language = useLanguage();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<SourceFilter>('all');
   const fileInput = useRef<HTMLInputElement>(null);
@@ -80,15 +83,13 @@ export function LibraryList({
   return (
     <section
       className="overflow-hidden rounded-2xl border border-line bg-panel shadow-lg"
-      aria-label="Biblioteca de canciones"
+      aria-label={t('library.title')}
     >
       <header className="flex flex-wrap items-end justify-between gap-5 border-b border-line p-6 sm:p-8">
         <div>
-          <p className="eyebrow">Archivo personal</p>
-          <h1 className="display mt-2 text-3xl sm:text-4xl">Biblioteca</h1>
-          <p className="mt-2 text-sm text-ink2">
-            Tus canciones se guardan solo en este navegador.
-          </p>
+          <p className="eyebrow">{t('library.eyebrow')}</p>
+          <h1 className="display mt-2 text-3xl sm:text-4xl">{t('library.title')}</h1>
+          <p className="mt-2 text-sm text-ink2">{t('library.localOnly')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -97,21 +98,21 @@ export function LibraryList({
             onClick={onExport}
             disabled={songs.length === 0}
           >
-            Exportar JSON
+            {t('library.export')}
           </button>
           <button
             type="button"
             className="btn btn-ghost"
             onClick={() => fileInput.current?.click()}
           >
-            Importar JSON
+            {t('library.import')}
           </button>
           <input
             ref={fileInput}
             type="file"
             accept=".json,application/json"
             className="sr-only"
-            aria-label="Archivo de copia de seguridad"
+            aria-label={t('library.backupFile')}
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = '';
@@ -119,10 +120,10 @@ export function LibraryList({
             }}
           />
           <button type="button" className="btn btn-ghost" onClick={onBack}>
-            Volver
+            {t('library.back')}
           </button>
           <button type="button" className="btn btn-primary" onClick={onHome}>
-            Analizar otra
+            {t('library.analyzeAnother')}
           </button>
         </div>
       </header>
@@ -140,10 +141,10 @@ export function LibraryList({
       {songs.length === 0 ? (
         <div className="p-10 text-center sm:p-16">
           <p className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-            Todavía no hay canciones
+            {t('library.emptyTitle')}
           </p>
           <p className="mx-auto mt-2 max-w-[40ch] text-sm text-ink2">
-            Analiza un video o sube un audio y pulsa «Guardar en biblioteca».
+            {t('library.emptyBody')}
           </p>
         </div>
       ) : (
@@ -152,13 +153,13 @@ export function LibraryList({
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-[13rem] flex-1">
                 <label htmlFor="library-search" className="sr-only">
-                  Buscar canciones
+                  {t('library.searchLabel')}
                 </label>
                 <input
                   id="library-search"
                   type="search"
                   className="field"
-                  placeholder="Buscar por título…"
+                  placeholder={t('library.searchPlaceholder')}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   autoComplete="off"
@@ -168,7 +169,7 @@ export function LibraryList({
               <div
                 className="flex flex-wrap items-center gap-1"
                 role="group"
-                aria-label="Filtrar por origen"
+                aria-label={t('library.filterAria')}
               >
                 {SOURCE_FILTERS.map((filter) => {
                   const active = source === filter.value;
@@ -180,7 +181,7 @@ export function LibraryList({
                       aria-pressed={active}
                       onClick={() => setSource(filter.value)}
                     >
-                      {filter.label}
+                      {t(filter.label)}
                     </button>
                   );
                 })}
@@ -188,7 +189,7 @@ export function LibraryList({
 
               {hasFilters ? (
                 <button type="button" className="btn btn-ghost" onClick={clearFilters}>
-                  Limpiar
+                  {t('library.clear')}
                 </button>
               ) : null}
             </div>
@@ -197,21 +198,24 @@ export function LibraryList({
               className="mt-3 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3"
               aria-live="polite"
             >
-              {filtered.length} de {songs.length}{' '}
-              {songs.length === 1 ? 'canción' : 'canciones'}
+              {t('library.results', {
+                count: filtered.length,
+                total: songs.length,
+                label: songs.length === 1 ? t('common.song') : t('common.songs'),
+              })}
             </p>
           </div>
 
           {filtered.length === 0 ? (
             <div className="p-10 text-center sm:p-16">
               <p className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-                No hay canciones que coincidan
+                {t('library.noResultsTitle')}
               </p>
               <p className="mx-auto mt-2 max-w-[40ch] text-sm text-ink2">
-                Prueba con otro título o cambia el filtro de origen.
+                {t('library.noResults')}
               </p>
               <button type="button" className="btn mt-5" onClick={clearFilters}>
-                Limpiar filtros
+                {t('library.clearFilters')}
               </button>
             </div>
           ) : (
@@ -236,16 +240,18 @@ export function LibraryList({
                     </span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 pl-8 text-xs text-ink3">
                       <span className="badge">
-                        {song.source.type === 'youtube' ? 'YouTube' : 'Audio subido'}
+                        {song.source.type === 'youtube'
+                          ? 'YouTube'
+                          : t('library.uploadSource')}
                       </span>
                       <span className="font-mono tabular-nums">{formatTime(song.duration)}</span>
                       <span aria-hidden="true">·</span>
-                      <span>Modificada {formatDate(song.updatedAt)}</span>
+                      <span>{t('library.savedAt', { date: formatDate(song.updatedAt, language) })}</span>
                     </span>
                   </button>
                   <div className="flex shrink-0 gap-2 pl-8 sm:pl-0">
                     <button type="button" className="btn" onClick={() => onOpen(song.id)}>
-                      Abrir
+                      {t('common.open')}
                     </button>
                     <button
                       type="button"
@@ -253,14 +259,14 @@ export function LibraryList({
                       onClick={() => {
                         if (
                           window.confirm(
-                            `¿Eliminar «${song.title}» de la biblioteca? Esta acción no se puede deshacer.`,
+                            t('library.deleteConfirm', { title: song.title }),
                           )
                         ) {
                           onDelete(song.id);
                         }
                       }}
                     >
-                      Eliminar
+                      {t('common.delete')}
                     </button>
                   </div>
                 </li>

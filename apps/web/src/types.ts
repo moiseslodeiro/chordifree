@@ -9,6 +9,7 @@ export interface AnalysisResult {
   segments: ChordSegment[];
   beats?: number[];
   beatsPerBar?: number;
+  vocalRegions?: Array<{ start: number; end: number }>;
   analyzerVersion: string;
   createdAt: string;
 }
@@ -33,9 +34,11 @@ export interface Song {
   detectedSegments: ChordSegment[];
   beats?: number[];
   beatsPerBar?: number;
-  /** Cejilla virtual: los acordes se muestran transportados -capo semitonos. */
+  /** Detected regions with sung vocals, used to align the lyrics. */
+  vocalRegions?: Array<{ start: number; end: number }>;
+  /** Virtual capo: chords are shown transposed -capo semitones. */
   capo?: number;
-  /** Letra opcional en texto plano, con saltos de línea significativos. */
+  /** Optional plain-text lyrics, with significant line breaks. */
   lyrics?: string;
   analyzerVersion: string;
   transpose: number;
@@ -63,13 +66,15 @@ export interface Preferences {
   instrument: Instrument;
   gridView: GridView;
   theme: Theme;
+  language: Language;
 }
 
 export type Instrument = 'guitar' | 'piano' | 'ukelele';
 export type GridView = 'beats' | 'list' | 'bars' | 'lyrics';
 export type Theme = 'light' | 'dark';
+export type Language = 'en' | 'es';
 
-/** La cejilla solo tiene sentido en instrumentos de cuerda. */
+/** The capo only makes sense on string instruments. */
 export function supportsCapo(instrument: Instrument): boolean {
   return instrument === 'guitar' || instrument === 'ukelele';
 }
@@ -96,6 +101,7 @@ export function songFromResult(result: AnalysisResult, preferences: Preferences)
     detectedSegments: result.segments,
     beats: result.beats ?? [],
     beatsPerBar: result.beatsPerBar ?? 4,
+    vocalRegions: result.vocalRegions ?? [],
     capo: 0,
     analyzerVersion: result.analyzerVersion,
     transpose: preferences.transpose,

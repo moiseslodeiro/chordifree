@@ -12,7 +12,7 @@ interface PracticeSessionState {
   updatePractice: (patch: Partial<PracticeSession>) => void;
 }
 
-/** Carga y guarda el estado de práctica de una canción concreta. */
+/** Loads and saves the practice state of a specific song. */
 export function usePracticeSession(songId: string): PracticeSessionState {
   const [storage] = useState(getStorage);
   const [practice, setPractice] = useState<PracticeSession>(() =>
@@ -38,7 +38,7 @@ export function usePracticeSession(songId: string): PracticeSessionState {
       try {
         savePractice(storage, songRef.current, next);
       } catch {
-        // La práctica sigue usable aunque no se pueda persistir.
+        // Practice remains usable even if it cannot be persisted.
       }
     },
     [storage],

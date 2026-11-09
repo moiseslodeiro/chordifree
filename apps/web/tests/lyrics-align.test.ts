@@ -110,6 +110,34 @@ describe('alignLyrics', () => {
     expect(chordGap('Am')).toBeGreaterThan(0);
   });
 
+  it('reparte la letra solo sobre las regiones con voz detectada', () => {
+    const lines = alignLyrics('Uno\nDos\nTres', [change(0, 4, 'C'), change(36, 40, 'G')], 60, {
+      vocalRegions: [{ start: 30, end: 42 }],
+    });
+
+    expect(lines[0]?.start).toBe(30);
+    expect(lines[2]?.end).toBe(40);
+    expect(lines[0]?.chords).toHaveLength(0);
+    expect(lines[1]?.chords.map((chord) => chord.label)).toEqual(['G']);
+    expect(lines.every((line) => line.start >= 30)).toBe(true);
+  });
+
+  it('usa varias regiones vocales y omite los huecos instrumentales', () => {
+    const lines = alignLyrics('A\nB\nC\nD', [change(0, 2, 'C'), change(40, 44, 'G')], 60, {
+      vocalRegions: [
+        { start: 20, end: 24 },
+        { start: 40, end: 44 },
+      ],
+    });
+
+    expect(lines[0]?.start).toBe(20);
+    expect(lines[1]?.end).toBe(24);
+    expect(lines[2]?.start).toBe(40);
+    expect(lines[3]?.end).toBe(44);
+    expect(lines[0]?.chords).toHaveLength(0);
+    expect(lines[2]?.chords.map((chord) => chord.label)).toEqual(['G']);
+  });
+
   it('mantiene las posiciones dentro de [0, 1] en los extremos del tramo', () => {
     const lines = alignLyrics('A\nB', [change(-1, 5), change(20, 25)], 20);
     const first = lines[0]?.chords[0];

@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
+import { setLanguage } from '../src/i18n';
+import { KEYS } from '../src/storage/keys';
 
 function response(body: unknown, status = 200): Response {
   return {
@@ -296,7 +298,7 @@ describe('App', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Detectar acordes' }));
 
-    expect(await screen.findByText('Video privado')).toBeInTheDocument();
+    expect(await screen.findByText('El video no está disponible.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     await waitFor(() => expect(attempts).toBe(2));
   });
@@ -474,6 +476,29 @@ describe('App', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     fireEvent.click(screen.getByRole('button', { name: /Tema oscuro/ }));
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+  });
+
+  it('arranca en inglés y permite cambiar a español', async () => {
+    stubApi();
+    setLanguage('en');
+    window.localStorage.setItem(
+      KEYS.preferences,
+      JSON.stringify({ schemaVersion: 1, data: { language: 'en' } }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Analyze a song' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Detect chords' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'ES' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Analiza una canción' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Detectar acordes' })).toBeInTheDocument();
   });
 
   it('abre la biblioteca vacía desde la pantalla de inicio', async () => {

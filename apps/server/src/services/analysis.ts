@@ -18,7 +18,7 @@ export type ProgressReporter = (progress: number) => void;
 
 const DEFAULT_BEATS_PER_BAR = 4;
 
-/** Descarta pulsos inválidos y garantiza una lista estrictamente creciente. */
+/** Discards invalid beats and guarantees a strictly increasing list. */
 export function sanitizeBeats(beats: number[] | undefined, duration: number): number[] {
   if (!Array.isArray(beats) || !Number.isFinite(duration) || duration <= 0) return [];
   const values = beats
@@ -30,6 +30,28 @@ export function sanitizeBeats(beats: number[] | undefined, duration: number): nu
 
 export function sanitizeBeatsPerBar(_value: number | undefined): number {
   return DEFAULT_BEATS_PER_BAR;
+}
+
+/** Valid vocal regions, sorted and within the duration. */
+export function sanitizeVocalRegions(
+  regions: Array<{ start: number; end: number }> | undefined,
+  duration: number,
+): Array<{ start: number; end: number }> {
+  if (!Array.isArray(regions) || !Number.isFinite(duration) || duration <= 0) return [];
+  return regions
+    .filter(
+      (region) =>
+        region &&
+        Number.isFinite(region.start) &&
+        Number.isFinite(region.end) &&
+        region.end > region.start,
+    )
+    .map((region) => ({
+      start: Math.max(0, Math.round(region.start * 1000) / 1000),
+      end: Math.min(duration, Math.round(region.end * 1000) / 1000),
+    }))
+    .filter((region) => region.end > region.start)
+    .sort((a, b) => a.start - b.start);
 }
 
 function toSegments(raw: RawAnalysis) {
@@ -58,7 +80,7 @@ export async function analyzeYoutube(
     if (metadata.duration > deps.config.maxDurationSeconds) {
       throw new ApiError(
         'DURATION_EXCEEDED',
-        `El video supera la duración máxima de ${Math.round(deps.config.maxDurationSeconds / 60)} minutos`,
+        `The video exceeds the maximum duration of ${Math.round(deps.config.maxDurationSeconds / 60)} minutes`,
       );
     }
 
@@ -79,6 +101,7 @@ export async function analyzeYoutube(
       segments: toSegments(raw),
       beats: sanitizeBeats(raw.beats, raw.duration),
       beatsPerBar: sanitizeBeatsPerBar(raw.beatsPerBar),
+      vocalRegions: sanitizeVocalRegions(raw.vocalRegions, raw.duration),
       analyzerVersion: raw.analyzerVersion,
       createdAt: new Date().toISOString(),
     };
@@ -107,7 +130,7 @@ export async function analyzeUpload(
     if (probe.duration > deps.config.maxDurationSeconds) {
       throw new ApiError(
         'DURATION_EXCEEDED',
-        `El audio supera la duración máxima de ${Math.round(deps.config.maxDurationSeconds / 60)} minutos`,
+        `The audio exceeds the maximum duration of ${Math.round(deps.config.maxDurationSeconds / 60)} minutes`,
       );
     }
 
@@ -125,6 +148,7 @@ export async function analyzeUpload(
       segments: toSegments(raw),
       beats: sanitizeBeats(raw.beats, raw.duration),
       beatsPerBar: sanitizeBeatsPerBar(raw.beatsPerBar),
+      vocalRegions: sanitizeVocalRegions(raw.vocalRegions, raw.duration),
       analyzerVersion: raw.analyzerVersion,
       createdAt: new Date().toISOString(),
     };

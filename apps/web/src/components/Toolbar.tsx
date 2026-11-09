@@ -8,9 +8,9 @@ interface ToolProps {
 }
 
 /**
- * Celda de la barra de herramientas superior. Reproduce el patrón de Chordify:
- * icono, etiqueta en mayúsculas y el control o valor debajo, todo en una fila
- * compacta.
+ * Cell of the top toolbar. Reproduces the Chordify pattern:
+ * icon, uppercase label and the control or value below, all in a compact
+ * row.
  */
 export function Tool({ label, icon, children, className = '' }: ToolProps) {
   return (

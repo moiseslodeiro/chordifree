@@ -1,14 +1,21 @@
 # Chordifree Analyzer
 
-Microservicio FastAPI que detecta acordes con Essentia sobre un archivo de audio.
+FastAPI microservice that detects chords, beats and sung sections from an audio file.
 
-El motor usa `NNLSChroma` (croma de rango medio y de bajos con corrección de afinación),
-estima la tonalidad global con `KeyExtractor`, pondera la fundamental con el croma grave y
-decodifica la secuencia de acordes por pulso con un prior tonal y Viterbi. Los silencios se
-marcan por energía. La versión actual es `essentia-1.5`; al cambiarla se invalida la caché de
-las canciones guardadas.
+## Engine
 
-## Ejecutar en local
+- `NNLSChroma` with tuning correction for mid-range and bass chroma.
+- Global key estimation with `KeyExtractor`.
+- Bass chroma weighting for the chord root.
+- Key prior plus Viterbi decoding for a stable chord sequence.
+- Energy-based silence detection.
+- `YAMNet` embeddings + Essentia `voice/instrumental` classifier (ONNX) for `vocalRegions`.
+
+The dependency is pinned to `essentia==2.1b6.dev1389`. Essentia 2.0.1 is the last non-beta
+release, but it is from 2014, is not published on PyPI, and does not include `NNLSChroma` or
+`LogSpectrum`. The 2.1 line only exists as betas; the exact tested beta is pinned.
+
+## Run
 
 ```bash
 python3 -m venv .venv
@@ -17,25 +24,29 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+The ONNX models are downloaded automatically on the first analysis. To prefetch them, see
+[`models/README.md`](models/README.md). Set `ANALYZER_DOWNLOAD_MODELS=0` when the models are
+baked into the image.
+
 ## API
 
 ### `GET /health`
 
 ```bash
 curl -fsS http://localhost:8000/health
-# {"status":"ok","analyzerVersion":"essentia-1.5"}
+# {"status":"ok","analyzerVersion":"essentia-1.6"}
 ```
 
 ### `POST /analyze`
 
-Acepta `multipart/form-data` con el campo `file` (MP3, WAV, M4A, OGG, FLAC, WebM o MP4).
+Accepts `multipart/form-data` with a `file` field (MP3, WAV, M4A, OGG, FLAC, WebM or MP4).
 
 ```bash
 curl -fsS -X POST http://localhost:8000/analyze \
-  -F "file=@cancion.wav"
+  -F "file=@song.wav"
 ```
 
-Respuesta:
+Response:
 
 ```json
 {
@@ -45,14 +56,16 @@ Respuesta:
   "duration": 12.4,
   "beats": [0.42, 0.91, 1.38, 1.87],
   "beatsPerBar": 4,
-  "analyzerVersion": "essentia-1.5"
+  "vocalRegions": [{ "start": 4.2, "end": 11.8 }],
+  "analyzerVersion": "essentia-1.6"
 }
 ```
 
-`beats` contiene los pulsos detectados en segundos, ordenados, sin duplicados y dentro de
-`[0, duration]`; puede ser una lista vacía si el ritmo no es claro. `beatsPerBar` es `4` en
-esta versión. Las etiquetas se devuelven sin normalizar; el servidor Express las convierte al
-modelo canónico y repara la línea de tiempo.
+`beats` contains detected beats in seconds, sorted and inside `[0, duration]`; it can be empty
+when the rhythm is unclear. `vocalRegions` contains sung sections; if the ONNX models are not
+available, it is `[]` and the web app falls back to the harmonic heuristic. Labels are returned
+un-normalized; the Express server converts them to the canonical chord model and repairs the
+timeline.
 
 ## Tests
 

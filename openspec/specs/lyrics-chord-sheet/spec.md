@@ -97,7 +97,20 @@ El sistema SHALL repartir las líneas no vacías sobre el tramo comprendido entr
 
 ### Requirement: Intros, interludios y anclas de tiempo
 
-El sistema SHALL detectar de forma conservadora tramos instrumentales mediante la repetición de frases de acordes y SHALL excluirlos del reparto de líneas. La intro solo SHALL descartarse si la primera aparición de la frase principal llega dentro de los primeros 16 compases; si aparece más tarde, el sistema SHALL usar el reparto uniforme en lugar de inventar una intro gigante. También SHALL aceptar un ancla `[mm:ss]` al inicio de una línea para fijar su tiempo y SHALL ofrecer acciones para insertar el tiempo actual en la línea seleccionada o en la primera línea con texto.
+El sistema SHALL detectar de forma conservadora tramos instrumentales mediante la repetición de frases de acordes y SHALL excluirlos del reparto de líneas. La intro solo SHALL descartarse si la primera aparición de la frase principal llega dentro de los primeros 16 compases; si aparece más tarde, el sistema SHALL usar el reparto uniforme en lugar de inventar una intro gigante. Cuando el análisis incluya regiones vocales detectadas con los modelos YAMNet y voice/instrumental, el sistema SHALL repartir la letra solo sobre esas regiones y SHALL empezar en la primera entrada vocal. También SHALL aceptar un ancla `[mm:ss]` al inicio de una línea para fijar su tiempo y SHALL ofrecer acciones para insertar el tiempo actual en la línea seleccionada o en la primera línea con texto.
+
+#### Scenario: Regiones vocales detectadas
+
+- **WHEN** el análisis devuelve una lista no vacía de `vocalRegions`
+- **THEN** la primera línea de letra empieza en el inicio de la primera región
+- **AND** las líneas y sus acordes se reparten solo dentro de las regiones vocales
+- **AND** los tramos instrumentales entre regiones no reciben líneas ni acordes
+
+#### Scenario: Modelos de voz no disponibles
+
+- **WHEN** el analizador no puede cargar los modelos ONNX y devuelve `vocalRegions: []`
+- **THEN** la alineación usa la heurística de frases armónicas y anclas manuales
+- **AND** la letra sigue visible y navegable
 
 #### Scenario: Intro instrumental
 

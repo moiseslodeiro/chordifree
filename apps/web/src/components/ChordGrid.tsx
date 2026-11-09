@@ -6,6 +6,7 @@ import {
   type ChordSegment,
   type Notation,
 } from '@chordifree/chords';
+import { useT } from '../i18n';
 import { buildBeatRows } from '../grid/beats';
 import { chooseBarAlignment, type BarTempo } from '../grid/barAlignment';
 import type { PlaybackClock } from '../sync/clock';
@@ -26,8 +27,8 @@ interface ChordRowProps {
 }
 
 /**
- * En móvil la parrilla muestra un compás por fila para que quepa sin scroll
- * horizontal; a partir de `sm` vuelve a dos compases por fila.
+ * On mobile the grid shows one bar per row so it fits without horizontal
+ * scrolling; from `sm` onward it returns to two bars per row.
  */
 function useCompactGrid() {
   const [compact, setCompact] = useState(false);
@@ -53,6 +54,7 @@ const ChordRow = memo(function ChordRow({
   onSeek,
   onFocusRow,
 }: ChordRowProps) {
+  const t = useT();
   const active = useIsRowActive(clock, index);
   const label = formatChordOrSilence(segment.chord, notation, accidental);
 
@@ -92,13 +94,13 @@ const ChordRow = memo(function ChordRow({
           segment.confidence < 0.4 ? (
             <span
               className="badge shrink-0 border-warning/50 text-warning"
-              title={`Confianza del detector: ${Math.round(segment.confidence * 100)}%`}
+              title={t('grid.confidence', { percent: Math.round(segment.confidence * 100) })}
             >
               dudoso
             </span>
           ) : null}
           {active ? (
-            <span className="badge shrink-0 border-accent/50 text-accent">sonando</span>
+            <span className="badge shrink-0 border-accent/50 text-accent">{t('grid.sounding')}</span>
           ) : null}
         </span>
       </button>
@@ -124,6 +126,7 @@ interface ChordGridProps {
   loopA?: number | null;
   loopB?: number | null;
   markMode?: 'a' | 'b' | null;
+  vocalRegions?: Array<{ start: number; end: number }>;
 }
 
 export function ChordGrid({
@@ -144,7 +147,9 @@ export function ChordGrid({
   loopA = null,
   loopB = null,
   markMode = null,
+  vocalRegions = [],
 }: ChordGridProps) {
+  const t = useT();
   const active = usePlaybackIndex(clock);
   const activeBeat = useBeatIndex(clock);
   const compact = useCompactGrid();
@@ -203,8 +208,7 @@ export function ChordGrid({
   if (segments.length === 0) {
     return (
       <div className="note note-info">
-        No se detectaron acordes en este audio. Puedes volver a analizarlo o subir otro
-        archivo.
+        {t('grid.noChords')}
       </div>
     );
   }
@@ -214,39 +218,41 @@ export function ChordGrid({
     effectiveView === 'beats'
       ? activeBeatDescription(rows, activeBeat, beatsPerBar, notation, accidental)
       : activeSegment
-        ? `Acorde activo: ${formatChordOrSilence(
-            activeSegment.chord,
-            notation,
-            accidental,
-          )} en ${formatTime(activeSegment.start)}`
+        ? t('grid.activeChord', {
+            chord: formatChordOrSilence(activeSegment.chord, notation, accidental),
+            time: formatTime(activeSegment.start),
+          })
         : '';
 
   return (
     <section
       className="overflow-hidden rounded-xl border border-line bg-panel p-4 shadow-sm sm:p-5"
-      aria-label="Línea de tiempo de acordes"
+      aria-label={t('grid.timelineAria')}
     >
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="font-display text-2xl leading-none text-ink">Línea de tiempo</h2>
+          <h2 className="font-display text-2xl leading-none text-ink">{t('grid.timeline')}</h2>
           <span className="eyebrow">
             {effectiveView === 'beats'
-              ? `${rows.length} ${rows.length === 1 ? 'fila' : 'filas'} · ${barCount} ${
-                  barCount === 1 ? 'compás' : 'compases'
-                }`
+              ? t('grid.rowCount', {
+                  rows: rows.length,
+                  bars: barCount,
+                })
               : effectiveView === 'lyrics'
-                ? 'Letra con acordes'
+                ? t('grid.lyricsWithChords')
                 : effectiveView === 'bars'
                   ? `${barAlignment.bars.length} ${
-                      barAlignment.bars.length === 1 ? 'compás' : 'compases'
-                    } · ${barAlignment.factor === 'half' ? 'mitad de tempo' : 'tempo normal'}`
-                  : `${segments.length} segmentos`}
+                      barAlignment.bars.length === 1
+                        ? t('common.measure')
+                        : t('common.measures')
+                    } · ${barAlignment.factor === 'half' ? t('grid.halfTempo') : t('grid.normalTempo')}`
+                  : t('grid.segments', { count: segments.length })}
           </span>
         </div>
         <div
           className="flex items-center gap-1"
           role="group"
-          aria-label="Vista de la línea de tiempo"
+          aria-label={t('grid.viewAria')}
         >
           <button
             type="button"
@@ -255,7 +261,7 @@ export function ChordGrid({
             className={effectiveView === 'beats' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onViewChange('beats')}
           >
-            Parrilla
+            {t('grid.beats')}
           </button>
           <button
             type="button"
@@ -263,7 +269,7 @@ export function ChordGrid({
             className={effectiveView === 'list' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onViewChange('list')}
           >
-            Lista
+            {t('grid.list')}
           </button>
           <button
             type="button"
@@ -271,7 +277,7 @@ export function ChordGrid({
             className={effectiveView === 'bars' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onViewChange('bars')}
           >
-            Compases
+            {t('grid.bars')}
           </button>
           <button
             type="button"
@@ -279,33 +285,33 @@ export function ChordGrid({
             className={effectiveView === 'lyrics' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onViewChange('lyrics')}
           >
-            Letra
+            {t('grid.lyrics')}
           </button>
           <button
             type="button"
             aria-pressed={follow}
             className={follow ? 'tool-chip-active' : 'tool-chip'}
-            title="Seguir la reproducción y desplazar la fila activa"
+            title={t('grid.autoScrollTitle')}
             onClick={() => setFollow((value) => !value)}
           >
-            Auto-scroll
+            {t('grid.autoScroll')}
           </button>
         </div>
       </div>
 
       {effectiveView === 'bars' ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-line pb-3">
-          <span className="eyebrow">Cuadre</span>
+          <span className="eyebrow">{t('grid.frame')}</span>
           <div
             className="flex items-center gap-1"
             role="group"
-            aria-label="Tempo de la vista por compases"
+            aria-label={t('grid.barTempo')}
           >
             {(
               [
-                ['auto', 'Auto'],
-                ['normal', 'Normal'],
-                ['half', 'Mitad'],
+                ['auto', t('grid.auto')],
+                ['normal', t('grid.normal')],
+                ['half', t('grid.half')],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -319,15 +325,13 @@ export function ChordGrid({
               </button>
             ))}
           </div>
-          <span className="text-xs text-ink3">
-            Un acorde por compás; la fase se ajusta a los cambios detectados.
-          </span>
+          <span className="text-xs text-ink3">{t('grid.barHelp')}</span>
         </div>
       ) : null}
 
       {!canUseBeats && effectiveView !== 'lyrics' && effectiveView !== 'bars' ? (
         <p className="note note-warning mt-3 text-xs leading-relaxed">
-          No se detectaron pulsos en esta canción; se muestra la vista de lista.
+          {t('grid.noBeats')}
         </p>
       ) : null}
 
@@ -352,6 +356,7 @@ export function ChordGrid({
           notation={notation}
           accidental={accidental}
           clock={clock}
+          vocalRegions={vocalRegions}
           onSeek={onSeek}
           onEdit={onEditLyrics}
         />
@@ -376,7 +381,7 @@ export function ChordGrid({
           onWheel={markManualScroll}
           onTouchMove={markManualScroll}
         >
-          <ol ref={listRef} className="mt-3" aria-label="Acordes detectados">
+          <ol ref={listRef} className="mt-3" aria-label={t('grid.detectedChords')}>
             {segments.map((segment, index) => (
               <ChordRow
                 key={`${index}-${segment.start}`}
@@ -399,14 +404,14 @@ export function ChordGrid({
 
       <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
         {markMode !== null
-          ? `Haz clic en un compás para marcar el ${markMode === 'a' ? 'inicio A' : 'final B'}. Pulsa Escape para cancelar.`
+          ? t(markMode === 'a' ? 'grid.markAHelp' : 'grid.markBHelp')
           : effectiveView === 'beats'
-            ? 'Haz clic en un tiempo para reproducir desde ahí. Arma A o B para marcar el rango sin reproducir.'
+            ? t('grid.beatHelp')
             : effectiveView === 'bars'
-              ? 'Haz clic en un compás para reproducir desde ahí. Arma A o B para marcar el rango sin reproducir.'
+              ? t('grid.barHelpClick')
               : effectiveView === 'lyrics'
-                ? 'La letra se alinea de forma aproximada con los tiempos. Pulsa un acorde o una línea para saltar a su momento.'
-                : 'Haz clic en un acorde para saltar a su tiempo. Usa las flechas arriba y abajo para moverte y Intro para saltar.'}
+                ? t('grid.lyricsHelp')
+                : t('grid.listHelp')}
       </p>
     </section>
   );

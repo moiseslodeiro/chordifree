@@ -15,10 +15,12 @@ function setup({
   lyrics = 'Primera línea\nSegunda línea',
   at = 0,
   chords = segments,
+  vocalRegions = [],
 }: {
   lyrics?: string;
   at?: number;
   chords?: ChordSegment[];
+  vocalRegions?: Array<{ start: number; end: number }>;
 } = {}) {
   const adapter = new FakePlayerAdapter(at, false);
   const clock = new PlaybackClock(adapter);
@@ -35,6 +37,7 @@ function setup({
       notation="english"
       accidental="sharp"
       clock={clock}
+      vocalRegions={vocalRegions}
       onSeek={onSeek}
       onEdit={onEdit}
     />,
@@ -63,6 +66,22 @@ describe('LyricsChordView', () => {
     );
     expect(screen.getByRole('button', { name: 'C en 00:00' })).not.toHaveAttribute(
       'aria-current',
+    );
+  });
+
+  it('no activa la letra durante la intro cuando hay regiones vocales', () => {
+    setup({ at: 4, vocalRegions: [{ start: 10, end: 20 }] });
+
+    expect(screen.getByText('Primera línea').closest('li')).not.toHaveAttribute('aria-current');
+    expect(screen.getByText('Segunda línea').closest('li')).not.toHaveAttribute('aria-current');
+  });
+
+  it('empieza la primera línea al entrar la voz', () => {
+    setup({ at: 10, vocalRegions: [{ start: 10, end: 20 }] });
+
+    expect(screen.getByText('Primera línea').closest('li')).toHaveAttribute(
+      'aria-current',
+      'true',
     );
   });
 

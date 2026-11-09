@@ -2,18 +2,18 @@ import { chordEquals, type Chord, type ChordSegment } from '@chordifree/chords';
 import type { InstrumentalSpan } from './sections';
 
 export interface ChordChange {
-  /** Segundo en el que empieza el cambio de acorde. */
+  /** Second at which the chord change starts. */
   time: number;
-  /** Segundo en el que termina el acorde, ya fusionado con repeticiones. */
+  /** Second at which the chord ends, already merged with repetitions. */
   end: number;
-  /** Índice del primer segmento que introduce este acorde. */
+  /** Index of the first segment that introduces this chord. */
   segmentIndex: number;
-  /** Etiqueta formateada que se muestra sobre la letra. */
+  /** Formatted label shown above the lyrics. */
   label: string;
 }
 
 export interface AlignedChord extends ChordChange {
-  /** Posición horizontal aproximada dentro de la línea, entre 0 y 1. */
+  /** Approximate horizontal position within the line, between 0 and 1. */
   offset: number;
 }
 
@@ -23,31 +23,33 @@ export interface TimeSpan {
 }
 
 export interface LyricLine {
-  /** Índice de la línea en el texto original. */
+  /** Index of the line in the original text. */
   index: number;
   text: string;
   start: number;
   end: number;
-  /** Intervalos de tiempo que cubre la línea (puede haber huecos instrumentales). */
+  /** Time intervals covered by the line (there may be instrumental gaps). */
   spans: TimeSpan[];
   chords: AlignedChord[];
-  /** Ancla explícita en segundos, si la línea empieza por `[mm:ss]`. */
+  /** Explicit anchor in seconds, if the line starts with `[mm:ss]`. */
   anchor: number | null;
 }
 
 export interface AlignOptions {
   instrumental?: InstrumentalSpan[];
+  /** Regions with detected vocals; if present, lyrics are distributed only there. */
+  vocalRegions?: TimeSpan[];
 }
 
 const EPSILON = 1e-6;
 const ANCHOR_PATTERN = /^\s*\[(\d{1,3}):([0-5]\d)\]\s?/;
 
-/** Separa la letra conservando líneas vacías y normalizando saltos de línea. */
+/** Splits the lyrics while preserving empty lines and normalizing line breaks. */
 export function splitLyricLines(text: string): string[] {
   return text.replace(/\r\n?/g, '\n').split('\n');
 }
 
-/** Extrae un ancla `[mm:ss]` del inicio de una línea. */
+/** Extracts a `[mm:ss]` anchor from the start of a line. */
 export function parseLyricLine(line: string): { text: string; anchor: number | null } {
   const match = ANCHOR_PATTERN.exec(line);
   if (!match) return { text: line, anchor: null };
@@ -57,9 +59,9 @@ export function parseLyricLine(line: string): { text: string; anchor: number | n
 }
 
 /**
- * Convierte la línea de tiempo en cambios de acorde. Los acordes consecutivos
- * iguales se fusionan y los silencios cortan la fusión, igual que en la hoja
- * imprimible.
+ * Converts the timeline into chord changes. Consecutive identical
+ * chords are merged and silences break the merge, as on the printable
+ * sheet.
  */
 export function buildChordChanges(
   segments: ChordSegment[],
@@ -99,15 +101,15 @@ function musicalSpan(changes: ChordChange[], duration: number): TimeSpan {
   return { start, end: end > start ? end : start + 1 };
 }
 
-/** Separación mínima estimada entre dos acordes de una misma línea. */
+/** Minimum estimated spacing between two chords on the same line. */
 export function chordGap(label: string): number {
   return Math.min(0.25, 0.04 + label.length * 0.008);
 }
 
 /**
- * Ordena los acordes de una línea y reparte el espacio disponible dejando una
- * separación mínima entre etiquetas. Si hay demasiados acordes, las etiquetas
- * se compactan; la fila flexible de la vista permite además el salto de línea.
+ * Sorts the chords of a line and distributes the available space leaving a
+ * minimum spacing between labels. If there are too many chords, the labels
+ * are compacted; the view's flexible row also allows line wrapping.
  */
 function placeChords(chords: AlignedChord[]): AlignedChord[] {
   const sorted = [...chords].sort((a, b) => a.time - b.time || a.segmentIndex - b.segmentIndex);
@@ -192,9 +194,9 @@ function distribute(
 }
 
 /**
- * Reparte las líneas sobre el tiempo disponible y coloca cada cambio de acorde
- * en la línea que lo contiene. Si hay anclas `[mm:ss]`, mandan sobre la
- * heurística; si no, se excluyen los tramos instrumentales detectados.
+ * Distributes the lines over the available time and places each chord change
+ * on the line that contains it. If `[mm:ss]` anchors exist, they take precedence
+ * over the heuristic; otherwise, detected instrumental passages are excluded.
  */
 export function alignLyrics(
   text: string,
@@ -228,6 +230,19 @@ export function alignLyrics(
     span.end = Math.max(span.end, ...anchors);
   }
   const anchored = lines.some((line) => line.anchor !== null);
+  const vocal = (options.vocalRegions ?? [])
+    .filter(
+      (region) =>
+        Number.isFinite(region.start) &&
+        Number.isFinite(region.end) &&
+        region.end > region.start,
+    )
+    .map((region) => ({
+      start: Math.max(span.start, region.start),
+      end: Math.min(span.end, region.end),
+    }))
+    .filter((region) => region.end > region.start + EPSILON)
+    .sort((a, b) => a.start - b.start);
 
   if (anchored) {
     const instrumental = options.instrumental ?? [];
@@ -243,10 +258,20 @@ export function alignLyrics(
             (item) => item.start < start - EPSILON && item.end > start + EPSILON,
           )
         : [];
-      const usable = subtractSpans(
-        { start, end: safeEnd },
-        instrumental.filter((item) => !ignored.includes(item)),
-      );
+      const blockVocal = vocal
+        .filter((item) => item.start < safeEnd - EPSILON && item.end > start + EPSILON)
+        .map((item) => ({
+          start: Math.max(start, item.start),
+          end: Math.min(safeEnd, item.end),
+        }))
+        .filter((item) => item.end > item.start + EPSILON);
+      const usable =
+        blockVocal.length > 0
+          ? blockVocal
+          : subtractSpans(
+              { start, end: safeEnd },
+              instrumental.filter((item) => !ignored.includes(item)),
+            );
       distribute(blockLines, usable, start);
     };
 
@@ -263,7 +288,9 @@ export function alignLyrics(
     }
     finalize(span.end);
   } else {
-    distribute(nonEmpty, subtractSpans(span, options.instrumental ?? []), span.start);
+    const usable =
+      vocal.length > 0 ? vocal : subtractSpans(span, options.instrumental ?? []);
+    distribute(nonEmpty, usable, span.start);
   }
 
   const ordered = [...changes].sort((a, b) => a.time - b.time || a.segmentIndex - b.segmentIndex);

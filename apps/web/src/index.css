@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
-   CHORDIFREE — sistema visual derivado del logotipo
-   Azul eléctrico + negro, tipografía geométrica, superficies limpias y
-   radios suaves. El mono queda para etiquetas, tiempos y cifras.
+   CHORDIFREE — visual system derived from the logo
+   Electric blue + black, geometric typography, clean surfaces and
+   soft radii. The mono font is reserved for labels, times and figures.
 --------------------------------------------------------------------------- */
 
 :root,
@@ -20,7 +20,7 @@
   --color-ink: 11 13 18;
   --color-ink-2: 72 80 95;
   --color-ink-3: 96 105 124;
-  --color-accent: 0 82 214; /* azul del logotipo, legible sobre blanco */
+  --color-accent: 0 82 214; /* logo blue, readable on white */
   --color-accent-strong: 0 64 174;
   --color-on-accent: 255 255 255;
   --color-positive: 12 122 74;
@@ -134,7 +134,7 @@ p {
     @apply mx-auto flex min-h-screen w-full max-w-[88rem] flex-col px-5 py-5 sm:px-8 sm:py-6;
   }
 
-  /* Marca: dos variantes del mismo logotipo según el tema. */
+  /* Brand: two variants of the same logo depending on the theme. */
   .brand-dark {
     display: none;
   }
@@ -281,7 +281,7 @@ p {
     @apply border-positive bg-positive/5 text-ink;
   }
 
-  /* Barra de herramientas: celdas separadas por reglas finas. */
+  /* Toolbar: cells separated by thin rules. */
   .tool {
     @apply flex min-w-[8.5rem] flex-1 basis-0 flex-col justify-start gap-1.5 border-l border-line px-4 py-3 text-left first:border-l-0;
   }
@@ -336,7 +336,7 @@ p {
     background: rgb(var(--color-warning) / 0.14);
   }
 
-  /* A/B ya fijados pero sin estar armados: se distinguen con un contorno. */
+  /* A/B already set but not armed: distinguished by an outline. */
   .tool-chip-set-a {
     color: rgb(var(--color-positive));
     box-shadow: inset 0 0 0 1px rgb(var(--color-positive) / 0.45);
@@ -372,7 +372,7 @@ p {
     background: rgb(var(--color-line));
   }
 
-  /* Fila de tiempo en la vista de lista. */
+  /* Time row in the list view. */
   .chord-row {
     transition:
       background-color var(--dur-fast) var(--ease),
@@ -389,7 +389,7 @@ p {
     box-shadow: inset 3px 0 0 rgb(var(--color-accent));
   }
 
-  /* Detalles con puntos guía, como una ficha técnica. */
+  /* Details with leader dots, like a spec sheet. */
   .leader {
     flex: 1;
     min-width: var(--space-s);
@@ -439,7 +439,7 @@ p {
   }
 }
 
-/* Celdas de la parrilla de pulsos. */
+/* Beat grid cells. */
 .beat-cell {
   position: relative;
   display: flex;
@@ -455,8 +455,8 @@ p {
   transition: background-color var(--dur-fast) var(--ease);
 }
 
-/* Compases marcados para el bucle A-B. El color va acompañado de la letra
-   para no depender solo del tono. */
+/* Bars marked for the A-B loop. The color is accompanied by the letter
+   so it does not rely on hue alone. */
 .beat-cell[data-loop='a'] {
   background-color: rgb(var(--color-positive) / 0.12);
   box-shadow: inset 0 0 0 1px rgb(var(--color-positive) / 0.28);
@@ -547,7 +547,7 @@ p {
   background: rgb(var(--color-accent));
 }
 
-/* Previsualización del compás bajo el ratón mientras se arma A o B. */
+/* Preview of the bar under the mouse while arming A or B. */
 .beat-cell[data-mark-preview='a'] {
   background-color: rgb(var(--color-positive) / 0.06);
   box-shadow: inset 0 0 0 1px rgb(var(--color-positive) / 0.35);
@@ -589,7 +589,7 @@ p {
   }
 }
 
-/* La barra de herramientas se apila con dignidad en pantallas pequeñas. */
+/* The toolbar stacks gracefully on small screens. */
 @media (max-width: 40em) {
   .tool {
     min-width: calc(50% - 1px);
@@ -607,7 +607,7 @@ p {
   }
 }
 
-/* Vista por compases: un acorde por compás, con cuatro compases por fila. */
+/* Bar view: one chord per bar, with four bars per row. */
 .bar-grid {
   display: flex;
   flex-direction: column;
@@ -723,7 +723,7 @@ p {
   outline-offset: 2px;
 }
 
-/* Vista de letra con acordes alineados por tiempo. */
+/* Lyrics view with chords aligned by time. */
 .lyrics-view {
   margin-top: var(--space-xs);
 }
@@ -828,7 +828,7 @@ p {
   text-align: center;
 }
 
-/* Hoja de acordes para imprimir o guardar como PDF. */
+/* Chord sheet for printing or saving as PDF. */
 .print-sheet {
   display: none;
 }

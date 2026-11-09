@@ -1,4 +1,5 @@
 import { formatTime } from '@chordifree/chords';
+import { useT } from '../i18n';
 import type { ReactNode } from 'react';
 
 interface SongDetailsProps {
@@ -40,35 +41,38 @@ export function SongDetails({
   artist,
   chords,
 }: SongDetailsProps) {
+  const t = useT();
   return (
     <section
       className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-      aria-label="Detalles de la canción"
+      aria-label={t('details.aria')}
     >
       <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-        Detalles de la canción
+        {t('details.title')}
       </h2>
 
       <dl className="space-y-2.5 px-4 py-4">
-        <Row label="Tonalidad">{keyLabel ?? '—'}</Row>
-        <Row label="Relativa">{relativeKeyLabel ?? '—'}</Row>
+        <Row label={t('details.key')}>{keyLabel ?? '—'}</Row>
+        <Row label={t('details.relative')}>{relativeKeyLabel ?? '—'}</Row>
         {showCapo ? (
-          <Row label="Capo">
+          <Row label={t('details.capo')}>
             {capo === 0
-              ? 'Sin capo'
-              : `Traste ${capo}${capoKeyLabel ? ` · ${capoKeyLabel}` : ''}`}
+              ? t('display.noCapo')
+              : `${t('display.fret', { fret: capo })}${
+                  capoKeyLabel ? ` · ${capoKeyLabel}` : ''
+                }`}
           </Row>
         ) : null}
-        <Row label="BPM">{bpm ?? '—'}</Row>
-        <Row label="Compás">{`${beatsPerBar}/4`}</Row>
-        <Row label="Duración">{formatTime(duration)}</Row>
-        <Row label="Artista">{artist ?? '—'}</Row>
+        <Row label={t('details.bpm')}>{bpm ?? '—'}</Row>
+        <Row label={t('details.meter')}>{`${beatsPerBar}/4`}</Row>
+        <Row label={t('details.duration')}>{formatTime(duration)}</Row>
+        <Row label={t('details.artist')}>{artist ?? '—'}</Row>
       </dl>
 
       <div className="border-t border-line px-4 py-4">
-        <h3 className="eyebrow">Acordes</h3>
+        <h3 className="eyebrow">{t('details.chords')}</h3>
         {chords.length > 0 ? (
-          <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Acordes de la canción">
+          <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={t('details.chordsAria')}>
             {chords.map((chord) => (
               <li
                 key={chord}
@@ -79,7 +83,7 @@ export function SongDetails({
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-xs text-ink3">No se detectaron acordes.</p>
+          <p className="mt-2 text-xs text-ink3">{t('details.noChords')}</p>
         )}
       </div>
     </section>

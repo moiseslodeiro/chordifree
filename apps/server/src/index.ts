@@ -9,7 +9,7 @@ await mkdir(config.tempDir, { recursive: true });
 const app = createApp({ config });
 
 const server = app.listen(config.port, () => {
-  console.log(`Chordifree API escuchando en http://localhost:${config.port}`);
+  console.log(`Chordifree API listening on http://localhost:${config.port}`);
 });
 
 const sweep = () => {
@@ -19,7 +19,7 @@ sweep();
 const sweeper = setInterval(sweep, 10 * 60 * 1000);
 
 const shutdown = (signal: string) => {
-  console.log(`Recibido ${signal}, cerrando...`);
+  console.log(`Received ${signal}, shutting down...`);
   clearInterval(sweeper);
   server.close(() => process.exit(0));
 };

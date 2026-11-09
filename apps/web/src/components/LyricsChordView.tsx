@@ -11,6 +11,7 @@ import {
   buildChordChanges,
   type AlignedChord,
 } from '../lyrics/align';
+import { useT } from '../i18n';
 import { detectInstrumentalSpans, harmonyBars } from '../lyrics/sections';
 import type { PlaybackClock } from '../sync/clock';
 import { usePlaybackTime } from '../sync/hooks';
@@ -24,6 +25,7 @@ interface LyricsChordViewProps {
   notation: Notation;
   accidental: Accidental;
   clock: PlaybackClock | null;
+  vocalRegions?: Array<{ start: number; end: number }>;
   onSeek: (time: number) => void;
   onEdit: () => void;
 }
@@ -43,9 +45,11 @@ export function LyricsChordView({
   notation,
   accidental,
   clock,
+  vocalRegions = [],
   onSeek,
   onEdit,
 }: LyricsChordViewProps) {
+  const t = useT();
   const changes = useMemo(
     () =>
       buildChordChanges(segments, (chord) => formatChord(chord, notation, accidental)),
@@ -60,8 +64,8 @@ export function LyricsChordView({
     [segments, beats, beatsPerBar, duration],
   );
   const lines = useMemo(
-    () => alignLyrics(lyrics, changes, duration, { instrumental }),
-    [lyrics, changes, duration, instrumental],
+    () => alignLyrics(lyrics, changes, duration, { instrumental, vocalRegions }),
+    [lyrics, changes, duration, instrumental, vocalRegions],
   );
 
   const activeTime = usePlaybackTime(clock);
@@ -94,13 +98,12 @@ export function LyricsChordView({
   if (!lyrics.trim()) {
     return (
       <div className="lyrics-empty">
-        <p className="font-display text-xl font-bold text-ink">Todavía no hay letra</p>
+        <p className="font-display text-xl font-bold text-ink">{t('lyrics.emptyTitle')}</p>
         <p className="mx-auto mt-2 max-w-[42ch] text-sm leading-relaxed text-ink2">
-          Pega la letra de la canción y Chordifree colocará los acordes encima según los
-          tiempos detectados.
+          {t('lyrics.emptyBody')}
         </p>
         <button type="button" className="btn btn-primary mt-4" onClick={onEdit}>
-          Añadir letra
+          {t('lyrics.add')}
         </button>
       </div>
     );
@@ -109,17 +112,17 @@ export function LyricsChordView({
   return (
     <div className="lyrics-view">
       <div className="lyrics-toolbar">
-        <p className="eyebrow">Alineación aproximada por tiempos</p>
+        <p className="eyebrow">{t('lyrics.approx')}</p>
         <button
           type="button"
           className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em]"
           onClick={onEdit}
         >
-          Editar letra
+          {t('lyrics.edit')}
         </button>
       </div>
 
-      <ol ref={listRef} className="lyrics-list" aria-label="Letra con acordes">
+      <ol ref={listRef} className="lyrics-list" aria-label={t('lyrics.listAria')}>
         {lines.map((line) => {
           if (!line.text.trim()) {
             return <li key={line.index} className="lyrics-gap" aria-hidden="true" />;
@@ -136,7 +139,7 @@ export function LyricsChordView({
                 <div
                   className="lyrics-chords"
                   role="group"
-                  aria-label={`Acordes de la línea ${line.index + 1}`}
+                  aria-label={t('lyrics.chordsOfLine', { line: line.index + 1 })}
                   style={{ paddingLeft: chordMargin(line.chords) }}
                 >
                   {line.chords.map((chord) => {
@@ -159,7 +162,7 @@ export function LyricsChordView({
               <button
                 type="button"
                 className="lyrics-text"
-                aria-label={`Ir a la línea ${line.index + 1} en ${formatTime(line.start)}`}
+                aria-label={t('lyrics.goToLine', { line: line.index + 1, time: formatTime(line.start) })}
                 onClick={() => onSeek(line.start)}
               >
                 {line.text}

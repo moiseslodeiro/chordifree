@@ -1,4 +1,4 @@
-import type { GridView, Instrument, Preferences, Theme } from '../types';
+import type { GridView, Instrument, Language, Preferences, Theme } from '../types';
 import { readEnvelope, writeEnvelope } from './envelope';
 import { KEYS, type StorageLike } from './keys';
 
@@ -12,11 +12,13 @@ export const DEFAULT_PREFERENCES: Preferences = {
   instrument: 'guitar',
   gridView: 'beats',
   theme: 'light',
+  language: 'en',
 };
 
 const INSTRUMENTS: Instrument[] = ['guitar', 'piano', 'ukelele'];
 const GRID_VIEWS: GridView[] = ['beats', 'list', 'bars', 'lyrics'];
 const THEMES: Theme[] = ['light', 'dark'];
+const LANGUAGES: Language[] = ['en', 'es'];
 
 function clampTranspose(value: number): number {
   return Math.max(-11, Math.min(11, Math.trunc(value)));
@@ -40,7 +42,8 @@ function isPreferences(value: unknown): value is Partial<Preferences> {
     (candidate.instrument === undefined ||
       INSTRUMENTS.includes(candidate.instrument as Instrument)) &&
     (candidate.gridView === undefined || GRID_VIEWS.includes(candidate.gridView as GridView)) &&
-    (candidate.theme === undefined || THEMES.includes(candidate.theme as Theme))
+    (candidate.theme === undefined || THEMES.includes(candidate.theme as Theme)) &&
+    (candidate.language === undefined || LANGUAGES.includes(candidate.language as Language))
   );
 }
 
@@ -60,6 +63,7 @@ export function loadPreferences(storage: StorageLike): Preferences {
     instrument: stored.instrument ?? DEFAULT_PREFERENCES.instrument,
     gridView: stored.gridView ?? DEFAULT_PREFERENCES.gridView,
     theme: stored.theme ?? DEFAULT_PREFERENCES.theme,
+    language: stored.language === 'es' ? 'es' : 'en',
   };
 }
 

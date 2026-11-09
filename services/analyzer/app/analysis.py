@@ -1,4 +1,4 @@
-"""Análisis armónico con Essentia."""
+"""Harmonic analysis with Essentia."""
 
 from __future__ import annotations
 
@@ -7,22 +7,23 @@ import os
 from typing import Any
 
 from .chords import PITCH_NAMES, decode_chords
+from .vocals import detect_vocal_regions
 
-ANALYZER_VERSION = os.environ.get("ANALYZER_VERSION", "essentia-1.5")
+ANALYZER_VERSION = os.environ.get("ANALYZER_VERSION", "essentia-1.6")
 SAMPLE_RATE = 22050
-# RhythmExtractor2013 asume 44100 Hz; con otra tasa los pulsos quedan a la mitad.
+# RhythmExtractor2013 assumes 44100 Hz; at another rate the beats end up halved.
 RHYTHM_SAMPLE_RATE = 44100
 FRAME_SIZE = 4096
 HOP_SIZE = 2048
 MIN_DURATION = 0.5
 BEATS_PER_BAR = 4
-# Un segmento se considera silencio si su energía cae muy por debajo de la mediana.
+# A segment is considered silence if its energy falls well below the median.
 SILENCE_RATIO = 0.08
 LOW_CONFIDENCE = 0.35
 
 
 class AnalyzerUnavailable(RuntimeError):
-    """Essentia no está instalado o no pudo cargarse."""
+    """Essentia is not installed or could not be loaded."""
 
 
 def _load_essentia():
@@ -41,7 +42,7 @@ def _load_essentia():
             Spectrum,
             Windowing,
         )
-    except Exception as exc:  # pragma: no cover - depende del entorno
+    except Exception as exc:  # pragma: no cover - depends on the environment
         raise AnalyzerUnavailable(f"Essentia no disponible: {exc}") from exc
     return {
         "ChordsDetection": ChordsDetection,
@@ -97,7 +98,7 @@ def _apply_silence(
     audio: Any,
     sample_rate: int = SAMPLE_RATE,
 ) -> list[dict[str, Any]]:
-    """Marca como silencio los tramos cuya energía queda muy por debajo de la mediana."""
+    """Marks as silence the passages whose energy falls well below the median."""
     energies = [_rms(audio, sample_rate, item["start"], item["end"]) for item in segments]
     positives = [energy for energy in energies if energy > 0]
     if not positives:
@@ -115,7 +116,7 @@ def _smooth_chords(
     segments: list[dict[str, Any]],
     threshold: float = LOW_CONFIDENCE,
 ) -> list[dict[str, Any]]:
-    """Elimina parpadeos aislados de baja confianza entre dos segmentos iguales."""
+    """Removes isolated low-confidence flickers between two identical segments."""
     for index in range(1, len(segments) - 1):
         previous = segments[index - 1]
         current = segments[index]
@@ -160,10 +161,10 @@ def _merge_segments(segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _compute_chroma(
     essentia: dict[str, Any], audio: Any
 ) -> tuple[Any, Any]:
-    """Croma de NNLS con corrección de afinación y croma de bajos.
+    """NNLS chroma with tuning correction and bass chroma.
 
-    NNLSChroma devuelve un croma de rango medio y otro grave alineados con el
-    mismo espectro logarítmico; el grave ayuda a fijar la fundamental.
+    NNLSChroma returns a mid-range chroma and a bass one aligned with the
+    same logarithmic spectrum; the bass helps pin down the root.
     """
     import numpy as np  # type: ignore
 
@@ -210,7 +211,7 @@ def _compute_chroma(
 
 
 def _extract_beats(essentia: dict[str, Any], audio: Any, duration: float) -> list[float]:
-    """Extrae y sanea los pulsos detectados, sin fallar si el ritmo no es claro."""
+    """Extracts and sanitizes the detected beats, without failing if the rhythm is unclear."""
     try:
         resample = essentia["Resample"](
             inputSampleRate=SAMPLE_RATE,
@@ -243,7 +244,7 @@ def _detect_with_beats(
     audio: Any = None,
 ):
     if len(beats) < 2:
-        raise ValueError("No se detectaron suficientes pulsos")
+        raise ValueError("Not enough beats detected")
     chords, strength = essentia["ChordsDetectionBeats"](
         hopSize=HOP_SIZE, sampleRate=SAMPLE_RATE
     )(hpcp, beats)
@@ -287,7 +288,7 @@ def _detect_fixed_frame(
 
 
 def _extract_key(essentia: dict[str, Any], audio: Any) -> tuple[int, str] | None:
-    """Tonalidad global con KeyExtractor de Essentia (perfiles sobre HPCP)."""
+    """Global key with Essentia's KeyExtractor (profiles over HPCP)."""
     try:
         key, scale, _strength = essentia["KeyExtractor"]()(audio)
     except Exception:
@@ -299,7 +300,7 @@ def _extract_key(essentia: dict[str, Any], audio: Any) -> tuple[int, str] | None
 
 
 def analyze_file(path: str) -> dict[str, Any]:
-    """Analiza un archivo de audio y devuelve segmentos crudos con etiquetas."""
+    """Analyzes an audio file and returns raw segments with labels."""
     essentia = _load_essentia()
     audio = essentia["MonoLoader"](filename=path, sampleRate=SAMPLE_RATE)()
     duration = _safe_float(len(audio) / SAMPLE_RATE)
@@ -309,6 +310,7 @@ def analyze_file(path: str) -> dict[str, Any]:
             "duration": 0.0,
             "beats": [],
             "beatsPerBar": BEATS_PER_BAR,
+            "vocalRegions": [],
             "analyzerVersion": ANALYZER_VERSION,
         }
 
@@ -335,11 +337,13 @@ def analyze_file(path: str) -> dict[str, Any]:
             segments = _detect_fixed_frame(essentia, chroma, duration, audio)
 
     segments = _merge_segments(segments)
+    vocal_regions = detect_vocal_regions(essentia, audio, duration)
 
     return {
         "segments": segments,
         "duration": round(duration, 3),
         "beats": beats,
         "beatsPerBar": BEATS_PER_BAR,
+        "vocalRegions": vocal_regions,
         "analyzerVersion": ANALYZER_VERSION,
     }

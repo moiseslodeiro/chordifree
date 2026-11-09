@@ -2,8 +2,8 @@ import { readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
- * Elimina directorios de trabajo antiguos que hayan quedado tras un fallo.
- * Solo toca entradas con el prefijo que crea el servicio.
+ * Removes old working directories left behind after a failure.
+ * Only touches entries with the prefix created by the service.
  */
 export async function sweepTempDirectory(
   directory: string,
@@ -28,7 +28,7 @@ export async function sweepTempDirectory(
         removed += 1;
       }
     } catch {
-      // El directorio pudo desaparecer entre la lectura y el borrado.
+      // The directory may have disappeared between reading and deleting.
     }
   }
   return removed;

@@ -1,4 +1,4 @@
-"""Reconocimiento de acordes con prior de tonalidad y suavizado Viterbi."""
+"""Chord recognition with a key prior and Viterbi smoothing."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ DIATONIC_MINOR = {
     11: "dim",
 }
 
-# Ventana de croma en pulsos: suaviza el ataque del acorde sin borrar cambios.
+# Chroma window in beats: smooths the chord attack without erasing changes.
 CHROMA_WINDOW_BEATS = 1.0
 
 
@@ -67,7 +67,7 @@ def _diatonic_states(names: list[str], tonic: int, mode: str) -> set[int]:
     table = DIATONIC_MAJOR if mode == "major" else DIATONIC_MINOR
     desired = {(tonic + degree) % 12: quality for degree, quality in table.items()}
     if mode == "minor":
-        # La dominante mayor y el séptimo grado disminuido son habituales en menor armónica.
+        # The major dominant and the diminished seventh degree are common in harmonic minor.
         desired[(tonic + 7) % 12] = "major"
     indexes: set[int] = set()
     for index, name in enumerate(names):
@@ -86,7 +86,7 @@ def estimate_key(
     top_states: Any = None,
     names: list[str] | None = None,
 ) -> tuple[int, str]:
-    """Estima tónica y modo combinando Krumhansl con la cobertura diatónica."""
+    """Estimates tonic and mode by combining Krumhansl with diatonic coverage."""
     import numpy as np  # type: ignore
 
     vector = _normalize(np.asarray(chroma, dtype="float64"))
@@ -153,13 +153,13 @@ def decode_chords(
     key: tuple[int, str] | None = None,
     bass_chroma_input: Any = None,
 ) -> list[dict[str, Any]]:
-    """Devuelve un acorde por pulso usando croma NNLS + prior tonal + Viterbi."""
+    """Returns one chord per beat using NNLS chroma + key prior + Viterbi."""
     import numpy as np  # type: ignore
 
     if len(beats) < 2:
         return []
 
-    # NNLSChroma ordena las clases desde La; las plantillas usan Do = 0.
+    # NNLSChroma orders pitch classes starting from A; the templates use C = 0.
     frames = np.roll(np.asarray(hpcp, dtype="float64"), -3, axis=1)
     bass_frames = (
         np.roll(np.asarray(bass_chroma_input, dtype="float64"), -3, axis=1)
@@ -190,7 +190,7 @@ def decode_chords(
     )
     emissions = raw_emissions
 
-    # El bajo suele sostener la fundamental; su croma desempata la raíz.
+    # The bass usually sustains the root; its chroma breaks ties on the root.
     if bass_chroma is not None:
         roots = np.arange(len(names)) % 12
         emissions = emissions + 0.3 * bass_chroma[:, roots]

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { AnalysisResult, AnalysisView } from '../types';
 
 export class ApiClientError extends Error {
@@ -19,7 +20,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw new ApiClientError(
       body?.error?.code ?? 'ANALYSIS_FAILED',
-      body?.error?.message ?? `La API respondió ${response.status}`,
+      body?.error?.message ?? t('error.api', { status: response.status }),
       response.status,
     );
   }
@@ -108,7 +109,7 @@ export async function pollAnalysis(
     if (view.status === 'error') {
       throw new ApiClientError(
         view.error?.code ?? 'ANALYSIS_FAILED',
-        view.error?.message ?? 'El análisis falló',
+        view.error?.message ?? t('error.analysisFailed'),
       );
     }
     await sleep(interval, options.signal);
@@ -123,7 +124,7 @@ export async function sha256File(file: File): Promise<string> {
         .map((byte) => byte.toString(16).padStart(2, '0'))
         .join('');
     } catch {
-      // Entornos sin WebCrypto completo: se usa la huella básica.
+      // Environments without full WebCrypto: the basic fingerprint is used.
     }
   }
   return `${file.name}:${file.size}:${file.lastModified}`;

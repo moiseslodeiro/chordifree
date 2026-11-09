@@ -133,7 +133,7 @@ describe('Home', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Detectar acordes' }));
 
-    expect(await screen.findByText('El video supera los 15 minutos')).toBeInTheDocument();
+    expect(await screen.findByText('El audio es demasiado largo.')).toBeInTheDocument();
     expect(screen.getByText('DURATION_EXCEEDED')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));

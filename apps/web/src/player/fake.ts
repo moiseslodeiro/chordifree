@@ -1,8 +1,8 @@
 import type { PlayerAdapter } from './types';
 
 /**
- * Adaptador controlable para tests y para el modo de demostración E2E.
- * Con `autoAdvance` el tiempo avanza con el reloj real mientras está en reproducción.
+ * Controllable adapter for tests and for the E2E demo mode.
+ * With `autoAdvance`, time advances with the real clock while playing.
  */
 export class FakePlayerAdapter implements PlayerAdapter {
   private base: number;

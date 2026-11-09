@@ -10,8 +10,14 @@ export interface AnalysisResult {
   segments: ChordSegment[];
   beats?: number[];
   beatsPerBar?: number;
+  vocalRegions?: VocalRegion[];
   analyzerVersion: string;
   createdAt: string;
+}
+
+export interface VocalRegion {
+  start: number;
+  end: number;
 }
 
 export interface RawSegment {
@@ -26,6 +32,7 @@ export interface RawAnalysis {
   duration: number;
   beats?: number[];
   beatsPerBar?: number;
+  vocalRegions?: VocalRegion[];
   analyzerVersion: string;
 }
 

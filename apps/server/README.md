@@ -1,16 +1,16 @@
 # Chordifree Server
 
-API Express que orquesta la extracción de audio y el análisis de acordes.
+Express API that orchestrates audio extraction and chord analysis.
 
-## Ejecutar
+## Run
 
 ```bash
 cp ../../.env.example ../../.env
 pnpm --filter @chordifree/server dev
 ```
 
-Requiere `yt-dlp`, `ffmpeg` y `ffprobe` en el `PATH` (o configurados por entorno) y el
-microservicio analizador en `ANALYZER_URL`.
+Requires `yt-dlp`, `ffmpeg` and `ffprobe` on `PATH` (or configured through environment
+variables) and the analyzer microservice at `ANALYZER_URL`.
 
 ## Endpoints
 
@@ -18,10 +18,10 @@ microservicio analizador en `ANALYZER_URL`.
 
 ```bash
 curl -fsS http://localhost:3001/api/health
-# {"status":"ok","analyzer":"ok","analyzerVersion":"essentia-1.5"}
+# {"status":"ok","analyzer":"ok","analyzerVersion":"essentia-1.6"}
 ```
 
-Devuelve `200` incluso si el analizador está caído; en ese caso `analyzer` vale `"down"`.
+Returns `200` even if the analyzer is down; in that case `analyzer` is `"down"`.
 
 ### `POST /api/analyses` (YouTube)
 
@@ -31,20 +31,20 @@ curl -fsS -X POST http://localhost:3001/api/analyses \
   -d '{"youtubeUrl":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 ```
 
-Respuesta `202`:
+`202` response:
 
 ```json
 { "id": "0f5c...", "status": "queued", "progress": 0, "source": { "type": "youtube", "videoId": "dQw4w9WgXcQ" } }
 ```
 
-### `POST /api/analyses` (subida)
+### `POST /api/analyses` (upload)
 
 ```bash
 curl -fsS -X POST http://localhost:3001/api/analyses \
-  -F "file=@cancion.mp3"
+  -F "file=@song.mp3"
 ```
 
-Formatos admitidos: MP3, WAV, M4A, OGG, FLAC, WebM y MP4, hasta 25 MB.
+Supported formats: MP3, WAV, M4A, OGG, FLAC, WebM and MP4, up to 25 MB.
 
 ### `GET /api/analyses/:id`
 
@@ -64,46 +64,47 @@ curl -fsS http://localhost:3001/api/analyses/0f5c...
     "segments": [{ "start": 0, "end": 4.2, "chord": { "root": 9, "quality": "minor" } }],
     "beats": [0.42, 0.91, 1.38, 1.87],
     "beatsPerBar": 4,
-    "analyzerVersion": "essentia-1.5",
+    "vocalRegions": [{ "start": 36.0, "end": 90.72 }],
+    "analyzerVersion": "essentia-1.6",
     "createdAt": "2026-10-29T12:00:00.000Z"
   }
 }
 ```
 
-`beats` son los pulsos en segundos, saneados y ordenados; `beatsPerBar` es siempre `4` en
-esta versión. Si el analizador no detecta ritmo, `beats` llega vacío y la web usa la vista de
-lista.
+`beats` are sanitized, sorted beat times in seconds; `beatsPerBar` is always `4` in this
+version. If the analyzer cannot detect a rhythm, `beats` is empty and the web app falls back
+to the list view. `vocalRegions` contains detected sung sections; it can be empty.
 
-Estados: `queued`, `processing`, `done`, `error`.
+States: `queued`, `processing`, `done`, `error`.
 
-## Códigos de error
+## Error codes
 
-| Código | HTTP | Cuándo |
+| Code | HTTP | When |
 | --- | --- | --- |
-| `INVALID_URL` | 400 | URL malformada o ID con formato inválido |
-| `UNSUPPORTED_HOST` | 400 | Host distinto de YouTube |
-| `MISSING_VIDEO_ID` | 400 | Enlace de YouTube sin `v` |
-| `INVALID_REQUEST` | 400 | Cuerpo o formulario inválido |
-| `UNSUPPORTED_MEDIA` | 415 | Tipo de contenido no soportado |
-| `FILE_TOO_LARGE` | 413 | Subida mayor de 25 MB |
-| `INVALID_AUDIO` | 422 | El archivo no es audio válido |
-| `DURATION_EXCEEDED` | 422 | Audio de más de 15 minutos |
-| `VIDEO_UNAVAILABLE` | 422 | Video privado, eliminado o no descargable |
-| `ANALYSIS_FAILED` | 502 | Fallo del analizador |
-| `RATE_LIMITED` | 429 | Límite por IP excedido |
-| `NOT_FOUND` | 404 | Análisis inexistente |
+| `INVALID_URL` | 400 | Malformed URL or invalid video ID |
+| `UNSUPPORTED_HOST` | 400 | Host other than YouTube |
+| `MISSING_VIDEO_ID` | 400 | YouTube link without `v` |
+| `INVALID_REQUEST` | 400 | Invalid body or form |
+| `UNSUPPORTED_MEDIA` | 415 | Unsupported content type |
+| `FILE_TOO_LARGE` | 413 | Upload larger than 25 MB |
+| `INVALID_AUDIO` | 422 | The file is not valid audio |
+| `DURATION_EXCEEDED` | 422 | Audio longer than 15 minutes |
+| `VIDEO_UNAVAILABLE` | 422 | Private, deleted or non-downloadable video |
+| `ANALYSIS_FAILED` | 502 | Analyzer failure |
+| `RATE_LIMITED` | 429 | Per-IP limit exceeded |
+| `NOT_FOUND` | 404 | Unknown analysis |
 
-El cuerpo de error siempre tiene la forma:
+Error bodies always look like:
 
 ```json
 { "error": { "code": "INVALID_URL", "message": "..." } }
 ```
 
-## Límites
+## Limits
 
-Configurables por entorno: `MAX_DURATION_SECONDS`, `MAX_UPLOAD_BYTES`,
-`RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`. Los resultados se cachean 24 horas por ID de
-video y los temporales se barren cada 10 minutos.
+Configurable through environment variables: `MAX_DURATION_SECONDS`, `MAX_UPLOAD_BYTES`,
+`RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`. Results are cached for 24 hours per video ID and
+temporary files are swept every 10 minutes.
 
 ## Tests
 
@@ -111,5 +112,5 @@ video y los temporales se barren cada 10 minutos.
 pnpm --filter @chordifree/server test
 ```
 
-Los tests de integración usan herramientas y analizador simulados; la conversión real se
-prueba con los binarios de `ffmpeg-static` y `ffprobe-static`.
+Integration tests use mocked tools and analyzer; real conversion is exercised with the
+`ffmpeg-static` and `ffprobe-static` binaries.

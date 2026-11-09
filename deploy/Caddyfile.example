@@ -1,0 +1,5 @@
+# Replace app.example.com with your domain and point its DNS A/AAAA record to the VPS.
+app.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}

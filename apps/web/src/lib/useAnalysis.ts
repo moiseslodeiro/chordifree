@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+import { t } from '../i18n';
+import { localizeApiError } from '../i18n/errors';
 import type { AnalysisResult, AnalysisView } from '../types';
 import { ApiClientError, pollAnalysis } from './api';
 
@@ -57,10 +59,13 @@ export function useAnalysisRunner(): AnalysisRunner {
         if (error instanceof DOMException && error.name === 'AbortError') return null;
         const apiError =
           error instanceof ApiClientError
-            ? { code: error.code, message: error.message }
+            ? {
+                code: error.code,
+                message: localizeApiError(error.code, error.message),
+              }
             : {
                 code: 'ANALYSIS_FAILED',
-                message: error instanceof Error ? error.message : 'Error inesperado',
+                message: error instanceof Error ? error.message : t('error.unexpected'),
               };
         setState({ phase: 'error', view: null, error: apiError });
         return null;
