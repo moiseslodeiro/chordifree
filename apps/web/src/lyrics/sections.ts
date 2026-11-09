@@ -34,9 +34,9 @@ function phraseKey(chords: Array<Chord | null>, start: number): string | null {
 }
 
 /**
- * Etiqueta cada compás con el acorde de su primer tiempo. La etiqueta es
- * suficiente para reconocer frases armónicas repetidas; no pretende describir
- * cambios internos del compás.
+ * Labels each bar with the chord of its first beat. The label is
+ * enough to recognize repeated harmonic phrases; it is not meant to describe
+ * chord changes within the bar.
  */
 export function harmonyBars(
   segments: Parameters<typeof buildBeatGrid>[0],
@@ -57,10 +57,10 @@ export function harmonyBars(
 }
 
 /**
- * Detección conservadora de tramos instrumentales a partir de la estructura
- * armónica. Solo marca una intro/outro cuando la frase principal aparece al
- * menos dos veces y un interludio cuando el hueco es largo y usa como mucho dos
- * acordes (vamp o pedal). Ante la duda, no marca nada.
+ * Conservative detection of instrumental passages from the harmonic
+ * structure. It only marks an intro/outro when the main phrase appears at
+ * least twice and an interlude when the gap is long and uses at most two
+ * chords (vamp or pedal). When in doubt, it marks nothing.
  */
 export function detectInstrumentalSpans(
   bars: HarmonyBar[],

@@ -1,3 +1,5 @@
+import { useT } from '../i18n';
+
 interface ErrorBannerProps {
   message: string;
   code?: string;
@@ -6,6 +8,7 @@ interface ErrorBannerProps {
 }
 
 export function ErrorBanner({ message, code, onRetry, onDismiss }: ErrorBannerProps) {
+  const t = useT();
   return (
     <div
       role="alert"
@@ -22,12 +25,12 @@ export function ErrorBanner({ message, code, onRetry, onDismiss }: ErrorBannerPr
       <div className="flex shrink-0 gap-2">
         {onRetry ? (
           <button type="button" className="btn" onClick={onRetry}>
-            Reintentar
+            {t('common.retry')}
           </button>
         ) : null}
         {onDismiss ? (
           <button type="button" className="btn btn-ghost" onClick={onDismiss}>
-            Cerrar
+            {t('common.close')}
           </button>
         ) : null}
       </div>
@@ -48,12 +51,13 @@ const TONES: Record<NonNullable<NoticeBannerProps['tone']>, string> = {
 };
 
 export function NoticeBanner({ message, tone = 'info', onDismiss }: NoticeBannerProps) {
+  const t = useT();
   return (
     <div role="status" className={`flex items-center justify-between gap-3 ${TONES[tone]}`}>
       <span>{message}</span>
       {onDismiss ? (
         <button type="button" className="btn btn-ghost shrink-0" onClick={onDismiss}>
-          Cerrar
+          {t('common.close')}
         </button>
       ) : null}
     </div>

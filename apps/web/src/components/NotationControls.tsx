@@ -1,5 +1,6 @@
 import type { AccidentalPreference, Notation } from '@chordifree/chords';
 import { IconAccidental, IconKey, IconNote, IconTranspose, Tool } from './Toolbar';
+import { useT } from '../i18n';
 
 interface NotationControlsProps {
   notation: Notation;
@@ -20,9 +21,10 @@ export function NotationControls({
   keyLabel,
   onChange,
 }: NotationControlsProps) {
+  const t = useT();
   return (
-    <section className="contents" aria-label="Notación y trasposición">
-      <Tool label="Notación" icon={<IconNote />}>
+    <section className="contents" aria-label={t('notation.aria')}>
+      <Tool label={t('notation.notation')} icon={<IconNote />}>
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -30,7 +32,7 @@ export function NotationControls({
             className={notation === 'english' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onChange({ notation: 'english' })}
           >
-            Inglesa
+            {t('notation.english')}
           </button>
           <button
             type="button"
@@ -38,7 +40,7 @@ export function NotationControls({
             className={notation === 'spanish' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onChange({ notation: 'spanish' })}
           >
-            Española
+            {t('notation.spanish')}
           </button>
         </div>
       </Tool>
@@ -48,7 +50,7 @@ export function NotationControls({
           <IconAccidental />
         </span>
         <label htmlFor="accidental-preference" className="tool-label">
-          Alteraciones
+          {t('notation.accidentals')}
         </label>
         <div className="tool-value">
           <select
@@ -59,19 +61,19 @@ export function NotationControls({
               onChange({ accidentalPreference: event.target.value as AccidentalPreference })
             }
           >
-            <option value="auto">Automático</option>
+            <option value="auto">{t('notation.auto')}</option>
             <option value="sharp">Sostenidos ♯</option>
             <option value="flat">Bemoles ♭</option>
           </select>
         </div>
       </div>
 
-      <Tool label="Transporte" icon={<IconTranspose />}>
+      <Tool label={t('notation.transpose')} icon={<IconTranspose />}>
         <div className="flex items-center gap-0.5">
           <button
             type="button"
             className="tool-step"
-            aria-label="Bajar un semitono"
+            aria-label={t('notation.downSemitone')}
             onClick={() => onChange({ transpose: Math.max(-11, transpose - 1) })}
             disabled={transpose <= -11}
           >
@@ -81,7 +83,7 @@ export function NotationControls({
             type="button"
             className="min-w-[2.75rem] px-1 font-mono text-sm tabular-nums text-ink transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Restablecer"
-            title="Restablecer trasposición"
+            title={t('notation.resetTranspose')}
             onClick={() => onChange({ transpose: 0 })}
             disabled={transpose === 0}
           >
@@ -90,7 +92,7 @@ export function NotationControls({
           <button
             type="button"
             className="tool-step"
-            aria-label="Subir un semitono"
+            aria-label={t('notation.upSemitone')}
             onClick={() => onChange({ transpose: Math.min(11, transpose + 1) })}
             disabled={transpose >= 11}
           >
@@ -99,10 +101,10 @@ export function NotationControls({
         </div>
       </Tool>
 
-      <Tool label="Tonalidad" icon={<IconKey />}>
+      <Tool label={t('notation.key')} icon={<IconKey />}>
         <span className="font-display text-base font-bold leading-none text-ink">{keyLabel ?? '—'}</span>
         <p className="sr-only">
-          {keyLabel ? `Tonalidad estimada: ${keyLabel}` : 'Tonalidad no determinada'}
+          {keyLabel ? t('notation.estimatedKey', { key: keyLabel }) : t('notation.unknownKey')}
         </p>
       </Tool>
     </section>

@@ -68,14 +68,14 @@ export function createMediaTools(
         const parsed = JSON.parse(stdout) as { duration?: number; title?: string };
         const duration = Number(parsed.duration);
         if (!Number.isFinite(duration) || duration <= 0) {
-          throw new Error('Metadatos sin duración');
+          throw new Error('Metadata without duration');
         }
         const metadata: YoutubeMetadata = { duration };
         if (parsed.title) metadata.title = parsed.title;
         return metadata;
       } catch (error) {
         if (error instanceof ApiError) throw error;
-        throw new ApiError('VIDEO_UNAVAILABLE', 'No se pudo obtener información del video');
+        throw new ApiError('VIDEO_UNAVAILABLE', 'Could not retrieve video information');
       }
     },
 
@@ -99,11 +99,11 @@ export function createMediaTools(
         );
         const entries = await readdir(directory);
         const downloaded = entries.find((entry) => entry.startsWith(`${videoId}.`));
-        if (!downloaded) throw new Error('Descarga vacía');
+        if (!downloaded) throw new Error('Empty download');
         return join(directory, downloaded);
       } catch (error) {
         if (error instanceof ApiError) throw error;
-        throw new ApiError('VIDEO_UNAVAILABLE', 'No se pudo descargar el audio del video');
+        throw new ApiError('VIDEO_UNAVAILABLE', 'Could not download the video audio');
       }
     },
 
@@ -129,7 +129,7 @@ export function createMediaTools(
           { timeout: limits.convert },
         );
       } catch {
-        throw new ApiError('ANALYSIS_FAILED', 'No se pudo convertir el audio para su análisis');
+        throw new ApiError('ANALYSIS_FAILED', 'Could not convert the audio for analysis');
       }
     },
 
@@ -155,7 +155,7 @@ export function createMediaTools(
         const duration = Number(parsed.format?.duration);
         const stream = parsed.streams?.[0];
         if (!Number.isFinite(duration) || duration <= 0 || !stream?.codec_name) {
-          throw new Error('Audio no válido');
+          throw new Error('Invalid audio');
         }
         return {
           duration,
@@ -163,7 +163,7 @@ export function createMediaTools(
           channels: Number(stream.channels ?? 1),
         };
       } catch {
-        throw new ApiError('INVALID_AUDIO', 'El archivo no es un audio válido');
+        throw new ApiError('INVALID_AUDIO', 'The file is not valid audio');
       }
     },
   };

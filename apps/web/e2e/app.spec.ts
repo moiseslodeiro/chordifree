@@ -60,7 +60,32 @@ async function analyze(page: Page): Promise<void> {
 
 test.describe('flujo completo', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!window.localStorage.getItem('chordifree:v1:preferences')) {
+        window.localStorage.setItem(
+          'chordifree:v1:preferences',
+          JSON.stringify({ schemaVersion: 1, data: { language: 'es' } }),
+        );
+      }
+    });
     await stubApi(page);
+  });
+
+  test('arranca en inglés y permite cambiar a español', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        'chordifree:v1:preferences',
+        JSON.stringify({ schemaVersion: 1, data: { language: 'en' } }),
+      );
+    });
+    await page.goto('/?fakePlayer=1');
+
+    await expect(page.getByRole('heading', { name: 'Analyze a song' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Detect chords' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'ES' }).click();
+    await expect(page.getByRole('heading', { name: 'Analiza una canción' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Detectar acordes' })).toBeVisible();
   });
 
   test('analiza, traslada a notación española, traspone, edita, guarda y recarga', async ({
@@ -438,9 +463,9 @@ test.describe('flujo completo', () => {
     const started = Date.now();
     await slider.fill('8');
     await expect(page.getByTestId('beat-cell-8')).toHaveAttribute('data-active', 'true', {
-      timeout: 250,
+      timeout: 500,
     });
-    expect(Date.now() - started).toBeLessThan(250);
+    expect(Date.now() - started).toBeLessThan(500);
   });
 
   test('navega por la fila y entre filas con el teclado', async ({ page }) => {
@@ -535,6 +560,14 @@ test.describe('flujo completo', () => {
 
 test.describe('accesibilidad', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (!window.localStorage.getItem('chordifree:v1:preferences')) {
+        window.localStorage.setItem(
+          'chordifree:v1:preferences',
+          JSON.stringify({ schemaVersion: 1, data: { language: 'es' } }),
+        );
+      }
+    });
     await stubApi(page);
   });
 

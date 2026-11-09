@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { PlayerAdapter } from './types';
 
 interface YTPlayer {
@@ -27,7 +28,7 @@ let apiPromise: Promise<YTNamespace> | null = null;
 
 export function loadYouTubeApi(): Promise<YTNamespace> {
   if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Sin ventana'));
+    return Promise.reject(new Error(t('player.youtubeNoWindow')));
   }
   if (window.YT?.Player) return Promise.resolve(window.YT);
   if (apiPromise) return apiPromise;
@@ -37,7 +38,7 @@ export function loadYouTubeApi(): Promise<YTNamespace> {
     window.onYouTubeIframeAPIReady = () => {
       previous?.();
       if (window.YT?.Player) resolve(window.YT);
-      else reject(new Error('La API de YouTube no se cargó'));
+      else reject(new Error(t('player.youtubeApi')));
     };
 
     if (!document.getElementById('youtube-iframe-api')) {
@@ -45,7 +46,7 @@ export function loadYouTubeApi(): Promise<YTNamespace> {
       script.id = 'youtube-iframe-api';
       script.src = 'https://www.youtube.com/iframe_api';
       script.async = true;
-      script.onerror = () => reject(new Error('No se pudo cargar el reproductor de YouTube'));
+      script.onerror = () => reject(new Error(t('player.youtubeLoad')));
       document.head.appendChild(script);
     }
   });
@@ -125,7 +126,7 @@ export class YouTubePlayerAdapter implements PlayerAdapter {
     try {
       this.player?.destroy();
     } catch {
-      // El reproductor pudo no haberse inicializado.
+      // The player may not have been initialized.
     }
     this.container.replaceChildren();
   }

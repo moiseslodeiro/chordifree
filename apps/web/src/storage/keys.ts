@@ -19,14 +19,16 @@ export interface StorageLike {
   key(index: number): string | null;
 }
 
+import { t } from '../i18n';
+
 export class StorageQuotaError extends Error {
-  constructor(message = 'El almacenamiento local está lleno') {
+  constructor(message = t('storage.quota')) {
     super(message);
     this.name = 'StorageQuotaError';
   }
 }
 
-/** Almacén en memoria para navegadores con `localStorage` bloqueado. */
+/** In-memory store for browsers with `localStorage` blocked. */
 export function createMemoryStorage(): StorageLike {
   const data = new Map<string, string>();
   return {
@@ -45,8 +47,8 @@ export function createMemoryStorage(): StorageLike {
 }
 
 /**
- * Mueve las claves de la marca anterior a las actuales sin sobrescribir datos
- * nuevos. Se ejecuta una vez al arrancar para no perder biblioteca ni ajustes.
+ * Moves keys from the previous brand to the current ones without overwriting
+ * new data. Runs once at startup so the library and settings are not lost.
  */
 export function migrateLegacyKeys(storage: StorageLike): void {
   const legacy: string[] = [];
@@ -67,8 +69,8 @@ export function migrateLegacyKeys(storage: StorageLike): void {
 }
 
 /**
- * Devuelve `localStorage` si está disponible y permite escribir; si no,
- * un almacén en memoria para que la aplicación siga siendo usable.
+ * Returns `localStorage` if it is available and writable; otherwise,
+ * an in-memory store so the application remains usable.
  */
 export function getStorage(): StorageLike {
   try {
@@ -79,7 +81,7 @@ export function getStorage(): StorageLike {
     try {
       migrateLegacyKeys(storage);
     } catch {
-      // La migración no debe impedir usar la aplicación.
+      // Migration must not prevent the application from being used.
     }
     return storage;
   } catch {

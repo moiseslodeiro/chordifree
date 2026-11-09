@@ -4,6 +4,7 @@ import { tempoFromBeats } from '../grid/beats';
 import type { PlayerAdapter } from '../player/types';
 import { MAX_BPM, MIN_BPM, PLAYBACK_RATES } from '../storage/practice';
 import type { PlaybackClock } from '../sync/clock';
+import { useT } from '../i18n';
 import { barRangeAt, firstBeatAtOrAfter } from '../practice/range';
 
 interface PracticeBarProps {
@@ -74,6 +75,7 @@ export function PracticeBar({
   manualBpm,
   onManualBpmChange,
 }: PracticeBarProps) {
+  const t = useT();
   const [metronome, setMetronome] = useState(false);
   const [countingIn, setCountingIn] = useState(false);
   const [bpmDraft, setBpmDraft] = useState(String(manualBpm));
@@ -243,12 +245,12 @@ export function PracticeBar({
   const hasRange = loopA !== null && loopB !== null && loopB > loopA;
   const rangeLabel =
     markMode === 'a'
-      ? 'Pulsa un compás para A'
+      ? t('practice.chooseA')
       : markMode === 'b'
-        ? 'Pulsa un compás para B'
+        ? t('practice.chooseB')
         : hasRange
           ? `${formatTime(loopA)} – ${formatTime(loopB)}`
-          : 'Marca A y B';
+          : t('practice.noRange');
 
   const toggleMarkMode = (mode: 'a' | 'b') => {
     onMarkModeChange(markMode === mode ? null : mode);
@@ -264,18 +266,18 @@ export function PracticeBar({
   return (
     <section
       className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm"
-      aria-label="Herramientas de práctica"
+      aria-label={t('practice.aria')}
     >
-      <span className="eyebrow">Práctica</span>
+      <span className="eyebrow"> {t('practice.eyebrow')} </span>
 
-      <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Bucle A-B">
+      <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t('practice.loopGroup')}>
         <button
           type="button"
           className={aClassName}
           aria-pressed={markMode === 'a'}
           data-set={loopA !== null ? 'true' : undefined}
-          aria-label="Marcar inicio A"
-          title="Pulsa A y luego un compás de la parrilla para fijar el inicio"
+          aria-label={t('practice.markA')}
+          title={t('practice.markATitle')}
           onClick={() => toggleMarkMode('a')}
         >
           A
@@ -285,8 +287,8 @@ export function PracticeBar({
           className={bClassName}
           aria-pressed={markMode === 'b'}
           data-set={loopB !== null ? 'true' : undefined}
-          aria-label="Marcar final B"
-          title="Pulsa B y luego un compás de la parrilla para fijar el final"
+          aria-label={t('practice.markB')}
+          title={t('practice.markBTitle')}
           onClick={() => toggleMarkMode('b')}
         >
           B
@@ -296,10 +298,10 @@ export function PracticeBar({
           className={loopEnabled ? 'tool-chip-active' : 'tool-chip'}
           aria-pressed={loopEnabled}
           disabled={!hasRange}
-          title="Activar o desactivar la repetición A-B"
+          title={t('practice.loopTitle')}
           onClick={toggleLoop}
         >
-          Bucle
+          {t('practice.loop')}
         </button>
         <button
           type="button"
@@ -307,7 +309,7 @@ export function PracticeBar({
           disabled={loopA === null && loopB === null}
           onClick={clearLoop}
         >
-          Limpiar
+          {t('practice.clear')}
         </button>
       </div>
 
@@ -320,16 +322,16 @@ export function PracticeBar({
         className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em]"
         onClick={repeatBar}
       >
-        Repetir compás
+        {t('practice.repeatBar')}
       </button>
 
       <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-        Velocidad
+        {t('practice.rate')}
         <select
           className="tool-select font-mono text-xs normal-case tracking-normal"
           value={rate}
           onChange={(event) => onRateChange(Number(event.target.value))}
-          aria-label="Velocidad de reproducción"
+          aria-label={t('practice.rateLabel')}
         >
           {SPEEDS.map((speed) => (
             <option key={speed.value} value={speed.value}>
@@ -341,7 +343,7 @@ export function PracticeBar({
 
       {beats.length === 0 ? (
         <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-          BPM
+          {t('practice.bpm')}
           <input
             type="number"
             className="tool-select w-16 font-mono text-xs tabular-nums normal-case tracking-normal"
@@ -354,7 +356,7 @@ export function PracticeBar({
             onKeyDown={(event) => {
               if (event.key === 'Enter') event.currentTarget.blur();
             }}
-            aria-label="BPM del metrónomo"
+            aria-label={t('practice.bpmLabel')}
           />
         </label>
       ) : null}
@@ -366,12 +368,12 @@ export function PracticeBar({
         disabled={duration <= 0}
         title={
           beats.length === 0
-            ? 'Activar o desactivar el clic del metrónomo con el BPM manual'
-            : 'Activar o desactivar el clic del metrónomo'
+            ? t('practice.metronomeManual')
+            : t('practice.metronomeOn')
         }
         onClick={() => setMetronome((value) => !value)}
       >
-        Metrónomo
+        {t('practice.metronome')}
       </button>
 
       <button
@@ -380,7 +382,7 @@ export function PracticeBar({
         onClick={startCountIn}
         disabled={countingIn}
       >
-        {countingIn ? 'Contando…' : 'Cuenta atrás'}
+        {countingIn ? t('practice.counting') : t('practice.countIn')}
       </button>
     </section>
   );

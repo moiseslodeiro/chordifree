@@ -8,6 +8,7 @@ import {
   type EstimatedKey,
   type Notation,
 } from '@chordifree/chords';
+import { useT } from '../i18n';
 
 interface HarmonicAnalysisProps {
   segments: ChordSegment[];
@@ -36,6 +37,7 @@ export function HarmonicAnalysis({
   accidental,
   capo = 0,
 }: HarmonicAnalysisProps) {
+  const t = useT();
   const degrees = useMemo(() => {
     if (!harmonyKey) return [];
     const items: DegreeItem[] = [];
@@ -79,10 +81,10 @@ export function HarmonicAnalysis({
   return (
     <section
       className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-      aria-label="Análisis armónico"
+      aria-label={t('harmonic.aria')}
     >
       <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-        Análisis armónico
+        {t('harmonic.title')}
       </h2>
 
       {!hasChords ? (
@@ -92,11 +94,11 @@ export function HarmonicAnalysis({
           {harmonyKey ? (
             <>
               <div>
-                <h3 className="eyebrow">Progresión</h3>
+                <h3 className="eyebrow">{t('harmonic.progression')}</h3>
                 {progression.length > 0 ? (
                   <ol
                     className="mt-2 flex flex-wrap items-center gap-1.5"
-                    aria-label="Progresión por grados"
+                    aria-label={t('harmonic.progressionAria')}
                   >
                     {progression.map((degree, index) => (
                       <li
@@ -108,7 +110,7 @@ export function HarmonicAnalysis({
                     ))}
                   </ol>
                 ) : (
-                  <p className="mt-2 text-xs text-ink3">Sin cambios de acorde.</p>
+                  <p className="mt-2 text-xs text-ink3">{t('harmonic.noChanges')}</p>
                 )}
               </div>
 
@@ -135,31 +137,32 @@ export function HarmonicAnalysis({
             </>
           ) : (
             <p className="text-sm text-ink2">
-              No se pudo estimar la tonalidad, así que no hay grados que mostrar.
+              {t('harmonic.noKey')}
             </p>
           )}
 
           {capo > 0 ? (
             <p className="text-xs leading-relaxed text-ink2">
-              Grados sobre la tonalidad real; la parrilla muestra las formas con capo en el traste{' '}
-              {capo}.
+              {t('harmonic.degreesCapo', { capo })}
             </p>
           ) : null}
 
           {confidence ? (
             <div className="border-t border-line pt-3">
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-                Confianza media {percent(confidence.average)}
+                {t('harmonic.averageConfidence', { percent: percent(confidence.average) })}
                 {confidence.low > 0
-                  ? ` · ${confidence.low} de ${confidence.total} ${
-                      confidence.total === 1 ? 'acorde dudoso' : 'acordes dudosos'
-                    }`
+                  ? ` · ${t(
+                      confidence.total === 1
+                        ? 'harmonic.doubtfulOne'
+                        : 'harmonic.doubtfulOther',
+                      { low: confidence.low, total: confidence.total },
+                    )}`
                   : ''}
               </p>
               {confidence.low > 0 ? (
                 <p className="mt-1 text-xs leading-relaxed text-ink2">
-                  Los acordes marcados con «?» en la parrilla tienen confianza baja; revísalos con
-                  el editor.
+                  {t('harmonic.lowConfidenceHelp')}
                 </p>
               ) : null}
             </div>

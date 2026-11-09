@@ -23,11 +23,11 @@ def health() -> dict[str, str]:
 async def analyze(file: UploadFile = File(...)) -> JSONResponse:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=422, detail="Formato de audio no admitido")
+        raise HTTPException(status_code=422, detail="Unsupported audio format")
 
     payload = await file.read()
     if not payload:
-        raise HTTPException(status_code=422, detail="Archivo vacío")
+        raise HTTPException(status_code=422, detail="Empty file")
 
     handle, path = tempfile.mkstemp(suffix=suffix)
     os.close(handle)
@@ -36,8 +36,8 @@ async def analyze(file: UploadFile = File(...)) -> JSONResponse:
         result = analyze_file(path)
     except AnalyzerUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover - errores de decodificación
-        raise HTTPException(status_code=422, detail=f"No se pudo analizar el audio: {exc}") from exc
+    except Exception as exc:  # pragma: no cover - decoding errors
+        raise HTTPException(status_code=422, detail=f"Could not analyze the audio: {exc}") from exc
     finally:
         Path(path).unlink(missing_ok=True)
 

@@ -5,6 +5,7 @@ import {
   type Accidental,
   type Notation,
 } from '@chordifree/chords';
+import { translate, getLanguage, useT } from '../i18n';
 import type { BeatCell, BeatRow } from '../grid/beats';
 import type { PlaybackClock } from '../sync/clock';
 import { useBeatIndex, useIsBeatActive } from '../sync/hooks';
@@ -32,11 +33,11 @@ interface BeatCellButtonProps {
 
 type LoopRole = 'a' | 'b' | 'ab' | 'range' | null;
 
-const LOOP_LABELS: Record<Exclude<LoopRole, null>, string> = {
-  a: ', compás A del bucle',
-  b: ', compás B del bucle',
-  ab: ', compás A y B del bucle',
-  range: ', dentro del bucle',
+const LOOP_LABELS: Record<Exclude<LoopRole, null>, 'grid.loopA' | 'grid.loopB' | 'grid.loopAB' | 'grid.loopRange'> = {
+  a: 'grid.loopA',
+  b: 'grid.loopB',
+  ab: 'grid.loopAB',
+  range: 'grid.loopRange',
 };
 
 const LOOP_MARKS: Record<'a' | 'b' | 'ab', string> = {
@@ -61,17 +62,23 @@ const BeatCellButton = memo(function BeatCellButton({
   onSeek,
   onNavigate,
 }: BeatCellButtonProps) {
+  const t = useT();
   const active = useIsBeatActive(clock, cell.beatIndex);
   const barIndex = Math.floor(cell.beatIndex / beatsPerBar);
   const label = formatChordOrSilence(cell.chord, notation, accidental);
-  const chordDescription = cell.chord ? `acorde ${label}` : 'silencio';
+  const chordDescription = cell.chord ? `${t('common.chord')} ${label}` : t('common.silence');
   const lowConfidence =
     cell.chord !== null && cell.confidence !== undefined && cell.confidence < 0.4;
-  const accessibleLabel = `Fila ${rowIndex + 1}, compás ${
-    Math.floor(cell.beatIndex / beatsPerBar) + 1
-  }, tiempo ${(cell.beatIndex % beatsPerBar) + 1}, ${chordDescription}, en ${formatTime(
-    cell.time,
-  )}${loopRole ? LOOP_LABELS[loopRole] : ''}${lowConfidence ? ', confianza baja' : ''}`;
+  const accessibleLabel =
+    t('grid.rowLabel', {
+      row: rowIndex + 1,
+      bar: Math.floor(cell.beatIndex / beatsPerBar) + 1,
+      beat: (cell.beatIndex % beatsPerBar) + 1,
+      chord: chordDescription,
+      time: formatTime(cell.time),
+    }) +
+    (loopRole ? t(LOOP_LABELS[loopRole]) : '') +
+    (lowConfidence ? t('grid.lowConfidence') : '');
 
   return (
     <button
@@ -105,7 +112,7 @@ const BeatCellButton = memo(function BeatCellButton({
         <span
           className="beat-confidence"
           aria-hidden="true"
-          title={`Confianza ${Math.round((cell.confidence ?? 0) * 100)}%`}
+          title={t('grid.confidence', { percent: Math.round((cell.confidence ?? 0) * 100) })}
         >
           ?
         </span>
@@ -139,6 +146,7 @@ export function BeatGrid({
   loopB = null,
   markMode = null,
 }: BeatGridProps) {
+  const t = useT();
   const activeBeat = useBeatIndex(clock);
   const containerRef = useRef<HTMLDivElement>(null);
   const manualUntil = useRef(0);
@@ -293,7 +301,7 @@ export function BeatGrid({
       onTouchMove={markManualScroll}
       onMouseLeave={() => setPreviewBar(null)}
       role="group"
-      aria-label="Parrilla de pulsos"
+      aria-label={t('grid.beatGridAria')}
     >
       <div className="w-full min-w-0 divide-y divide-line">
         {rows.map((row) => (
@@ -385,5 +393,10 @@ export function activeBeatDescription(
   const cell = row.cells.find((candidate) => candidate?.beatIndex === beatIndex);
   if (!cell) return '';
   const chord = formatChordOrSilence(cell.chord, notation, accidental);
-  return `Fila ${row.index + 1}, compás ${barIndex + 1}, tiempo ${beatOffset + 1}, acorde ${chord}`;
+  return translate(getLanguage(), 'grid.activeRow', {
+    row: row.index + 1,
+    bar: barIndex + 1,
+    beat: beatOffset + 1,
+    chord,
+  });
 }

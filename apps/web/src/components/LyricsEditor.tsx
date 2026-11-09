@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { formatTime } from '@chordifree/chords';
+import { useT } from '../i18n';
 import { splitLyricLines } from '../lyrics/align';
 
 interface LyricsEditorProps {
@@ -27,6 +28,7 @@ export function LyricsEditor({
   onCancel,
   onDelete,
 }: LyricsEditorProps) {
+  const t = useT();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lines = splitLyricLines(value).filter((line) => line.trim().length > 0).length;
   const dirty = value !== initialValue;
@@ -85,17 +87,20 @@ export function LyricsEditor({
     >
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
-          <p className="eyebrow">Letra de la canción</p>
-          <h2 className="mt-1 font-display text-2xl leading-none text-ink">Letra</h2>
+          <p className="eyebrow">{t('lyrics.editorEyebrow')}</p>
+          <h2 className="mt-1 font-display text-2xl leading-none text-ink">{t('lyrics.editorTitle')}</h2>
         </div>
         <span className="badge" aria-live="polite">
-          {lines} {lines === 1 ? 'línea' : 'líneas'}
+          {t('lyrics.lineCount', {
+            count: lines,
+            label: lines === 1 ? t('lyrics.line') : t('lyrics.lines'),
+          })}
           {dirty ? ' · sin guardar' : ''}
         </span>
       </header>
 
       <label htmlFor="lyrics-editor" className="sr-only">
-        Letra de la canción
+        {t('lyrics.editorLabel')}
       </label>
       <textarea
         ref={textareaRef}
@@ -103,44 +108,41 @@ export function LyricsEditor({
         className="field mt-4 min-h-[20rem] resize-y font-sans text-sm leading-relaxed"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={'Pega aquí la letra…\n\nUsa líneas vacías para separar estrofas.'}
+        placeholder={t('lyrics.placeholder')}
         spellCheck
       />
       <p className="mt-2 text-xs leading-relaxed text-ink3">
-        Para saltar una intro o un interludio, usa «Anclar inicio» si la letra empieza después
-        de la introducción, o coloca el cursor en una línea y pulsa «Anclar línea». También
-        puedes escribir `[mm:ss]` al inicio. Los acordes se reparten entre las líneas no vacías;
-        la alineación es aproximada.
+        {t('lyrics.help')}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" className="btn btn-primary" onClick={onSave} disabled={!dirty}>
-          Guardar letra
+          {t('lyrics.save')}
         </button>
         <button type="button" className="btn" onClick={onCancel}>
-          Cancelar
+          {t('lyrics.cancel')}
         </button>
         <button
           type="button"
           className="btn"
           onClick={anchorFirstLine}
           disabled={!canAnchor}
-          title="Insertar el tiempo actual al inicio de la primera línea con texto"
+          title={t('lyrics.anchorStartTitle')}
         >
-          Anclar inicio
+          {t('lyrics.anchorStart')}
         </button>
         <button
           type="button"
           className="btn"
           onClick={anchorCurrentLine}
           disabled={!canAnchor}
-          title="Insertar el tiempo actual al inicio de la línea del cursor"
+          title={t('lyrics.anchorLineTitle')}
         >
-          Anclar línea
+          {t('lyrics.anchorLine')}
         </button>
         {canDelete ? (
           <button type="button" className="btn btn-danger" onClick={onDelete}>
-            Eliminar letra
+            {t('lyrics.delete')}
           </button>
         ) : null}
       </div>

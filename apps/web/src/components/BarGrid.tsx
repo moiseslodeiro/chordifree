@@ -5,6 +5,7 @@ import {
   type Accidental,
   type Notation,
 } from '@chordifree/chords';
+import { useT } from '../i18n';
 import type { BarCell } from '../grid/barAlignment';
 import type { PlaybackClock } from '../sync/clock';
 import { usePlaybackTime } from '../sync/hooks';
@@ -45,6 +46,7 @@ export function BarGrid({
   loopB = null,
   markMode = null,
 }: BarGridProps) {
+  const t = useT();
   const compact = useCompactBars();
   const barsPerRow = compact ? 2 : 4;
   const activeTime = usePlaybackTime(clock);
@@ -91,7 +93,7 @@ export function BarGrid({
   if (bars.length === 0) {
     return (
       <p className="note note-info mt-3 text-xs leading-relaxed">
-        No hay compases suficientes para construir esta vista.
+        {t('grid.notEnoughBars')}
       </p>
     );
   }
@@ -101,7 +103,7 @@ export function BarGrid({
       className="bar-grid mt-3"
       data-mark-mode={markMode ?? undefined}
       onMouseLeave={() => setPreviewBar(null)}
-      aria-label="Parrilla por compases"
+      aria-label={t('grid.barGridAria')}
     >
       {rows.map((row) => {
         const first = row[0]!;
@@ -130,9 +132,20 @@ export function BarGrid({
                   data-loop={role ?? undefined}
                   data-mark-preview={preview ?? undefined}
                   aria-current={active ? 'true' : undefined}
-                  aria-label={`Compás ${bar.index + 1}, acorde ${label}, en ${formatTime(
-                    bar.start,
-                  )}${role === 'a' ? ', inicio A' : role === 'b' ? ', final B' : inLoop ? ', dentro del bucle' : ''}`}
+                  aria-label={
+                    t('grid.barLabel', {
+                      bar: bar.index + 1,
+                      chord: label,
+                      time: formatTime(bar.start),
+                    }) +
+                    (role === 'a'
+                      ? t('grid.loopALabel')
+                      : role === 'b'
+                        ? t('grid.loopBLabel')
+                        : inLoop
+                          ? t('grid.loopRangeLabel')
+                          : '')
+                  }
                   className="bar-cell"
                   onMouseEnter={() => {
                     if (markMode !== null) setPreviewBar(bar.index);

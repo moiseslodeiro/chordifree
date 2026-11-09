@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getHealth } from './lib/api';
 import { createYoutubeAnalysis } from './lib/api';
 import { useAnalysisRunner } from './lib/useAnalysis';
+import { useT, setLanguage } from './i18n';
 import { Home } from './components/Home';
 import { LibraryList } from './components/LibraryList';
 import { SongView } from './components/SongView';
@@ -40,6 +41,7 @@ function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
 }
 
 export default function App() {
+  const t = useT();
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
   const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
@@ -62,15 +64,14 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(() =>
     hasQuarantinedData(storage)
       ? {
-          message:
-            'Se encontraron datos ilegibles en el almacenamiento local. Se conservó una copia en cuarentena y la biblioteca se recuperó vacía.',
+          message: t('app.storageCorrupt'),
           tone: 'warning',
         }
       : null,
   );
   const [health, setHealth] = useState<{ status: 'ok' | 'down' | 'unknown'; version: string }>({
     status: 'unknown',
-    version: 'essentia-1.5',
+    version: 'essentia-1.6',
   });
 
   const forceFake =
@@ -82,12 +83,16 @@ export default function App() {
   }, [preferences.theme]);
 
   useEffect(() => {
+    setLanguage(preferences.language);
+  }, [preferences.language]);
+
+  useEffect(() => {
     const controller = new AbortController();
     void getHealth(controller.signal).then((result) => {
       if (controller.signal.aborted) return;
       setHealth({
         status: result.analyzer,
-        version: result.analyzerVersion || 'essentia-1.5',
+        version: result.analyzerVersion || 'essentia-1.6',
       });
     });
     return () => controller.abort();
@@ -130,7 +135,7 @@ export default function App() {
           return;
         }
         setNotice({
-          message: 'La canción solicitada no existe en esta biblioteca.',
+          message: t('app.songMissing'),
           tone: 'warning',
         });
         setRoute({ name: 'library' });
@@ -163,8 +168,8 @@ export default function App() {
         setNotice({
           message:
             error instanceof StorageQuotaError
-              ? 'No se pudieron guardar las preferencias: el almacenamiento está lleno.'
-              : 'No se pudieron guardar las preferencias.',
+              ? t('app.preferencesQuota')
+              : t('app.preferencesFailed'),
           tone: 'warning',
         });
       }
@@ -178,13 +183,13 @@ export default function App() {
       songRef.current = target;
       setSong(target);
       setSongs(library.list());
-      setNotice({ message: 'Canción guardada en la biblioteca.', tone: 'success' });
+      setNotice({ message: t('app.songSaved'), tone: 'success' });
     } catch (error) {
       setNotice({
         message:
           error instanceof StorageQuotaError
-            ? 'El almacenamiento local está lleno. Elimina canciones o caché para poder guardar; la canción abierta sigue disponible en memoria.'
-            : 'No se pudo guardar la canción en la biblioteca.',
+            ? t('app.saveQuota')
+            : t('app.saveFailed'),
         tone: 'warning',
       });
     }
@@ -199,7 +204,7 @@ export default function App() {
       setSong(null);
       replaceAudioUrl(null);
     }
-    setNotice({ message: 'Canción eliminada de la biblioteca.', tone: 'info' });
+    setNotice({ message: t('app.songDeleted'), tone: 'info' });
   };
 
   const reanalyzeSong = async (target: Song) => {
@@ -211,7 +216,7 @@ export default function App() {
     );
     setReanalyzingId(null);
     if (!result) {
-      setNotice({ message: 'No se pudo reanalizar la canción.', tone: 'warning' });
+      setNotice({ message: t('app.reanalyzeFailed'), tone: 'warning' });
       return;
     }
 
@@ -221,6 +226,7 @@ export default function App() {
       detectedSegments: result.segments,
       beats: result.beats ?? [],
       beatsPerBar: result.beatsPerBar ?? 4,
+      vocalRegions: result.vocalRegions ?? [],
       duration: result.duration,
       analyzerVersion: result.analyzerVersion,
       updatedAt: new Date().toISOString(),
@@ -233,10 +239,10 @@ export default function App() {
     try {
       library.save(updated);
       setSongs(library.list());
-      setNotice({ message: 'Canción reanalizada con el analizador actual.', tone: 'success' });
+      setNotice({ message: t('app.reanalyzed'), tone: 'success' });
     } catch {
       setNotice({
-        message: 'El análisis se actualizó en memoria, pero no se pudo guardar.',
+        message: t('app.reanalyzedNotSaved'),
         tone: 'warning',
       });
     }
@@ -245,14 +251,15 @@ export default function App() {
   const exportLibrary = () => {
     const all = library.exportSongs();
     if (all.length === 0) {
-      setNotice({ message: 'No hay canciones que exportar.', tone: 'warning' });
+      setNotice({ message: t('app.exportEmpty'), tone: 'warning' });
       return;
     }
     downloadBackup(all);
     setNotice({
-      message: `Copia de seguridad descargada con ${all.length} ${
-        all.length === 1 ? 'canción' : 'canciones'
-      }.`,
+      message: t('app.exported', {
+        count: all.length,
+        label: all.length === 1 ? t('common.song') : t('common.songs'),
+      }),
       tone: 'success',
     });
   };
@@ -263,19 +270,18 @@ export default function App() {
       const result = library.importSongs(imported);
       setSongs(library.list());
       setNotice({
-        message: `Copia importada: ${result.added} ${
-          result.added === 1 ? 'canción nueva' : 'canciones nuevas'
-        } y ${result.updated} ${
-          result.updated === 1 ? 'actualizada' : 'actualizadas'
-        }.`,
+        message: t('app.imported', {
+          added: result.added,
+          addedLabel: result.added === 1 ? t('app.newSong') : t('app.newSongs'),
+          updated: result.updated,
+          updatedLabel: result.updated === 1 ? t('app.updatedSong') : t('app.updatedSongs'),
+        }),
         tone: 'success',
       });
     } catch (error) {
       setNotice({
         message:
-          error instanceof BackupError
-            ? error.message
-            : 'No se pudo importar la copia de seguridad.',
+          error instanceof BackupError ? error.message : t('app.backupImportFailed'),
         tone: 'warning',
       });
     }
@@ -300,11 +306,29 @@ export default function App() {
             className="brand-dark h-8 w-auto sm:h-9"
           />
           <span className="hidden font-mono text-[0.56rem] uppercase leading-none tracking-[0.16em] text-ink3 sm:block sm:text-[0.6rem]">
-            Acordes sincronizados · YouTube o audio
+            {t('app.tagline')}
           </span>
         </button>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <span className="badge hidden sm:inline-flex">Solo en tu navegador · sin cuentas</span>
+          <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>
+          <div className="flex items-center gap-1" role="group" aria-label={t('app.language')}>
+            <button
+              type="button"
+              className={preferences.language === 'en' ? 'tool-chip-active' : 'tool-chip'}
+              aria-pressed={preferences.language === 'en'}
+              onClick={() => updatePreferences({ language: 'en' })}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={preferences.language === 'es' ? 'tool-chip-active' : 'tool-chip'}
+              aria-pressed={preferences.language === 'es'}
+              onClick={() => updatePreferences({ language: 'es' })}
+            >
+              ES
+            </button>
+          </div>
           <button
             type="button"
             className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em]"
@@ -315,7 +339,7 @@ export default function App() {
               })
             }
           >
-            {preferences.theme === 'light' ? '☀ Tema claro' : '☾ Tema oscuro'}
+            {preferences.theme === 'light' ? t('app.themeLight') : t('app.themeDark')}
           </button>
         </div>
       </header>

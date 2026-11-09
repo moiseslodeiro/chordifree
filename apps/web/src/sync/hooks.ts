@@ -44,8 +44,8 @@ export function useIsBeatActive(clock: PlaybackClock | null, index: number): boo
 }
 
 /**
- * Tiempo de reproducción con una frecuencia baja para mover el resaltado de la
- * letra sin depender de que cambie el segmento o el pulso.
+ * Playback time at a low frequency to move the lyrics
+ * highlight without depending on the segment or beat changing.
  */
 export function usePlaybackTime(clock: PlaybackClock | null, intervalMs = 250): number | null {
   const [time, setTime] = useState<number | null>(() => (clock ? clock.getTime() : null));

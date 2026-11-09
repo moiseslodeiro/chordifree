@@ -45,6 +45,5 @@ export function errorBody(code: ErrorCode, message: string) {
 
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
-  const message = error instanceof Error ? error.message : 'Error inesperado';
-  return new ApiError('ANALYSIS_FAILED', message);
+  return new ApiError('ANALYSIS_FAILED', 'Unexpected analysis error');
 }

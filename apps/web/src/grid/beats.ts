@@ -6,17 +6,17 @@ import {
 } from '@chordifree/chords';
 
 export interface BeatCell {
-  /** Tiempo del pulso en segundos. */
+  /** Beat time in seconds. */
   time: number;
-  /** Índice global del pulso dentro de la canción. */
+  /** Global beat index within the song. */
   beatIndex: number;
-  /** Acorde vigente al inicio del pulso. */
+  /** Chord active at the start of the beat. */
   chord: Chord | null;
-  /** El acorde difiere del pulso anterior. */
+  /** The chord differs from the previous beat. */
   change: boolean;
-  /** Índice del segmento vigente, o -1 si no hay ninguno. */
+  /** Index of the active segment, or -1 if there is none. */
   segmentIndex: number;
-  /** Confianza del detector para el acorde vigente, si está disponible. */
+  /** Detector confidence for the active chord, if available. */
   confidence?: number;
 }
 
@@ -35,8 +35,8 @@ export interface BeatRow {
 }
 
 /**
- * Mediana de los intervalos entre pulsos. Devuelve 0 si no hay al menos dos
- * pulsos utilizables.
+ * Median of the intervals between beats. Returns 0 if there are not at least two
+ * usable beats.
  */
 export function medianInterval(times: number[]): number {
   if (times.length < 2) return 0;
@@ -54,17 +54,17 @@ export function medianInterval(times: number[]): number {
 }
 
 /**
- * Sanea los pulsos y construye una rejilla de tempo constante anclada en el
- * primer pulso detectado. El analizador puede devolver pulsos con pequeñas
- * variaciones (jitter) o saltarse alguno; al reconstruir la rejilla con el
- * intervalo mediano las celdas vuelven a caer sobre el pulso real de la
- * canción y la reproducción no se va desalineando.
+ * Sanitizes the beats and builds a constant-tempo grid anchored to the
+ * first detected beat. The analyzer may return beats with small
+ * variations (jitter) or skip some; rebuilding the grid with the
+ * median interval makes the cells fall on the song's real beat again
+ * and playback does not drift out of sync.
  *
- * Cuando no hay duración disponible se devuelve la lista saneada tal cual,
- * porque no se puede saber hasta dónde prolongar.
+ * When no duration is available, the sanitized list is returned as is,
+ * because it is impossible to know how far to extend it.
  *
- * Es idempotente: si los pulsos ya forman una rejilla regular, devuelve la
- * misma lista.
+ * It is idempotent: if the beats already form a regular grid, it returns
+ * the same list.
  */
 export function extendBeats(beats: number[], duration?: number): number[] {
   const values = beats.filter((beat) => Number.isFinite(beat) && beat >= 0).sort((a, b) => a - b);
@@ -90,8 +90,8 @@ export function extendBeats(beats: number[], duration?: number): number[] {
 }
 
 /**
- * Tempo estimado en pulsos por minuto a partir de la mediana de los intervalos
- * entre pulsos. Devuelve `null` si no hay datos suficientes.
+ * Estimated tempo in beats per minute from the median of the intervals
+ * between beats. Returns `null` if there is not enough data.
  */
 export function tempoFromBeats(beats: number[]): number | null {
   const times = beats
@@ -104,8 +104,8 @@ export function tempoFromBeats(beats: number[]): number | null {
 }
 
 /**
- * Agrupa los pulsos en compases de `beatsPerBar` tiempos y resuelve el acorde
- * vigente de cada celda. Las celdas que faltan en el último compás son `null`.
+ * Groups the beats into bars of `beatsPerBar` beats and resolves the active
+ * chord of each cell. Missing cells in the last bar are `null`.
  */
 export function buildBeatGrid(
   segments: ChordSegment[],
@@ -117,10 +117,10 @@ export function buildBeatGrid(
   const times = extendBeats(beats, duration);
   if (times.length === 0) return [];
 
-  // Los segmentos empiezan en el pulso detectado original; la rejilla se
-  // reconstruye con el tempo mediano, así que se admite una pequeña tolerancia
-  // para que un cambio de acorde no se muestre un pulso tarde por unos pocos
-  // milisegundos de diferencia.
+  // The segments start at the original detected beat; the grid is
+  // rebuilt with the median tempo, so a small tolerance is allowed
+  // so that a chord change is not shown one beat late by a few
+  // milliseconds of difference.
   const interval = medianInterval(times);
   const tolerance = interval > 0 ? interval * 0.2 : 0;
 
@@ -157,9 +157,9 @@ export function buildBeatGrid(
 }
 
 /**
- * Agrupa los compases en filas de dos compases (ocho pulsos en 4/4) para la
- * presentación. La última fila se rellena con celdas `null` hasta completar
- * todas las posiciones.
+ * Groups the bars into rows of two bars (eight beats in 4/4) for
+ * presentation. The last row is padded with `null` cells to complete
+ * all positions.
  */
 export function buildBeatRows(
   segments: ChordSegment[],

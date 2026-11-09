@@ -1,8 +1,8 @@
 type PendingTask = () => void;
 
 /**
- * Cola FIFO con concurrencia acotada. Se encapsula para poder sustituirla
- * por una cola externa si el servicio escala a varias instancias.
+ * FIFO queue with bounded concurrency. It is encapsulated so it can be replaced
+ * by an external queue if the service scales to several instances.
  */
 export class JobQueue {
   private active = 0;

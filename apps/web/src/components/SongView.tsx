@@ -20,6 +20,7 @@ import {
   type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
+import { useT } from '../i18n';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
@@ -87,6 +88,7 @@ export function SongView({
   onOpenLibrary,
   onPreferences,
 }: SongViewProps) {
+  const t = useT();
   const [adapter, setAdapter] = useState<PlayerAdapter | null>(null);
   const [clock, setClock] = useState<PlaybackClock | null>(null);
   const [editing, setEditing] = useState(false);
@@ -120,11 +122,11 @@ export function SongView({
   );
 
   const capo = song.capo ?? 0;
-  /** El piano no admite cejilla: el capo se ignora al mostrar las formas. */
+  /** The piano does not support a capo: the capo is ignored when showing shapes. */
   const capoAvailable = supportsCapo(instrument);
   const effectiveCapo = capoAvailable ? capo : 0;
 
-  /** Acordes que se muestran: con cejilla, las formas bajan `capo` semitonos. */
+  /** Chords shown: with a capo, shapes are shifted down `capo` semitones. */
   const shapeSegments = useMemo(
     () =>
       effectiveCapo === 0
@@ -160,7 +162,7 @@ export function SongView({
     );
   }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats, beatsPerBar]);
 
-  /** La letra conserva los tiempos reales: la reducción máxima solo afecta a la parrilla. */
+  /** Lyrics keep the real timings: maximum reduction only affects the grid. */
   const lyricsSegments = useMemo(() => {
     const simplified =
       simplifyChords || reduceChords
@@ -206,7 +208,7 @@ export function SongView({
     return chords;
   }, [displaySegments, song.notation, accidental]);
 
-  /** Cambios de acorde para la hoja imprimible, con tiempo y grado. */
+  /** Chord changes for the printable sheet, with time and degree. */
   const printRows = useMemo(() => {
     const rows: Array<{ time: string; chord: string; degree: string | null }> = [];
     let previous: ChordSegment['chord'] = null;
@@ -247,8 +249,8 @@ export function SongView({
   };
 
   /**
-   * Con A o B armados, el clic solo fija ese extremo del bucle y no reproduce.
-   * Sin modo de marcado, el clic busca el punto y empieza a tocar desde ahí.
+   * With A or B armed, the click only sets that loop endpoint and does not play.
+   * Without mark mode, the click seeks to the point and starts playing from there.
    */
   const selectBar = (time: number) => {
     if (markMode !== null) {
@@ -352,42 +354,44 @@ export function SongView({
 
   const sourceLabel =
     song.source.type === 'youtube'
-      ? `YouTube · ${song.source.videoId}`
-      : `Audio subido · ${song.source.filename}`;
+      ? t('song.sourceYoutube', { id: song.source.videoId })
+      : t('song.sourceUpload', { name: song.source.filename });
 
   return (
     <div className="space-y-5">
       {notice ? <NoticeBanner message={notice} tone="warning" onDismiss={onDismissNotice} /> : null}
 
       <header className="border-b border-line pb-5">
-        <nav className="flex flex-wrap items-center gap-5" aria-label="Navegación">
+        <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
           <button
             type="button"
             className="font-mono text-[0.66rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
             onClick={onBack}
           >
-            ← Inicio
+            {t('song.back')}
           </button>
           <button
             type="button"
             className="font-mono text-[0.66rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
             onClick={onOpenLibrary}
           >
-            Biblioteca
+            {t('song.library')}
           </button>
         </nav>
 
         <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            <p className="eyebrow">Partitura sincronizada</p>
+            <p className="eyebrow">{t('song.eyebrow')}</p>
             <h1 className="display mt-2 truncate text-2xl sm:text-3xl">{song.title}</h1>
             <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
               <span className="badge">{sourceLabel}</span>
               <span className="tabular-nums">{formatTime(song.duration)}</span>
               <span aria-hidden="true">·</span>
-              <span>Analizador {song.analyzerVersion}</span>
+              <span>{t('song.analyzer', { version: song.analyzerVersion })}</span>
               {saved ? null : (
-                <span className="badge border-accent/50 text-accent">sin guardar</span>
+                <span className="badge border-accent/50 text-accent">
+                  {t('song.unsaved')}
+                </span>
               )}
             </p>
           </div>
@@ -395,12 +399,12 @@ export function SongView({
           <div className="flex flex-wrap gap-2">
             {!editingLyrics ? (
               <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
-                {editing ? 'Salir de edición' : 'Editar acordes'}
+                {editing ? t('song.exitEdit') : t('song.editChords')}
               </button>
             ) : null}
             {!editing && !editingLyrics && printRows.length > 0 ? (
               <button type="button" className="btn" onClick={() => window.print()}>
-                Imprimir / PDF
+                {t('song.print')}
               </button>
             ) : null}
             {!editing && !editingLyrics && song.source.type === 'youtube' ? (
@@ -409,23 +413,21 @@ export function SongView({
                 className="btn"
                 disabled={reanalyzing}
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      'Se reemplazarán los acordes actuales por un análisis nuevo. La letra y los ajustes se conservan. ¿Continuar?',
-                    )
-                  ) {
+                  if (window.confirm(t('song.reanalyzeConfirm'))) {
                     onReanalyze();
                   }
                 }}
               >
                 {reanalyzing
-                  ? `Reanalizando${reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'}`
-                  : 'Reanalizar'}
+                  ? `${t('song.reanalyzing')}${
+                      reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
+                    }`
+                  : t('song.reanalyze')}
               </button>
             ) : null}
             {!editingLyrics ? (
               <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
-                {saved ? 'Guardar cambios' : 'Guardar en biblioteca'}
+                {saved ? t('song.save') : t('song.saveToLibrary')}
               </button>
             ) : null}
           </div>
@@ -464,7 +466,7 @@ export function SongView({
         </div>
       ) : (
         <div className="rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
-          Los controles de reproducción aparecerán cuando el reproductor esté disponible.
+          {t('song.controlsUnavailable')}
         </div>
       )}
 
@@ -537,6 +539,7 @@ export function SongView({
               duration={song.duration}
               loopA={loopA}
               loopB={loopB}
+              vocalRegions={song.vocalRegions}
               lyrics={song.lyrics}
               onEditLyrics={openLyricsEditor}
               view={gridView}
@@ -601,8 +604,8 @@ export function SongView({
           <h1>{song.title}</h1>
           <p className="print-meta">
             {[
-              keyLabel ?? 'Tonalidad no determinada',
-              capoAvailable && capo > 0 ? `Capo ${capo}` : null,
+              keyLabel ?? t('song.unknownKey'),
+              capoAvailable && capo > 0 ? t('song.capoValue', { value: capo }) : null,
               bpm ? `${bpm} BPM` : null,
               formatTime(song.duration),
             ]
@@ -623,9 +626,9 @@ export function SongView({
 
         <footer className="print-footer">
           {song.source.type === 'youtube'
-            ? `YouTube · ${song.source.videoId}`
-            : `Audio · ${song.source.filename}`}{' '}
-          · Generado el {new Date().toLocaleDateString('es-ES')}
+            ? t('song.printYoutube', { id: song.source.videoId })
+            : t('song.printAudio', { name: song.source.filename })}{' '}
+          · {t('song.generatedOn', { date: new Date().toLocaleDateString() })}
         </footer>
       </section>
     </div>

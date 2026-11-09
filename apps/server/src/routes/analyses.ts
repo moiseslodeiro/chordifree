@@ -16,7 +16,7 @@ import { extractVideoId } from '../youtube';
 
 const YoutubeSchema = z
   .object({
-    youtubeUrl: z.string().min(1, 'Falta el enlace de YouTube'),
+    youtubeUrl: z.string().min(1, 'Missing YouTube link'),
   })
   .strict();
 
@@ -69,7 +69,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
     legacyHeaders: false,
     handler: (_req, res) => {
       res.setHeader('Retry-After', String(Math.ceil(deps.config.rateLimitWindowMs / 1000)));
-      res.status(429).json(errorBody('RATE_LIMITED', 'Demasiados análisis. Inténtalo más tarde.'));
+      res.status(429).json(errorBody('RATE_LIMITED', 'Too many analyses. Try again later.'));
     },
   });
 
@@ -78,10 +78,10 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
       if (req.file) {
         const { originalname, buffer } = req.file;
         if (!isAllowedAudioExtension(originalname)) {
-          throw new ApiError('INVALID_AUDIO', 'Formato de audio no admitido');
+          throw new ApiError('INVALID_AUDIO', 'Unsupported audio format');
         }
         if (!looksLikeAudio(buffer)) {
-          throw new ApiError('INVALID_AUDIO', 'El archivo no parece un audio válido');
+          throw new ApiError('INVALID_AUDIO', 'The file does not look like valid audio');
         }
 
         await mkdir(deps.config.tempDir, { recursive: true });
@@ -93,12 +93,12 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
       }
 
       if (!req.is('application/json')) {
-        throw new ApiError('UNSUPPORTED_MEDIA', 'Envía JSON o un archivo multipart');
+        throw new ApiError('UNSUPPORTED_MEDIA', 'Send JSON or a multipart file');
       }
 
       const parsed = YoutubeSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw new ApiError('INVALID_REQUEST', 'El cuerpo debe incluir youtubeUrl');
+        throw new ApiError('INVALID_REQUEST', 'The body must include youtubeUrl');
       }
 
       const videoId = extractVideoId(parsed.data.youtubeUrl);
@@ -122,7 +122,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
     try {
       const job = deps.store.get(req.params.id);
       if (!job) {
-        throw new ApiError('NOT_FOUND', 'Análisis no encontrado');
+        throw new ApiError('NOT_FOUND', 'Analysis not found');
       }
       res.json(deps.store.toView(job));
     } catch (error) {

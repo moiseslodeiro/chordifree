@@ -155,9 +155,9 @@ function bestCandidate(
 }
 
 /**
- * Elige una rejilla de compases. En automático prefiere mitad de tempo cuando
- * el detector devuelve más de 100 BPM (el caso habitual de baladas detectadas
- * al doble) y busca la fase que mejor alinea los cambios de acorde.
+ * Chooses a bar grid. In automatic mode it prefers half tempo when
+ * the detector returns more than 100 BPM (the usual case of ballads detected
+ * at double) and looks for the phase that best aligns the chord changes.
  */
 export function chooseBarAlignment(
   segments: ChordSegment[],

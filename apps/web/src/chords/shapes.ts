@@ -5,17 +5,17 @@ export type ShapeQuality = 'major' | 'minor' | 'dim' | 'aug' | 'power' | '7';
 
 export interface StringShape {
   instrument: StringInstrument;
-  /** Número de cuerdas, de la más grave a la más aguda. */
+  /** Number of strings, from lowest to highest. */
   strings: number;
-  /** Clase de altura de cada cuerda al aire. */
+  /** Pitch class of each open string. */
   tuning: PitchClass[];
-  /** Traste absoluto de cada cuerda; -1 indica cuerda muda. */
+  /** Absolute fret of each string; -1 means a muted string. */
   frets: number[];
-  /** Traste de la fundamental en la cuerda raíz. */
+  /** Fret of the root on the root string. */
   rootFret: number;
-  /** Primer traste que muestra el diagrama; 0 representa la cejuela. */
+  /** First fret shown by the diagram; 0 represents the nut. */
   baseFret: number;
-  /** Cantidad de trastes que dibuja el mástil. */
+  /** Number of frets drawn on the neck. */
   fretCount: number;
 }
 
@@ -43,7 +43,7 @@ const GUITAR: StringInstrumentSpec = {
 
 const UKELELE: StringInstrumentSpec = {
   strings: 4,
-  // G4, C4, E4, A4 (afinación reentrante estándar).
+  // G4, C4, E4, A4 (standard reentrant tuning).
   tuning: [7, 0, 4, 9],
   rootString: 1,
   shapes: {
@@ -75,10 +75,10 @@ function rootFretFor(root: PitchClass, spec: StringInstrumentSpec): number {
 }
 
 /**
- * Resuelve una forma móvil para el acorde. Las calidades que se muestran
- * simplificadas (`major`, `minor`, `dim`, `aug`, `power` y la séptima de
- * dominante) tienen digitación; el resto devuelve `null` para que la vista
- * muestre el aviso correspondiente.
+ * Resolves a movable shape for the chord. The qualities shown in
+ * simplified form (`major`, `minor`, `dim`, `aug`, `power` and the dominant
+ * seventh) have a fingering; the rest return `null` so the view
+ * shows the corresponding notice.
  */
 export function getStringShape(
   chord: Chord,
@@ -108,9 +108,9 @@ export function getStringShape(
 }
 
 export interface PianoVoicing {
-  /** Clases de altura del acorde, empezando por la fundamental. */
+  /** Pitch classes of the chord, starting from the root. */
   pitchClasses: PitchClass[];
-  /** Notas MIDI en posición cerrada desde la fundamental. */
+  /** MIDI notes in closed position from the root. */
   notes: number[];
 }
 
@@ -123,7 +123,7 @@ const PIANO_INTERVALS: Record<ShapeQuality, number[]> = {
   '7': [0, 4, 7, 10],
 };
 
-/** Genera el voicing de piano a partir de los tonos del acorde simplificado. */
+/** Generates the piano voicing from the tones of the simplified chord. */
 export function getPianoVoicing(chord: Chord): PianoVoicing | null {
   if (!SHAPE_QUALITIES.has(chord.quality)) return null;
   const intervals = PIANO_INTERVALS[chord.quality as ShapeQuality];

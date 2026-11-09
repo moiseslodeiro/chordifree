@@ -1,5 +1,6 @@
 import { supportsCapo, type Instrument } from '../types';
 import { IconCapo, IconGuitar, IconSliders, Tool } from './Toolbar';
+import { useT } from '../i18n';
 
 interface DisplayControlsProps {
   simplifyChords: boolean;
@@ -16,10 +17,13 @@ interface DisplayControlsProps {
   }) => void;
 }
 
-const INSTRUMENTS: Array<{ value: Instrument; label: string }> = [
-  { value: 'guitar', label: 'Guitarra' },
-  { value: 'piano', label: 'Piano' },
-  { value: 'ukelele', label: 'Ukelele' },
+const INSTRUMENTS: Array<{
+  value: Instrument;
+  label: 'instrument.guitar' | 'instrument.piano' | 'instrument.ukelele';
+}> = [
+  { value: 'guitar', label: 'instrument.guitar' },
+  { value: 'piano', label: 'instrument.piano' },
+  { value: 'ukelele', label: 'instrument.ukelele' },
 ];
 
 export function DisplayControls({
@@ -30,31 +34,33 @@ export function DisplayControls({
   capo,
   onChange,
 }: DisplayControlsProps) {
-  const instrumentLabel =
-    INSTRUMENTS.find((item) => item.value === instrument)?.label ?? 'Guitarra';
+  const t = useT();
+  const instrumentLabel = t(
+    INSTRUMENTS.find((item) => item.value === instrument)?.label ?? 'instrument.guitar',
+  );
   const maxActive = reduceChords && reduceChordsMax;
-  /** La cejilla solo tiene sentido en instrumentos de cuerda. */
+  /** The capo only makes sense on string instruments. */
   const capoAvailable = supportsCapo(instrument);
 
   return (
-    <section className="contents" aria-label="Presentación de acordes">
-      <Tool label="Presentación" icon={<IconSliders />}>
+    <section className="contents" aria-label={t('display.aria')}>
+      <Tool label={t('display.presentation')} icon={<IconSliders />}>
         <div className="flex flex-wrap items-center gap-0.5">
           <button
             type="button"
             aria-pressed={simplifyChords}
-            aria-label="Simplificar acordes"
-            title="Simplificar acordes (quita tensiones y extensiones)"
+            aria-label={t('display.simplifyAria')}
+            title={t('display.simplifyTitle')}
             className="tool-chip"
             onClick={() => onChange({ simplifyChords: !simplifyChords })}
           >
-            Simplificar
+            {t('display.simplify')}
           </button>
           <button
             type="button"
             aria-pressed={reduceChords}
-            aria-label="Reducir acordes"
-            title="Reducir acordes (agrupa los acordes de paso)"
+            aria-label={t('display.reduceAria')}
+            title={t('display.reduceTitle')}
             className="tool-chip"
             onClick={() =>
               onChange(
@@ -64,18 +70,18 @@ export function DisplayControls({
               )
             }
           >
-            Reducir
+            {t('display.reduce')}
           </button>
           <button
             type="button"
             aria-pressed={maxActive}
-            aria-label="Reducir al máximo"
-            title="Reducir al máximo (deja un acorde por compás)"
+            aria-label={t('display.reduceMaxAria')}
+            title={t('display.reduceMaxTitle')}
             disabled={!reduceChords}
             className="tool-chip disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() => onChange({ reduceChords: true, reduceChordsMax: !reduceChordsMax })}
           >
-            Máxima
+            {t('display.reduceMax')}
           </button>
         </div>
       </Tool>
@@ -85,7 +91,7 @@ export function DisplayControls({
           <IconGuitar />
         </span>
         <label htmlFor="instrument-select" className="tool-label">
-          Instrumento
+          {t('display.instrument')}
         </label>
         <div className="tool-value">
           <select
@@ -96,7 +102,7 @@ export function DisplayControls({
           >
             {INSTRUMENTS.map((item) => (
               <option key={item.value} value={item.value}>
-                {item.label}
+                {t(item.label)}
               </option>
             ))}
           </select>
@@ -120,7 +126,7 @@ export function DisplayControls({
             >
               {Array.from({ length: 8 }, (_, fret) => (
                 <option key={fret} value={fret}>
-                  {fret === 0 ? 'Sin capo' : `Traste ${fret}`}
+                  {fret === 0 ? t('display.noCapo') : t('display.fret', { fret })}
                 </option>
               ))}
             </select>
@@ -129,10 +135,20 @@ export function DisplayControls({
       ) : null}
 
       <p className="sr-only" aria-live="polite">
-        {`Simplificación ${simplifyChords ? 'activada' : 'desactivada'}. Reducción ${
-          reduceChords ? (reduceChordsMax ? 'máxima' : 'activada') : 'desactivada'
-        }. Instrumento: ${instrumentLabel}.${
-          capoAvailable ? ` Capo: ${capo === 0 ? 'sin capo' : `traste ${capo}`}.` : ''
+        {`${t('display.summary', {
+          simplify: simplifyChords ? t('display.on') : t('display.off'),
+          reduce: reduceChords
+            ? reduceChordsMax
+              ? t('display.maximum')
+              : t('display.on')
+            : t('display.off'),
+          instrument: instrumentLabel,
+        })}${
+          capoAvailable
+            ? ` ${t('display.capoSummary', {
+                value: capo === 0 ? t('display.noCapo') : t('display.fretLower', { fret: capo }),
+              })}`
+            : ''
         }`}
       </p>
     </section>

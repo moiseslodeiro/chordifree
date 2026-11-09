@@ -10,11 +10,17 @@ const RawSegmentSchema = z.object({
   confidence: z.number().optional(),
 });
 
+const VocalRegionSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+});
+
 const RawAnalysisSchema = z.object({
   segments: z.array(RawSegmentSchema),
   duration: z.number().positive(),
   beats: z.array(z.number()).optional().catch(undefined),
   beatsPerBar: z.number().optional().catch(undefined),
+  vocalRegions: z.array(VocalRegionSchema).optional().catch(undefined),
   analyzerVersion: z.string(),
 });
 
@@ -54,16 +60,16 @@ export function createAnalyzerClient(
           signal: AbortSignal.timeout(180_000),
         });
         if (!response.ok) {
-          throw new Error(`El analizador respondió ${response.status}`);
+          throw new Error(`The analyzer responded ${response.status}`);
         }
         const parsed = RawAnalysisSchema.safeParse(await response.json());
         if (!parsed.success) {
-          throw new Error('Respuesta del analizador inválida');
+          throw new Error('Invalid analyzer response');
         }
         return parsed.data;
       } catch (error) {
         if (error instanceof ApiError) throw error;
-        throw new ApiError('ANALYSIS_FAILED', 'No se pudo analizar el audio');
+        throw new ApiError('ANALYSIS_FAILED', 'Could not analyze the audio');
       }
     },
   };

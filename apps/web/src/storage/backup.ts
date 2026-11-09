@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { Song } from '../types';
 import { isSong } from './library';
 
@@ -36,30 +37,30 @@ export function parseBackup(raw: string): Song[] {
   try {
     data = JSON.parse(raw);
   } catch {
-    throw new BackupError('El archivo no es un JSON válido.');
+    throw new BackupError(t('backup.invalidJson'));
   }
 
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-    throw new BackupError('El archivo no tiene el formato de una copia de Chordifree.');
+    throw new BackupError(t('backup.invalidFormat'));
   }
 
   const candidate = data as Record<string, unknown>;
   if (candidate.format !== BACKUP_FORMAT) {
-    throw new BackupError('El archivo no es una copia de seguridad de Chordifree.');
+    throw new BackupError(t('backup.invalidFormat'));
   }
   if (candidate.version !== BACKUP_VERSION) {
     throw new BackupError(
-      `La copia usa una versión no compatible (${String(candidate.version)}).`,
+      t('backup.unsupportedVersion', { version: String(candidate.version) }),
     );
   }
   if (!Array.isArray(candidate.songs)) {
-    throw new BackupError('La copia no contiene una lista de canciones.');
+    throw new BackupError(t('backup.noSongs'));
   }
 
   const songs: Song[] = [];
   for (const [index, value] of candidate.songs.entries()) {
     if (!isSong(value)) {
-      throw new BackupError(`La canción ${index + 1} de la copia no tiene un formato válido.`);
+      throw new BackupError(t('backup.invalidSong', { index: index + 1 }));
     }
     songs.push(value);
   }
@@ -70,7 +71,7 @@ export function backupFilename(now: Date = new Date()): string {
   return `chordifree-biblioteca-${now.toISOString().slice(0, 10)}.json`;
 }
 
-/** Descarga la copia como JSON en el navegador. */
+/** Downloads the backup as JSON in the browser. */
 export function downloadBackup(songs: Song[], now: Date = new Date()): void {
   const blob = new Blob([serializeBackup(songs, now)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

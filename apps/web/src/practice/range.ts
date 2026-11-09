@@ -1,7 +1,7 @@
 /**
- * Rango temporal del compás que contiene `time`. Si hay pulsos detectados, los
- * extremos se ajustan al compás real; si no, se usa una ventana de cuatro
- * segundos para que la práctica siga siendo utilizable.
+ * Time range of the bar containing `time`. If beats are detected, the
+ * endpoints are adjusted to the real bar; otherwise, a four-second
+ * window is used so practice remains usable.
  */
 export interface BarRange {
   start: number;
@@ -57,7 +57,7 @@ export function barRangeAt(
   return { start, end };
 }
 
-/** Índice del primer pulso igual o posterior a `time`, o -1 si no existe. */
+/** Index of the first beat equal to or after `time`, or -1 if none exists. */
 export function firstBeatAtOrAfter(beats: number[], time: number): number {
   let low = 0;
   let high = beats.length;

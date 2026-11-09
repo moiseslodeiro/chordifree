@@ -3,6 +3,7 @@ import type { PlayerAdapter } from '../player/types';
 import { AudioPlayerAdapter } from '../player/audio';
 import { FakePlayerAdapter } from '../player/fake';
 import { YouTubePlayerAdapter } from '../player/youtube';
+import { useT } from '../i18n';
 import type { Song } from '../types';
 
 interface PlayerHostProps {
@@ -14,12 +15,12 @@ interface PlayerHostProps {
   onPlaybackError: (message: string) => void;
 }
 
-const YOUTUBE_ERRORS: Record<number, string> = {
-  2: 'El identificador del video no es válido.',
-  5: 'El reproductor HTML5 de YouTube no está disponible en este navegador.',
-  100: 'El video no existe o es privado.',
-  101: 'El propietario no permite reproducir este video fuera de YouTube.',
-  150: 'El propietario no permite reproducir este video fuera de YouTube.',
+const YOUTUBE_ERRORS: Record<number, 'player.youtubeInvalid' | 'player.html5Unavailable' | 'player.youtubeMissing' | 'player.youtubeOwner'> = {
+  2: 'player.youtubeInvalid',
+  5: 'player.html5Unavailable',
+  100: 'player.youtubeMissing',
+  101: 'player.youtubeOwner',
+  150: 'player.youtubeOwner',
 };
 
 export function PlayerHost({
@@ -30,6 +31,7 @@ export function PlayerHost({
   onAdapter,
   onPlaybackError,
 }: PlayerHostProps) {
+  const t = useT();
   const youtubeRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const adapterCallback = useRef(onAdapter);
@@ -55,7 +57,7 @@ export function PlayerHost({
     } else if (mode === 'youtube' && youtubeRef.current && song.source.type === 'youtube') {
       adapter = new YouTubePlayerAdapter(youtubeRef.current, song.source.videoId, (code) => {
         errorCallback.current(
-          YOUTUBE_ERRORS[code] ?? `No se pudo reproducir el video (código ${code}).`,
+          YOUTUBE_ERRORS[code] ? t(YOUTUBE_ERRORS[code]) : t('player.playFailed', { code }),
         );
       });
     } else if (mode === 'audio' && audioRef.current) {
@@ -80,9 +82,9 @@ export function PlayerHost({
           }`}
         >
           {/*
-            El reproductor de YouTube sustituye este nodo por un iframe con un
-            tamaño fijo. Los selectores del contenedor fuerzan a que ocupe todo
-            el ancho y respete la relación 16:9 del contenedor.
+            The YouTube player replaces this node with an iframe of a
+            fixed size. The container selectors force it to fill the full
+            width and respect the container's 16:9 ratio.
           */}
           <div ref={youtubeRef} className="absolute inset-0" />
         </div>
@@ -90,22 +92,19 @@ export function PlayerHost({
 
       {mode === 'audio' && audioUrl ? (
         <audio ref={audioRef} src={audioUrl} controls className="w-full" preload="metadata">
-          Tu navegador no admite la reproducción de audio.
+          {t('player.audioUnsupported')}
         </audio>
       ) : null}
 
       {mode === 'fake' ? (
         <div className="note note-info text-sm leading-relaxed">
-          Modo de demostración: la reproducción se simula con un reloj local para poder probar la
-          sincronización sin cargar el video.
+          {t('player.demo')}
         </div>
       ) : null}
 
       {mode === 'missing' ? (
         <div className="note note-warning text-sm leading-relaxed">
-          El audio original de esta canción no está disponible: no se guarda en la biblioteca.
-          Puedes consultar y editar la línea de tiempo, pero no reproducirla. Vuelve a subir el
-          archivo para escucharla.
+          {t('player.audioMissing')}
         </div>
       ) : null}
     </div>
