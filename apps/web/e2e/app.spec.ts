@@ -504,7 +504,7 @@ test.describe('flujo completo', () => {
     });
     await analyze(page);
 
-    await page.getByRole('button', { name: 'Lista' }).click();
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByTestId('chord-row-2')).toBeVisible();
 
     await page.getByRole('button', { name: /Reducir acordes/ }).click();
@@ -551,7 +551,7 @@ test.describe('flujo completo', () => {
     await page.getByLabel('Instrumento').selectOption('piano');
     await expect(toolsColumn.getByRole('img', { name: /^Piano:/ }).first()).toBeVisible();
 
-    await page.getByRole('button', { name: 'Lista' }).click();
+    await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByTestId('chord-row-0')).toBeVisible();
     await page.getByRole('button', { name: 'Parrilla' }).click();
     await expect(page.getByTestId('beat-row-0')).toBeVisible();

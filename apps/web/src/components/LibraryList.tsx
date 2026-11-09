@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
-import type { SongSummary } from '../types';
+import type { SongHistory, SongSummary } from '../types';
 import { useLanguage, useT, type MessageKey } from '../i18n';
 import { NoticeBanner } from './ErrorBanner';
 
@@ -26,6 +26,7 @@ interface LibraryNotice {
 
 interface LibraryListProps {
   songs: SongSummary[];
+  history?: Record<string, SongHistory>;
   notice?: LibraryNotice | null;
   onDismissNotice?: () => void;
   onExport: () => void;
@@ -50,6 +51,7 @@ function formatDate(value: string, language: 'en' | 'es'): string {
 
 export function LibraryList({
   songs,
+  history = {},
   notice,
   onDismissNotice,
   onExport,
@@ -246,7 +248,13 @@ export function LibraryList({
                       </span>
                       <span className="font-mono tabular-nums">{formatTime(song.duration)}</span>
                       <span aria-hidden="true">·</span>
-                      <span>{t('library.savedAt', { date: formatDate(song.updatedAt, language) })}</span>
+                      <span>
+                        {history[song.id]
+                          ? t('history.lastPracticed', {
+                              date: formatDate(history[song.id]!.lastOpenedAt, language),
+                            })
+                          : t('history.never')}
+                      </span>
                     </span>
                   </button>
                   <div className="flex shrink-0 gap-2 pl-8 sm:pl-0">

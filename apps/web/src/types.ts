@@ -48,6 +48,21 @@ export interface Song {
   updatedAt: string;
 }
 
+export interface Setlist {
+  id: string;
+  name: string;
+  songIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SongHistory {
+  /** ISO timestamp of the last time the song was opened. */
+  lastOpenedAt: string;
+  /** Number of times the song has been opened. */
+  openCount: number;
+}
+
 export interface SongSummary {
   id: string;
   title: string;
