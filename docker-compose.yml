@@ -5,7 +5,7 @@ services:
       args:
         PYTHON_VERSION: '3.11'
     environment:
-      ANALYZER_VERSION: essentia-1.2
+      ANALYZER_VERSION: essentia-1.5
     ports:
       - '8000:8000'
     restart: unless-stopped

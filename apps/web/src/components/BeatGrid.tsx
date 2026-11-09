@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
   formatChordOrSilence,
   formatTime,
@@ -20,6 +20,8 @@ interface BeatCellButtonProps {
   clock: PlaybackClock | null;
   loopRole: LoopRole;
   showLoopMark: boolean;
+  markPreview: 'a' | 'b' | null;
+  onHoverBar: (barIndex: number | null) => void;
   onSeek: (time: number) => void;
   onNavigate: (
     event: KeyboardEvent<HTMLButtonElement>,
@@ -54,13 +56,17 @@ const BeatCellButton = memo(function BeatCellButton({
   clock,
   loopRole,
   showLoopMark,
+  markPreview,
+  onHoverBar,
   onSeek,
   onNavigate,
 }: BeatCellButtonProps) {
   const active = useIsBeatActive(clock, cell.beatIndex);
+  const barIndex = Math.floor(cell.beatIndex / beatsPerBar);
   const label = formatChordOrSilence(cell.chord, notation, accidental);
   const chordDescription = cell.chord ? `acorde ${label}` : 'silencio';
-  const lowConfidence = cell.confidence !== undefined && cell.confidence < 0.6;
+  const lowConfidence =
+    cell.chord !== null && cell.confidence !== undefined && cell.confidence < 0.4;
   const accessibleLabel = `Fila ${rowIndex + 1}, compás ${
     Math.floor(cell.beatIndex / beatsPerBar) + 1
   }, tiempo ${(cell.beatIndex % beatsPerBar) + 1}, ${chordDescription}, en ${formatTime(
@@ -77,6 +83,7 @@ const BeatCellButton = memo(function BeatCellButton({
       data-active={active ? 'true' : 'false'}
       data-change={cell.change ? 'true' : 'false'}
       data-loop={loopRole ?? undefined}
+      data-mark-preview={markPreview ?? undefined}
       data-confidence={
         cell.confidence === undefined ? undefined : Math.round(cell.confidence * 100)
       }
@@ -84,6 +91,8 @@ const BeatCellButton = memo(function BeatCellButton({
       aria-label={accessibleLabel}
       className={`beat-cell ${barStart && cellIndex > 0 ? 'border-l-2 border-l-line-strong' : ''}`}
       onClick={() => onSeek(cell.time)}
+      onMouseEnter={() => onHoverBar(barIndex)}
+      onFocus={() => onHoverBar(barIndex)}
       onKeyDown={(event) => onNavigate(event, rowIndex, cellIndex)}
     >
       {cell.change ? <span className="beat-label max-w-full truncate">{label}</span> : null}
@@ -115,6 +124,7 @@ interface BeatGridProps {
   follow?: boolean;
   loopA?: number | null;
   loopB?: number | null;
+  markMode?: 'a' | 'b' | null;
 }
 
 export function BeatGrid({
@@ -127,13 +137,24 @@ export function BeatGrid({
   follow = true,
   loopA = null,
   loopB = null,
+  markMode = null,
 }: BeatGridProps) {
   const activeBeat = useBeatIndex(clock);
   const containerRef = useRef<HTMLDivElement>(null);
   const manualUntil = useRef(0);
+  const [previewBar, setPreviewBar] = useState<number | null>(null);
   const activeRowIndex = rows.findIndex((row) =>
     row.cells.some((cell) => cell?.beatIndex === activeBeat),
   );
+
+  useEffect(() => {
+    if (markMode === null) setPreviewBar(null);
+  }, [markMode]);
+
+  const hoverBar = (barIndex: number | null) => {
+    if (markMode === null) return;
+    setPreviewBar(barIndex);
+  };
 
   const loopBars = useMemo(() => {
     const starts: number[] = [];
@@ -266,9 +287,11 @@ export function BeatGrid({
     <div
       ref={containerRef}
       data-testid="beat-grid"
+      data-mark-mode={markMode ?? undefined}
       className="max-h-[68vh] w-full min-w-0 overflow-y-auto border-y border-line"
       onWheel={markManualScroll}
       onTouchMove={markManualScroll}
+      onMouseLeave={() => setPreviewBar(null)}
       role="group"
       aria-label="Parrilla de pulsos"
     >
@@ -303,6 +326,13 @@ export function BeatGrid({
                     clock={clock}
                     loopRole={loopRoleFor(Math.floor(cell.beatIndex / beatsPerBar))}
                     showLoopMark={cellIndex % beatsPerBar === 0}
+                    markPreview={
+                      markMode !== null &&
+                      previewBar === Math.floor(cell.beatIndex / beatsPerBar)
+                        ? markMode
+                        : null
+                    }
+                    onHoverBar={hoverBar}
                     onSeek={onSeek}
                     onNavigate={navigate}
                   />
@@ -315,7 +345,17 @@ export function BeatGrid({
                         row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? -1,
                       ) ?? undefined
                     }
+                    data-mark-preview={
+                      markMode !== null &&
+                      previewBar ===
+                        (row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? -1)
+                        ? markMode
+                        : undefined
+                    }
                     className="beat-cell border-r border-line/40 bg-panel-2/40"
+                    onMouseEnter={() =>
+                      hoverBar(row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? null)
+                    }
                   />
                 ),
               )}

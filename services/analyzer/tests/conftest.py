@@ -13,6 +13,7 @@ TRIADS = {
     "C": (261.63, 329.63, 392.0),
     "F": (349.23, 440.0, 523.25),
     "G": (392.0, 493.88, 587.33),
+    "Am": (220.0, 261.63, 329.63),
 }
 
 
@@ -58,4 +59,11 @@ def stereo_wav(tmp_path_factory: pytest.TempPathFactory) -> Path:
             chunk = payload[index : index + 2]
             stereo += chunk + chunk
         target.writeframes(bytes(stereo))
+    return path
+
+
+@pytest.fixture(scope="session")
+def fga_wav(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    path = tmp_path_factory.mktemp("audio") / "fga.wav"
+    write_triad_sequence(path, ["F", "G", "Am", "G", "F", "G", "Am", "G"], seconds=1.0)
     return path

@@ -336,6 +336,17 @@ p {
     background: rgb(var(--color-warning) / 0.14);
   }
 
+  /* A/B ya fijados pero sin estar armados: se distinguen con un contorno. */
+  .tool-chip-set-a {
+    color: rgb(var(--color-positive));
+    box-shadow: inset 0 0 0 1px rgb(var(--color-positive) / 0.45);
+  }
+
+  .tool-chip-set-b {
+    color: rgb(var(--color-warning));
+    box-shadow: inset 0 0 0 1px rgb(var(--color-warning) / 0.45);
+  }
+
   .tool-chip-active {
     @apply px-2 py-1 text-[0.72rem] font-semibold text-accent transition;
     border-radius: var(--radius-sm);
@@ -536,6 +547,22 @@ p {
   background: rgb(var(--color-accent));
 }
 
+/* Previsualización del compás bajo el ratón mientras se arma A o B. */
+.beat-cell[data-mark-preview='a'] {
+  background-color: rgb(var(--color-positive) / 0.06);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-positive) / 0.35);
+}
+
+.beat-cell[data-mark-preview='b'] {
+  background-color: rgb(var(--color-warning) / 0.07);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-warning) / 0.38);
+}
+
+[data-mark-mode] .beat-cell,
+[data-mark-mode] .bar-cell {
+  cursor: crosshair;
+}
+
 .beat-cell[data-change='true'] .beat-label {
   font-family: var(--font-display);
   font-size: 1.25rem;
@@ -578,6 +605,122 @@ p {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
+
+/* Vista por compases: un acorde por compás, con cuatro compases por fila. */
+.bar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.bar-row {
+  display: grid;
+  gap: 0.25rem;
+  align-items: stretch;
+}
+
+.bar-row-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  padding-left: var(--space-2xs);
+  color: rgb(var(--color-ink-3));
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bar-cell {
+  position: relative;
+  display: flex;
+  min-height: 4.5rem;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-line));
+  border-radius: var(--radius-sm);
+  background: rgb(var(--color-panel));
+  padding: var(--space-2xs) var(--space-xs);
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.bar-cell:hover {
+  border-color: rgb(var(--color-line-strong));
+  background: rgb(var(--color-ink) / 0.03);
+}
+
+.bar-cell[data-loop='a'] {
+  background: rgb(var(--color-positive) / 0.12);
+  border-color: rgb(var(--color-positive) / 0.35);
+}
+
+.bar-cell[data-loop='b'] {
+  background: rgb(var(--color-warning) / 0.14);
+  border-color: rgb(var(--color-warning) / 0.38);
+}
+
+.bar-cell[data-loop='ab'] {
+  background-image: linear-gradient(
+    135deg,
+    rgb(var(--color-positive) / 0.14) 0 50%,
+    rgb(var(--color-warning) / 0.16) 50% 100%
+  );
+  border-color: rgb(var(--color-line-strong));
+}
+
+.bar-cell[data-loop='range'] {
+  background: rgb(var(--color-accent) / 0.06);
+  border-color: rgb(var(--color-accent) / 0.2);
+}
+
+.bar-cell[data-mark-preview='a'] {
+  background: rgb(var(--color-positive) / 0.06);
+  border-color: rgb(var(--color-positive) / 0.4);
+}
+
+.bar-cell[data-mark-preview='b'] {
+  background: rgb(var(--color-warning) / 0.07);
+  border-color: rgb(var(--color-warning) / 0.42);
+}
+
+.bar-cell[aria-current='true'] {
+  border-color: rgb(var(--color-accent));
+  background: rgb(var(--color-accent) / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-accent));
+}
+
+.bar-cell-number {
+  color: rgb(var(--color-ink-3));
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bar-cell-chord {
+  color: rgb(var(--color-ink));
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.bar-cell-time {
+  color: rgb(var(--color-ink-3));
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-cell:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
 }
 
 /* Vista de letra con acordes alineados por tiempo. */

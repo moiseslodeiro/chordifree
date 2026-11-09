@@ -7,10 +7,12 @@ import {
   type Notation,
 } from '@chordifree/chords';
 import { buildBeatRows } from '../grid/beats';
+import { chooseBarAlignment, type BarTempo } from '../grid/barAlignment';
 import type { PlaybackClock } from '../sync/clock';
 import { useBeatIndex, useIsRowActive, usePlaybackIndex } from '../sync/hooks';
 import type { GridView } from '../types';
 import { activeBeatDescription, BeatGrid } from './BeatGrid';
+import { BarGrid } from './BarGrid';
 import { LyricsChordView } from './LyricsChordView';
 
 interface ChordRowProps {
@@ -85,7 +87,9 @@ const ChordRow = memo(function ChordRow({
         <span className="truncate font-display text-xl font-bold leading-tight text-ink">{label}</span>
         <span className="flex items-center gap-2">
           {segment.chord === null ? <span className="badge shrink-0">silencio</span> : null}
-          {segment.confidence !== undefined && segment.confidence < 0.6 ? (
+          {segment.chord !== null &&
+          segment.confidence !== undefined &&
+          segment.confidence < 0.4 ? (
             <span
               className="badge shrink-0 border-warning/50 text-warning"
               title={`Confianza del detector: ${Math.round(segment.confidence * 100)}%`}
@@ -108,6 +112,7 @@ interface ChordGridProps {
   accidental: Accidental;
   clock: PlaybackClock | null;
   onSeek: (time: number) => void;
+  onSelectBar?: (time: number) => void;
   beats?: number[];
   beatsPerBar?: number;
   duration?: number;
@@ -118,6 +123,7 @@ interface ChordGridProps {
   onEditLyrics?: () => void;
   loopA?: number | null;
   loopB?: number | null;
+  markMode?: 'a' | 'b' | null;
 }
 
 export function ChordGrid({
@@ -126,6 +132,7 @@ export function ChordGrid({
   accidental,
   clock,
   onSeek,
+  onSelectBar,
   beats = [],
   beatsPerBar = 4,
   duration,
@@ -136,10 +143,12 @@ export function ChordGrid({
   onEditLyrics = () => undefined,
   loopA = null,
   loopB = null,
+  markMode = null,
 }: ChordGridProps) {
   const active = usePlaybackIndex(clock);
   const activeBeat = useBeatIndex(clock);
   const compact = useCompactGrid();
+  const [barTempo, setBarTempo] = useState<BarTempo>('auto');
   const rows = useMemo(
     () => buildBeatRows(segments, beats, beatsPerBar, compact ? 1 : 2, duration),
     [segments, beats, beatsPerBar, duration, compact],
@@ -148,7 +157,24 @@ export function ChordGrid({
   const canUseBeats = rows.length > 0;
   const sheetDuration = duration ?? segments.at(-1)?.end ?? 0;
   const effectiveView: GridView =
-    view === 'lyrics' ? 'lyrics' : view === 'beats' && canUseBeats ? 'beats' : 'list';
+    view === 'lyrics'
+      ? 'lyrics'
+      : view === 'bars'
+        ? 'bars'
+        : view === 'beats' && canUseBeats
+          ? 'beats'
+          : 'list';
+  const barAlignment = useMemo(
+    () =>
+      chooseBarAlignment(
+        lyricsSegments ?? segments,
+        beats,
+        beatsPerBar,
+        sheetDuration,
+        barTempo,
+      ),
+    [lyricsSegments, segments, beats, beatsPerBar, sheetDuration, barTempo],
+  );
   const listRef = useRef<HTMLOListElement>(null);
   const manualUntil = useRef(0);
   const [follow, setFollow] = useState(true);
@@ -210,7 +236,11 @@ export function ChordGrid({
                 }`
               : effectiveView === 'lyrics'
                 ? 'Letra con acordes'
-                : `${segments.length} segmentos`}
+                : effectiveView === 'bars'
+                  ? `${barAlignment.bars.length} ${
+                      barAlignment.bars.length === 1 ? 'compás' : 'compases'
+                    } · ${barAlignment.factor === 'half' ? 'mitad de tempo' : 'tempo normal'}`
+                  : `${segments.length} segmentos`}
           </span>
         </div>
         <div
@@ -237,6 +267,14 @@ export function ChordGrid({
           </button>
           <button
             type="button"
+            aria-pressed={effectiveView === 'bars'}
+            className={effectiveView === 'bars' ? 'tool-chip-active' : 'tool-chip'}
+            onClick={() => onViewChange('bars')}
+          >
+            Compases
+          </button>
+          <button
+            type="button"
             aria-pressed={effectiveView === 'lyrics'}
             className={effectiveView === 'lyrics' ? 'tool-chip-active' : 'tool-chip'}
             onClick={() => onViewChange('lyrics')}
@@ -255,13 +293,56 @@ export function ChordGrid({
         </div>
       </div>
 
-      {!canUseBeats && effectiveView !== 'lyrics' ? (
+      {effectiveView === 'bars' ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-line pb-3">
+          <span className="eyebrow">Cuadre</span>
+          <div
+            className="flex items-center gap-1"
+            role="group"
+            aria-label="Tempo de la vista por compases"
+          >
+            {(
+              [
+                ['auto', 'Auto'],
+                ['normal', 'Normal'],
+                ['half', 'Mitad'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={barTempo === value}
+                className={barTempo === value ? 'tool-chip-active' : 'tool-chip'}
+                onClick={() => setBarTempo(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-ink3">
+            Un acorde por compás; la fase se ajusta a los cambios detectados.
+          </span>
+        </div>
+      ) : null}
+
+      {!canUseBeats && effectiveView !== 'lyrics' && effectiveView !== 'bars' ? (
         <p className="note note-warning mt-3 text-xs leading-relaxed">
           No se detectaron pulsos en esta canción; se muestra la vista de lista.
         </p>
       ) : null}
 
-      {effectiveView === 'lyrics' ? (
+      {effectiveView === 'bars' ? (
+        <BarGrid
+          bars={barAlignment.bars}
+          notation={notation}
+          accidental={accidental}
+          clock={clock}
+          onSelectBar={onSelectBar ?? onSeek}
+          loopA={loopA}
+          loopB={loopB}
+          markMode={markMode}
+        />
+      ) : effectiveView === 'lyrics' ? (
         <LyricsChordView
           lyrics={lyrics}
           segments={lyricsSegments ?? segments}
@@ -282,10 +363,11 @@ export function ChordGrid({
             notation={notation}
             accidental={accidental}
             clock={clock}
-            onSeek={onSeek}
+            onSeek={onSelectBar ?? onSeek}
             follow={follow}
             loopA={loopA}
             loopB={loopB}
+            markMode={markMode}
           />
         </div>
       ) : (
@@ -316,11 +398,15 @@ export function ChordGrid({
       </p>
 
       <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
-        {effectiveView === 'beats'
-          ? 'Haz clic en un tiempo para saltar a su pulso. Usa las flechas para moverte, subir o bajar de fila, y Home o End para ir al primer o último pulso.'
-          : effectiveView === 'lyrics'
-            ? 'La letra se alinea de forma aproximada con los tiempos. Pulsa un acorde o una línea para saltar a su momento.'
-            : 'Haz clic en un acorde para saltar a su tiempo. Usa las flechas arriba y abajo para moverte y Intro para saltar.'}
+        {markMode !== null
+          ? `Haz clic en un compás para marcar el ${markMode === 'a' ? 'inicio A' : 'final B'}. Pulsa Escape para cancelar.`
+          : effectiveView === 'beats'
+            ? 'Haz clic en un tiempo para reproducir desde ahí. Arma A o B para marcar el rango sin reproducir.'
+            : effectiveView === 'bars'
+              ? 'Haz clic en un compás para reproducir desde ahí. Arma A o B para marcar el rango sin reproducir.'
+              : effectiveView === 'lyrics'
+                ? 'La letra se alinea de forma aproximada con los tiempos. Pulsa un acorde o una línea para saltar a su momento.'
+                : 'Haz clic en un acorde para saltar a su tiempo. Usa las flechas arriba y abajo para moverte y Intro para saltar.'}
       </p>
     </section>
   );

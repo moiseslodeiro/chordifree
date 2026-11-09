@@ -6,7 +6,9 @@ import math
 import os
 from typing import Any
 
-ANALYZER_VERSION = os.environ.get("ANALYZER_VERSION", "essentia-1.2")
+from .chords import PITCH_NAMES, decode_chords
+
+ANALYZER_VERSION = os.environ.get("ANALYZER_VERSION", "essentia-1.5")
 SAMPLE_RATE = 22050
 # RhythmExtractor2013 asume 44100 Hz; con otra tasa los pulsos quedan a la mitad.
 RHYTHM_SAMPLE_RATE = 44100
@@ -14,6 +16,9 @@ FRAME_SIZE = 4096
 HOP_SIZE = 2048
 MIN_DURATION = 0.5
 BEATS_PER_BAR = 4
+# Un segmento se considera silencio si su energía cae muy por debajo de la mediana.
+SILENCE_RATIO = 0.08
+LOW_CONFIDENCE = 0.35
 
 
 class AnalyzerUnavailable(RuntimeError):
@@ -26,8 +31,10 @@ def _load_essentia():
             ChordsDetection,
             ChordsDetectionBeats,
             FrameGenerator,
-            HPCP,
+            KeyExtractor,
+            LogSpectrum,
             MonoLoader,
+            NNLSChroma,
             Resample,
             RhythmExtractor2013,
             SpectralPeaks,
@@ -40,8 +47,10 @@ def _load_essentia():
         "ChordsDetection": ChordsDetection,
         "ChordsDetectionBeats": ChordsDetectionBeats,
         "FrameGenerator": FrameGenerator,
-        "HPCP": HPCP,
+        "KeyExtractor": KeyExtractor,
+        "LogSpectrum": LogSpectrum,
         "MonoLoader": MonoLoader,
+        "NNLSChroma": NNLSChroma,
         "Resample": Resample,
         "RhythmExtractor2013": RhythmExtractor2013,
         "SpectralPeaks": SpectralPeaks,
@@ -72,38 +81,132 @@ def _segment(start: float, end: float, label: str, confidence: float) -> dict[st
     }
 
 
-def _compute_hpcp(essentia: dict[str, Any], audio: Any) -> Any:
+def _rms(audio: Any, sample_rate: int, start: float, end: float) -> float:
     import numpy as np  # type: ignore
 
-    windowing = essentia["Windowing"](type="blackmanharris62")
-    spectrum = essentia["Spectrum"]()
-    peaks = essentia["SpectralPeaks"](
+    first = max(0, min(len(audio), int(start * sample_rate)))
+    last = max(first, min(len(audio), int(end * sample_rate)))
+    if last <= first:
+        return 0.0
+    chunk = np.asarray(audio[first:last], dtype="float64")
+    return float(np.sqrt(np.mean(chunk * chunk)))
+
+
+def _apply_silence(
+    segments: list[dict[str, Any]],
+    audio: Any,
+    sample_rate: int = SAMPLE_RATE,
+) -> list[dict[str, Any]]:
+    """Marca como silencio los tramos cuya energía queda muy por debajo de la mediana."""
+    energies = [_rms(audio, sample_rate, item["start"], item["end"]) for item in segments]
+    positives = [energy for energy in energies if energy > 0]
+    if not positives:
+        return segments
+    reference = float(sorted(positives)[len(positives) // 2])
+    threshold = max(1e-4, reference * SILENCE_RATIO)
+    for segment, energy in zip(segments, energies):
+        if energy < threshold:
+            segment["label"] = None
+            segment["confidence"] = 0.0
+    return segments
+
+
+def _smooth_chords(
+    segments: list[dict[str, Any]],
+    threshold: float = LOW_CONFIDENCE,
+) -> list[dict[str, Any]]:
+    """Elimina parpadeos aislados de baja confianza entre dos segmentos iguales."""
+    for index in range(1, len(segments) - 1):
+        previous = segments[index - 1]
+        current = segments[index]
+        following = segments[index + 1]
+        if not previous.get("label") or not current.get("label") or not following.get("label"):
+            continue
+        if (
+            previous["label"] == following["label"]
+            and current["label"] != previous["label"]
+            and _safe_float(current.get("confidence")) < threshold
+        ):
+            current["label"] = previous["label"]
+            current["confidence"] = round(
+                min(
+                    _safe_float(previous.get("confidence")),
+                    _safe_float(following.get("confidence")),
+                ),
+                3,
+            )
+    return segments
+
+
+def _merge_segments(segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    for segment in segments:
+        previous = merged[-1] if merged else None
+        if (
+            previous
+            and previous.get("label") == segment.get("label")
+            and abs(segment["start"] - previous["end"]) <= 0.01
+        ):
+            previous["end"] = segment["end"]
+            previous["confidence"] = max(
+                _safe_float(previous.get("confidence")),
+                _safe_float(segment.get("confidence")),
+            )
+        else:
+            merged.append(dict(segment))
+    return merged
+
+
+def _compute_chroma(
+    essentia: dict[str, Any], audio: Any
+) -> tuple[Any, Any]:
+    """Croma de NNLS con corrección de afinación y croma de bajos.
+
+    NNLSChroma devuelve un croma de rango medio y otro grave alineados con el
+    mismo espectro logarítmico; el grave ayuda a fijar la fundamental.
+    """
+    import numpy as np  # type: ignore
+
+    frame_size = FRAME_SIZE
+    spectrum_size = frame_size // 2 + 1
+    windowing = essentia["Windowing"](type="blackmanharris62", size=frame_size)
+    spectrum = essentia["Spectrum"](size=frame_size)
+    log_spectrum = essentia["LogSpectrum"](
+        frameSize=spectrum_size,
         sampleRate=SAMPLE_RATE,
-        minFrequency=40,
-        maxFrequency=5000,
-        maxPeaks=60,
-        orderBy="magnitude",
+        binsPerSemitone=3,
+        nOctave=7,
     )
-    hpcp_algo = essentia["HPCP"](
-        size=12,
+    nnls = essentia["NNLSChroma"](
+        frameSize=spectrum_size,
         sampleRate=SAMPLE_RATE,
-        minFrequency=40,
-        maxFrequency=5000,
-        referenceFrequency=440,
-        normalized="unitMax",
+        chromaNormalization="L2",
+        useNNLS=False,
     )
 
-    frames = []
+    log_frames: list[Any] = []
+    mean_tuning: list[Any] = []
+    local_tuning: list[float] = []
     for frame in essentia["FrameGenerator"](
-        audio, frameSize=FRAME_SIZE, hopSize=HOP_SIZE, startFromZero=True
+        audio, frameSize=frame_size, hopSize=HOP_SIZE, startFromZero=True
     ):
-        spectrum_frame = spectrum(windowing(frame))
-        frequencies, magnitudes = peaks(spectrum_frame)
-        frames.append(hpcp_algo(frequencies, magnitudes))
+        log_freq, tuning_mean, tuning_local = log_spectrum(spectrum(windowing(frame)))
+        log_frames.append(log_freq)
+        mean_tuning.append(tuning_mean)
+        local_tuning.append(tuning_local)
 
-    if not frames:
-        return np.zeros((0, 12), dtype="float32")
-    return np.asarray(frames, dtype="float32")
+    if not log_frames:
+        empty = np.zeros((0, 12), dtype="float32")
+        return empty, empty
+
+    result = nnls(
+        np.asarray(log_frames, dtype="float32"),
+        np.asarray(mean_tuning[-1], dtype="float32"),
+        np.asarray([local_tuning[-1]], dtype="float32"),
+    )
+    chroma = np.asarray(result[3], dtype="float32")
+    bass = np.asarray(result[2], dtype="float32")
+    return chroma, bass
 
 
 def _extract_beats(essentia: dict[str, Any], audio: Any, duration: float) -> list[float]:
@@ -137,6 +240,7 @@ def _detect_with_beats(
     hpcp: Any,
     beats: list[float],
     duration: float,
+    audio: Any = None,
 ):
     if len(beats) < 2:
         raise ValueError("No se detectaron suficientes pulsos")
@@ -155,10 +259,17 @@ def _detect_with_beats(
     last = segments[-1]
     if last["end"] < duration:
         last["end"] = round(duration, 3)
-    return segments
+    if audio is not None:
+        segments = _apply_silence(segments, audio, SAMPLE_RATE)
+    return _smooth_chords(segments)
 
 
-def _detect_fixed_frame(essentia: dict[str, Any], hpcp: Any, duration: float):
+def _detect_fixed_frame(
+    essentia: dict[str, Any],
+    hpcp: Any,
+    duration: float,
+    audio: Any = None,
+):
     chords, strength = essentia["ChordsDetection"](
         hopSize=HOP_SIZE, sampleRate=SAMPLE_RATE, windowSize=2
     )(hpcp)
@@ -170,7 +281,21 @@ def _detect_fixed_frame(essentia: dict[str, Any], hpcp: Any, duration: float):
         segment = _segment(start, end, label, score)
         if segment:
             segments.append(segment)
-    return segments
+    if audio is not None:
+        segments = _apply_silence(segments, audio, SAMPLE_RATE)
+    return _smooth_chords(segments)
+
+
+def _extract_key(essentia: dict[str, Any], audio: Any) -> tuple[int, str] | None:
+    """Tonalidad global con KeyExtractor de Essentia (perfiles sobre HPCP)."""
+    try:
+        key, scale, _strength = essentia["KeyExtractor"]()(audio)
+    except Exception:
+        return None
+    if key not in PITCH_NAMES:
+        return None
+    mode = 'minor' if str(scale).lower().startswith('minor') else 'major'
+    return PITCH_NAMES.index(key), mode
 
 
 def analyze_file(path: str) -> dict[str, Any]:
@@ -187,14 +312,29 @@ def analyze_file(path: str) -> dict[str, Any]:
             "analyzerVersion": ANALYZER_VERSION,
         }
 
-    hpcp = _compute_hpcp(essentia, audio)
+    chroma, bass_chroma = _compute_chroma(essentia, audio)
     beats = _extract_beats(essentia, audio, duration)
+    key = _extract_key(essentia, audio)
 
     segments: list[dict[str, Any]] = []
-    try:
-        segments = _detect_with_beats(essentia, hpcp, beats, duration)
-    except Exception:
-        segments = _detect_fixed_frame(essentia, hpcp, duration)
+    if len(beats) >= 2:
+        try:
+            segments = decode_chords(
+                chroma, beats, duration, HOP_SIZE, SAMPLE_RATE, key, bass_chroma
+            )
+        except Exception:
+            segments = []
+        if segments:
+            segments = _apply_silence(segments, audio, SAMPLE_RATE)
+            segments = _smooth_chords(segments)
+
+    if not segments:
+        try:
+            segments = _detect_with_beats(essentia, chroma, beats, duration, audio)
+        except Exception:
+            segments = _detect_fixed_frame(essentia, chroma, duration, audio)
+
+    segments = _merge_segments(segments)
 
     return {
         "segments": segments,

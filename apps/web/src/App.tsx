@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getHealth } from './lib/api';
+import { createYoutubeAnalysis } from './lib/api';
+import { useAnalysisRunner } from './lib/useAnalysis';
 import { Home } from './components/Home';
 import { LibraryList } from './components/LibraryList';
 import { SongView } from './components/SongView';
@@ -41,6 +43,8 @@ export default function App() {
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
   const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
+  const analysisRunner = useAnalysisRunner();
+  const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [initial] = useState(() => {
     const route = parseHash();
     if (route.name === 'song') {
@@ -66,7 +70,7 @@ export default function App() {
   );
   const [health, setHealth] = useState<{ status: 'ok' | 'down' | 'unknown'; version: string }>({
     status: 'unknown',
-    version: 'essentia-1.2',
+    version: 'essentia-1.5',
   });
 
   const forceFake =
@@ -83,7 +87,7 @@ export default function App() {
       if (controller.signal.aborted) return;
       setHealth({
         status: result.analyzer,
-        version: result.analyzerVersion || 'essentia-1.2',
+        version: result.analyzerVersion || 'essentia-1.5',
       });
     });
     return () => controller.abort();
@@ -196,6 +200,46 @@ export default function App() {
       replaceAudioUrl(null);
     }
     setNotice({ message: 'Canción eliminada de la biblioteca.', tone: 'info' });
+  };
+
+  const reanalyzeSong = async (target: Song) => {
+    const source = target.source;
+    if (source.type !== 'youtube' || reanalyzingId !== null) return;
+    setReanalyzingId(target.id);
+    const result = await analysisRunner.run((signal) =>
+      createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal),
+    );
+    setReanalyzingId(null);
+    if (!result) {
+      setNotice({ message: 'No se pudo reanalizar la canción.', tone: 'warning' });
+      return;
+    }
+
+    const updated: Song = {
+      ...target,
+      segments: result.segments,
+      detectedSegments: result.segments,
+      beats: result.beats ?? [],
+      beatsPerBar: result.beatsPerBar ?? 4,
+      duration: result.duration,
+      analyzerVersion: result.analyzerVersion,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (songRef.current?.id === target.id) {
+      songRef.current = updated;
+      setSong(updated);
+    }
+    try {
+      library.save(updated);
+      setSongs(library.list());
+      setNotice({ message: 'Canción reanalizada con el analizador actual.', tone: 'success' });
+    } catch {
+      setNotice({
+        message: 'El análisis se actualizó en memoria, pero no se pudo guardar.',
+        tone: 'warning',
+      });
+    }
   };
 
   const exportLibrary = () => {
@@ -323,6 +367,14 @@ export default function App() {
               setSong(next);
             }}
             onSave={saveSong}
+            onReanalyze={() => void reanalyzeSong(song)}
+            reanalyzing={reanalyzingId === song.id}
+            reanalyzeProgress={
+              reanalyzingId === song.id
+                ? (analysisRunner.state.view?.progress ??
+                  (analysisRunner.state.phase === 'starting' ? 0 : null))
+                : null
+            }
             onBack={() => navigate({ name: 'home' })}
             onOpenLibrary={() => navigate({ name: 'library' })}
             onPreferences={updatePreferences}

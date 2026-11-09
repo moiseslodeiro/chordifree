@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   formatChord,
   formatTime,
@@ -76,6 +76,15 @@ export function LyricsChordView({
     );
   }, [lines, activeTime]);
   const activeLineIndex = activeLine?.index ?? null;
+  const listRef = useRef<HTMLOListElement>(null);
+
+  useEffect(() => {
+    if (activeLineIndex === null) return;
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-lyric-line="${activeLineIndex}"]`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [activeLineIndex]);
+
   const activeChord = useMemo(() => {
     if (!activeLine) return null;
     const candidates = activeLine.chords.filter((chord) => chord.time <= activeTime! + 0.05);
@@ -110,7 +119,7 @@ export function LyricsChordView({
         </button>
       </div>
 
-      <ol className="lyrics-list" aria-label="Letra con acordes">
+      <ol ref={listRef} className="lyrics-list" aria-label="Letra con acordes">
         {lines.map((line) => {
           if (!line.text.trim()) {
             return <li key={line.index} className="lyrics-gap" aria-hidden="true" />;
@@ -120,6 +129,7 @@ export function LyricsChordView({
             <li
               key={line.index}
               className="lyrics-line"
+              data-lyric-line={line.index}
               aria-current={active ? 'true' : undefined}
             >
               {line.chords.length > 0 ? (

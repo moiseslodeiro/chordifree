@@ -23,6 +23,7 @@ function setup({
   duration,
   loopA = null,
   loopB = null,
+  markMode = null,
   chords = segments,
 }: {
   beats?: number[];
@@ -31,6 +32,7 @@ function setup({
   duration?: number;
   loopA?: number | null;
   loopB?: number | null;
+  markMode?: 'a' | 'b' | null;
   chords?: ChordSegment[];
 } = {}) {
   const adapter = new FakePlayerAdapter(0, false);
@@ -53,6 +55,7 @@ function setup({
       onViewChange={onViewChange}
       loopA={loopA}
       loopB={loopB}
+      markMode={markMode}
     />,
   );
   return { adapter, clock, onSeek, onViewChange, view: view_result };
@@ -98,6 +101,34 @@ describe('ChordGrid en vista de parrilla', () => {
       expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'ab');
     }
     expect(screen.getByTestId('beat-cell-4')).not.toHaveAttribute('data-loop');
+  });
+
+  it('previsualiza el compás completo bajo el ratón al armar A o B', () => {
+    setup({ beats: twentyFourBeats, markMode: 'a' });
+
+    fireEvent.mouseEnter(screen.getByTestId('beat-cell-5'));
+    for (const index of [4, 5, 6, 7]) {
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute(
+        'data-mark-preview',
+        'a',
+      );
+    }
+    expect(screen.getByTestId('beat-cell-3')).not.toHaveAttribute('data-mark-preview');
+    expect(screen.getByTestId('beat-cell-8')).not.toHaveAttribute('data-mark-preview');
+
+    fireEvent.mouseLeave(screen.getByTestId('beat-grid'));
+    expect(screen.getByTestId('beat-cell-5')).not.toHaveAttribute('data-mark-preview');
+  });
+
+  it('previsualiza en el color B y no previsualiza sin modo de marcado', () => {
+    const first = setup({ beats: twentyFourBeats, markMode: 'b' });
+    fireEvent.mouseEnter(screen.getByTestId('beat-cell-9'));
+    expect(screen.getByTestId('beat-cell-8')).toHaveAttribute('data-mark-preview', 'b');
+    first.view.unmount();
+
+    setup({ beats: twentyFourBeats });
+    fireEvent.mouseEnter(screen.getByTestId('beat-cell-9'));
+    expect(screen.getByTestId('beat-cell-8')).not.toHaveAttribute('data-mark-preview');
   });
 
   it('señala los acordes con confianza baja', () => {

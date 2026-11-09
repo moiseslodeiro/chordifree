@@ -18,7 +18,7 @@ microservicio analizador en `ANALYZER_URL`.
 
 ```bash
 curl -fsS http://localhost:3001/api/health
-# {"status":"ok","analyzer":"ok","analyzerVersion":"essentia-1.2"}
+# {"status":"ok","analyzer":"ok","analyzerVersion":"essentia-1.5"}
 ```
 
 Devuelve `200` incluso si el analizador está caído; en ese caso `analyzer` vale `"down"`.
@@ -64,7 +64,7 @@ curl -fsS http://localhost:3001/api/analyses/0f5c...
     "segments": [{ "start": 0, "end": 4.2, "chord": { "root": 9, "quality": "minor" } }],
     "beats": [0.42, 0.91, 1.38, 1.87],
     "beatsPerBar": 4,
-    "analyzerVersion": "essentia-1.2",
+    "analyzerVersion": "essentia-1.5",
     "createdAt": "2026-10-29T12:00:00.000Z"
   }
 }
