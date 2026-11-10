@@ -1,0 +1,13 @@
+{
+  "name": "@chordifree/desktop-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Electron spike for the local Chordifree desktop app",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
