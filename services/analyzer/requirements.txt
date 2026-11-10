@@ -1,5 +1,5 @@
 fastapi==0.115.6
-uvicorn[standard]==0.34.0
+uvicorn[standard]==0.54.0
 python-multipart==0.0.20
 numpy>=1.26,<3
 # Essentia 2.0.1 (última estable) es de 2014, no está en PyPI y no incluye
