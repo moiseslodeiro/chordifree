@@ -21,6 +21,11 @@ Essentia does not publish an official Windows wheel yet. The GitHub workflow
 freezes the analyzer with PyInstaller. This is a spike, not a stable release
 dependency.
 
+Before building, the workflow runs `packaging/analyzer/patch_essentia.py`, which
+keeps the version fallback and the ffmpeg 9 compatibility fix in one reviewable
+place. The workflow also caches the vcpkg binary cache so ffmpeg is not rebuilt
+from source on every retry.
+
 ## Runtime
 
 The sidecar binds to `127.0.0.1` on the port in `ANALYZER_PORT` and reads models
