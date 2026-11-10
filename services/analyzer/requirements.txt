@@ -4,7 +4,7 @@ python-multipart==0.0.20
 numpy>=1.26,<3
 # Essentia 2.0.1 (última estable) es de 2014, no está en PyPI y no incluye
 # NNLSChroma/LogSpectrum. Fijamos la beta exacta con la que se valida el analizador.
-essentia==2.1b6.dev1389
+essentia==2.1b6.dev1438
 onnxruntime>=1.20,<2
 pytest==8.3.4
 httpx==0.28.1
