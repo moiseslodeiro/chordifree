@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       '.opencode/**',
+      'packaging/electron/**',
     ],
   },
   js.configs.recommended,

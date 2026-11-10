@@ -1,0 +1,101 @@
+name: Windows analyzer spike
+
+on:
+  workflow_dispatch:
+
+jobs:
+  essentia-wheel:
+    name: Build Essentia Windows wheel
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout the Essentia Windows PR
+        uses: actions/checkout@v4
+        with:
+          repository: MTG/essentia
+          ref: refs/pull/1514/head
+          path: essentia-src
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel
+
+      - name: Build the Windows wheel
+        working-directory: essentia-src
+        shell: bash
+        env:
+          CIBW_BUILD: cp311-win_amd64
+          CIBW_ARCHS: AMD64
+        run: python -m cibuildwheel --platform windows --output-dir wheelhouse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: essentia-windows-wheel
+          path: essentia-src/wheelhouse/*.whl
+          if-no-files-found: error
+
+  analyzer-sidecar:
+    name: Freeze and smoke-test the analyzer
+    needs: essentia-wheel
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: essentia-windows-wheel
+          path: wheelhouse
+
+      - name: Install Essentia wheel and sidecar dependencies
+        shell: bash
+        run: |
+          python -m pip install wheelhouse/*.whl
+          python -m pip install -r packaging/analyzer/requirements.txt pyinstaller
+
+      - name: Download ONNX models
+        shell: bash
+        run: |
+          mkdir -p services/analyzer/models
+          curl -fsSL 'https://huggingface.co/jafet21/yamnetonnx/resolve/337f563004630f00673d4a773a0d657d0233ce56/yamnet.onnx' \
+            -o services/analyzer/models/yamnet.onnx
+          curl -fsSL 'https://essentia.upf.edu/models/classification-heads/voice_instrumental/voice_instrumental-audioset-yamnet-1.onnx' \
+            -o services/analyzer/models/voice_instrumental.onnx
+          echo '04e27fca08e7a3aea2630d1a63a51e6b437c803e0ff6e26399f80870ac251dda  services/analyzer/models/yamnet.onnx' | sha256sum -c -
+          echo 'f619b35a95a44d8c3ec27a205d4c93ec988401fca443ff552ed007b3f1c018a0  services/analyzer/models/voice_instrumental.onnx' | sha256sum -c -
+
+      - name: Build the sidecar
+        run: pyinstaller packaging/analyzer/analyzer.spec --noconfirm
+
+      - name: Smoke-test the sidecar
+        shell: bash
+        run: |
+          ANALYZER_PORT=8123 ./dist/analyzer/analyzer.exe > analyzer.log 2>&1 &
+          for i in $(seq 1 30); do
+            sleep 2
+            if curl -fsS http://127.0.0.1:8123/health; then break; fi
+          done
+          curl -fsS -X POST http://127.0.0.1:8123/analyze \
+            -F "file=@scripts/fixtures/chords.wav" -o result.json
+          python - <<'PY'
+          import json
+          data = json.load(open("result.json", encoding="utf-8"))
+          labels = {segment["label"] for segment in data["segments"] if segment.get("label")}
+          assert {"C", "F", "G"} <= labels, labels
+          print("sidecar labels:", sorted(labels))
+          PY
+          taskkill //F //IM analyzer.exe || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chordifree-analyzer-windows
+          path: dist/analyzer
+          if-no-files-found: error

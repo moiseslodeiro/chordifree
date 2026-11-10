@@ -141,6 +141,21 @@ pnpm --filter @chordifree/web exec playwright test
 The end-to-end suite needs Playwright browsers installed
 (`pnpm --filter @chordifree/web exec playwright install`).
 
+## Desktop app (experimental)
+
+A local desktop build is being explored in `packaging/`:
+
+- `packaging/analyzer`: PyInstaller spec for the FastAPI analyzer sidecar.
+- `packaging/electron`: minimal Electron shell that starts the sidecar on a random
+  local port and opens the web app.
+- `.github/workflows/windows-analyzer.yml`: spike that builds an Essentia Windows
+  wheel, freezes the analyzer with PyInstaller and smoke-tests it on Windows.
+
+This is not a stable installer yet. Essentia does not publish an official Windows
+wheel, so the workflow uses the open Windows-wheel PR. See the READMEs in
+`packaging/analyzer` and `packaging/electron` for current limitations.
+
+
 ## Troubleshooting
 
 - **Analyzer is down**: check `docker compose logs analyzer` and open
