@@ -98,6 +98,14 @@ const spanish = {
     'macOS 13 o posterior en Intel, macOS 15 o posterior en Apple Silicon. Se publica un checksum SHA-256 con cada release.',
   'run.macos.cta': 'Descargar el DMG',
   'run.macos.guide': 'Guía de macOS',
+  'run.linux.title': 'Vista previa para Linux',
+  'run.linux.badge': 'x64',
+  'run.linux.body':
+    'AppImage y .deb para x64. Incluye el analizador, ffmpeg y los modelos ONNX. El AppImage es portable; el .deb se instala con apt.',
+  'run.linux.note':
+    'Compilado en Ubuntu 22.04 para glibc 2.35 o posterior. El AppImage puede necesitar FUSE. Se publica un checksum SHA-256 con cada release.',
+  'run.linux.cta': 'Descargar el AppImage',
+  'run.linux.guide': 'Guía de Linux',
   'run.docker.title': 'Docker',
   'run.docker.body':
     'Clona el repositorio y arranca el stack. La primera build instala Essentia, ONNX Runtime, ffmpeg y los modelos.',
@@ -137,13 +145,16 @@ const spanish = {
     'No. La app web solo envía el audio a la API y al analizador que tú ejecutas. La versión de escritorio lo mantiene todo en tu equipo.',
   'faq.3.q': '¿Las versiones de escritorio necesitan Docker?',
   'faq.3.a':
-    'No. Los instaladores de Windows y macOS incluyen el analizador, ffmpeg y los modelos ONNX. Docker es la alternativa para la app web y los servidores.',
+    'No. Los instaladores de Windows, macOS y Linux incluyen el analizador, ffmpeg y los modelos ONNX. Docker es la alternativa para la app web y los servidores.',
   'faq.4.q': '¿La versión de Windows está firmada?',
   'faq.4.a':
     'Todavía no. Es una vista previa generada por CI, así que SmartScreen avisará: elige Más información y luego Ejecutar de todas formas. Verifica el SHA-256 de SHA256SUMS.txt antes de ejecutarlo.',
   'faq.10.q': '¿Por qué macOS bloquea la app?',
   'faq.10.a':
     'La versión de macOS está firmada de forma ad-hoc y no notarizada. Permítela en Ajustes del Sistema → Privacidad y seguridad y vuelve a abrirla. La guía de macOS tiene los pasos.',
+  'faq.11.q': '¿Hay una versión para Linux ARM?',
+  'faq.11.a':
+    'Todavía no. Essentia no publica un wheel de Linux arm64, así que la versión de escritorio para Linux es solo x86_64. Una build ARM requeriría compilar Essentia desde el código fuente.',
   'faq.5.q': '¿Funciona con YouTube?',
   'faq.5.a':
     'Sí, mediante yt-dlp. Descargar audio de YouTube puede contravenir sus Términos de Servicio, así que usa tus propios archivos cuando no tengas derechos.',

@@ -81,13 +81,31 @@ Gatekeeper asks the user to allow it. See
 The workflow needs `macos-15` (arm64) and `macos-15-intel` runners because the
 Essentia arm64 wheel targets macOS 15 and the x64 wheel targets macOS 13.
 
+## Build the Linux installer
+
+The Linux build is x86_64 only because Essentia does not publish an arm64 Linux
+wheel. It uses Ubuntu 22.04 as the baseline so the AppImage and `.deb` work on
+glibc 2.35 or later.
+
+```bash
+pnpm --filter @chordifree/web build
+# Build the analyzer first (see ../analyzer/README.md) so dist/analyzer exists.
+cd packaging/electron
+pnpm install --ignore-workspace
+pnpm dist:linux
+```
+
+`dist:linux` writes `release/*.AppImage` and `release/*.deb`. The AppImage may
+need FUSE (`libfuse2` or `libfuse2t64`) on the user's machine; the `.deb` installs
+with `apt`. See [`../../docs/LINUX_INSTALL.md`](../../docs/LINUX_INSTALL.md).
+
 ## Smoke test
 
 The packaged app accepts `--smoke-test`. It starts the analyzer and the server,
 checks `/api/health`, posts `scripts/fixtures/chords.wav`, waits for the analysis
-and exits `0` only if chords were detected. CI runs it against `release/win-unpacked/Chordifree.exe` on Windows and
-`release/mac*/Chordifree.app/Contents/MacOS/Chordifree` on macOS, and uploads
-the log.
+and exits `0` only if chords were detected. CI runs it against `release/win-unpacked/Chordifree.exe` on Windows,
+`release/mac*/Chordifree.app/Contents/MacOS/Chordifree` on macOS and
+`release/linux-unpacked/chordifree` under Xvfb on Linux, and uploads the log.
 
 Set `CHORDIFREE_SMOKE_LOG` to write the log to a file and
 `CHORDIFREE_SMOKE_FIXTURE` to point at a different audio file.

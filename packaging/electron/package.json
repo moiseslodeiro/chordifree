@@ -4,13 +4,15 @@
   "private": true,
   "description": "Electron desktop shell for the local Chordifree stack",
   "author": "Chordifree contributors",
+  "homepage": "https://github.com/moiseslodeiro/chordifree",
+  "desktopName": "Chordifree",
   "license": "AGPL-3.0-or-later",
   "main": "main.cjs",
   "scripts": {
     "build:server": "node build.mjs",
     "resources": "node prepare-resources.mjs",
     "dist:win": "pnpm build:server && pnpm resources && electron-builder --win nsis --publish never",
-    "dist:linux": "pnpm build:server && pnpm resources && electron-builder --linux dir --publish never",
+    "dist:linux": "pnpm build:server && pnpm resources && electron-builder --linux AppImage deb --publish never",
     "dist:mac": "pnpm build:server && pnpm resources && ./make-icns.sh && electron-builder --mac dmg zip --publish never",
     "start": "electron ."
   },
