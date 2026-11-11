@@ -10,8 +10,8 @@ await mkdir(config.tempDir, { recursive: true });
 const store = new JobStore();
 const app = createApp({ config, store });
 
-const server = app.listen(config.port, () => {
-  console.log(`Chordifree API listening on http://localhost:${config.port}`);
+const server = app.listen(config.port, config.host, () => {
+  console.log(`Chordifree API listening on http://${config.host}:${config.port}`);
 });
 
 const sweep = () => {

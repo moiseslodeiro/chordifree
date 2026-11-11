@@ -32,13 +32,18 @@ export interface AnalyzerClient {
 export function createAnalyzerClient(
   baseUrl: string,
   fetchImpl: typeof fetch = fetch,
+  token = '',
 ): AnalyzerClient {
   const base = baseUrl.replace(/\/$/, '');
+  const authHeaders: Record<string, string> = token
+    ? { 'X-Chordifree-Token': token }
+    : {};
 
   return {
     async health() {
       try {
         const response = await fetchImpl(`${base}/health`, {
+          headers: authHeaders,
           signal: AbortSignal.timeout(5_000),
         });
         if (!response.ok) return { ok: false };
@@ -56,6 +61,7 @@ export function createAnalyzerClient(
         form.append('file', new Blob([payload], { type: 'audio/wav' }), 'audio.wav');
         const response = await fetchImpl(`${base}/analyze`, {
           method: 'POST',
+          headers: authHeaders,
           body: form,
           signal: AbortSignal.timeout(180_000),
         });

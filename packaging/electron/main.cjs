@@ -1,12 +1,14 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const { spawn } = require('node:child_process');
-const { existsSync, openSync } = require('node:fs');
+const { randomBytes } = require('node:crypto');
+const { existsSync, mkdirSync, openSync } = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 let analyzer = null;
 let window = null;
-let analyzerUrl = null;
+let serverUrl = null;
 
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -19,18 +21,21 @@ function freePort() {
   });
 }
 
-async function waitForHealth(url, timeoutMs = 30_000) {
+async function waitForUrl(url, predicate = () => true, timeoutMs = 30_000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     try {
-      const response = await fetch(`${url}/health`);
-      if (response.ok) return;
+      const response = await fetch(url);
+      if (response.ok) {
+        const body = await response.json().catch(() => null);
+        if (predicate(body)) return body;
+      }
     } catch {
-      // The sidecar is still starting.
+      // The service is still starting.
     }
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
-  throw new Error(`Analyzer did not become healthy at ${url}`);
+  throw new Error(`Service did not become healthy at ${url}`);
 }
 
 function analyzerBinary() {
@@ -39,19 +44,36 @@ function analyzerBinary() {
   return path.join(__dirname, '..', '..', 'dist', 'analyzer', name);
 }
 
-async function startAnalyzer() {
+function bundledPath(packageName, key) {
+  try {
+    const value = require(packageName);
+    const resolved = key ? value?.[key] : value;
+    if (typeof resolved === 'string' && resolved) return resolved;
+  } catch {
+    // Fall back to the system binary.
+  }
+  return null;
+}
+
+function mediaPath(envName, packageName, key, fallback) {
+  if (process.env[envName]) return process.env[envName];
+  return bundledPath(packageName, key) ?? fallback;
+}
+
+async function startAnalyzer(token) {
   const binary = analyzerBinary();
   if (!existsSync(binary)) {
     throw new Error(`Analyzer binary not found: ${binary}`);
   }
   const port = await freePort();
-  analyzerUrl = `http://127.0.0.1:${port}`;
+  const url = `http://127.0.0.1:${port}`;
   const log = openSync(path.join(app.getPath('userData'), 'analyzer.log'), 'a');
   analyzer = spawn(binary, [], {
     env: {
       ...process.env,
       ANALYZER_PORT: String(port),
       ANALYZER_DOWNLOAD_MODELS: '0',
+      ANALYZER_TOKEN: token,
     },
     stdio: ['ignore', log, log],
     windowsHide: true,
@@ -61,10 +83,49 @@ async function startAnalyzer() {
       dialog.showErrorBox('Analyzer stopped', `The local analyzer exited with code ${code}.`);
     }
   });
-  await waitForHealth(analyzerUrl);
+  await waitForUrl(`${url}/health`);
+  return url;
 }
 
-function createWindow() {
+async function startServer(analyzerUrl, token) {
+  const serverEntry = path.join(__dirname, 'dist', 'server.mjs');
+  if (!existsSync(serverEntry)) {
+    throw new Error(
+      `Server bundle not found: ${serverEntry}. Run "pnpm build:server" in packaging/electron.`,
+    );
+  }
+
+  const webDist =
+    process.env.CHORDIFREE_WEB_DIST ?? path.join(__dirname, '..', '..', 'apps', 'web', 'dist');
+  if (!existsSync(webDist)) {
+    throw new Error(`Web build not found: ${webDist}. Run "pnpm --filter @chordifree/web build".`);
+  }
+
+  const port = await freePort();
+  const tempDir = path.join(app.getPath('userData'), 'tmp');
+  mkdirSync(tempDir, { recursive: true });
+
+  Object.assign(process.env, {
+    HOST: '127.0.0.1',
+    PORT: String(port),
+    ANALYZER_URL: analyzerUrl,
+    ANALYZER_TOKEN: token,
+    WEB_DIST: webDist,
+    TEMP_DIR: tempDir,
+    CORS_ORIGIN: `http://127.0.0.1:${port}`,
+    TRUST_PROXY: '0',
+    RATE_LIMIT_MAX: '1000',
+    FFMPEG_PATH: mediaPath('FFMPEG_PATH', 'ffmpeg-static', null, 'ffmpeg'),
+    FFPROBE_PATH: mediaPath('FFPROBE_PATH', 'ffprobe-static', 'path', 'ffprobe'),
+  });
+
+  await import(pathToFileURL(serverEntry).href);
+  await waitForUrl(`http://127.0.0.1:${port}/api/health`, (body) => body?.analyzer === 'ok');
+
+  return `http://127.0.0.1:${port}`;
+}
+
+function createWindow(target) {
   window = new BrowserWindow({
     width: 1280,
     height: 900,
@@ -78,17 +139,20 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
     },
   });
-  const target = process.env.CHORDIFREE_URL || 'http://localhost:5173';
   void window.loadURL(target);
   window.on('closed', () => {
     window = null;
   });
 }
 
+app.setName('Chordifree');
+
 app.whenReady().then(async () => {
+  const token = randomBytes(32).toString('hex');
   try {
-    await startAnalyzer();
-    createWindow();
+    const analyzerUrl = await startAnalyzer(token);
+    serverUrl = await startServer(analyzerUrl, token);
+    createWindow(process.env.CHORDIFREE_URL || serverUrl);
   } catch (error) {
     dialog.showErrorBox('Chordifree could not start', String(error));
     app.quit();
@@ -105,5 +169,5 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (window === null) createWindow();
+  if (window === null && serverUrl) createWindow(serverUrl);
 });

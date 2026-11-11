@@ -1,9 +1,12 @@
 import { z } from 'zod';
 
 const EnvSchema = z.object({
+  HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(3001),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   ANALYZER_URL: z.string().url().default('http://localhost:8000'),
+  ANALYZER_TOKEN: z.string().default(''),
+  WEB_DIST: z.string().optional(),
   MAX_DURATION_SECONDS: z.coerce.number().positive().default(900),
   MAX_UPLOAD_BYTES: z.coerce.number().positive().default(25 * 1024 * 1024),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
@@ -17,9 +20,12 @@ const EnvSchema = z.object({
 });
 
 export interface AppConfig {
+  host: string;
   port: number;
   corsOrigin: string;
   analyzerUrl: string;
+  analyzerToken: string;
+  webDist?: string;
   maxDurationSeconds: number;
   maxUploadBytes: number;
   rateLimitMax: number;
@@ -35,9 +41,12 @@ export interface AppConfig {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.parse(env);
   return {
+    host: parsed.HOST,
     port: parsed.PORT,
     corsOrigin: parsed.CORS_ORIGIN,
     analyzerUrl: parsed.ANALYZER_URL,
+    analyzerToken: parsed.ANALYZER_TOKEN,
+    ...(parsed.WEB_DIST ? { webDist: parsed.WEB_DIST } : {}),
     maxDurationSeconds: parsed.MAX_DURATION_SECONDS,
     maxUploadBytes: parsed.MAX_UPLOAD_BYTES,
     rateLimitMax: parsed.RATE_LIMIT_MAX,
