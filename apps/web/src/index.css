@@ -261,24 +261,37 @@ p {
   }
 
   .note {
-    @apply border-l-[3px] px-4 py-3 text-sm;
-    border-radius: var(--radius-sm);
+    @apply rounded-xl border border-line bg-panel-2/60 px-4 py-3 text-sm;
   }
 
-  .note-warning {
-    @apply border-warning bg-page text-ink;
+  .note-warning,
+  .note-danger,
+  .note-success {
+    @apply text-ink;
   }
 
   .note-info {
-    @apply border-line-strong bg-panel-2/70 text-ink2;
+    @apply text-ink2;
   }
 
-  .note-danger {
-    @apply border-danger bg-page text-ink;
+  .note-icon {
+    @apply h-4 w-4 shrink-0;
   }
 
-  .note-success {
-    @apply border-positive bg-page text-ink;
+  .note-icon-info {
+    @apply text-accent;
+  }
+
+  .note-icon-success {
+    @apply text-positive;
+  }
+
+  .note-icon-warning {
+    @apply text-warning;
+  }
+
+  .note-icon-danger {
+    @apply text-danger;
   }
 
   /* Toolbar: cells separated by thin rules. */

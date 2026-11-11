@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import type { Preferences, Song } from '../types';
+import type { AppNotice, Preferences, Song } from '../types';
 import { songFromResult } from '../types';
 import { createUploadAnalysis, createYoutubeAnalysis, sha256File } from '../lib/api';
 import { isDesktopApp } from '../lib/platform';
@@ -21,7 +21,7 @@ interface HomeProps {
   analyzerVersion: string;
   analyzerStatus: 'ok' | 'down' | 'unknown';
   libraryCount: number;
-  notice: string | null;
+  notice: AppNotice | null;
   onDismissNotice: () => void;
   onOpenLibrary: () => void;
   onAnalyzed: (song: Song, audioUrl: string | null) => void;
@@ -144,7 +144,7 @@ export function Home({
   return (
     <div className="space-y-6">
       {notice ? (
-        <NoticeBanner message={notice} tone="warning" onDismiss={onDismissNotice} />
+        <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
       ) : null}
 
       <section className="grid overflow-hidden rounded-2xl border border-line bg-panel shadow-lg lg:grid-cols-[minmax(0,1.15fr)_minmax(17rem,0.55fr)]">
