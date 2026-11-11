@@ -23,6 +23,8 @@ mac:
   identity: '-'
   hardenedRuntime: false
   gatekeeperAssess: false
+  signIgnore:
+    - 'Contents/Resources/analyzer'
   artifactName: chordifree-${version}-${arch}.${ext}
 
 linux:

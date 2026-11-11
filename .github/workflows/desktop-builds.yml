@@ -288,6 +288,7 @@ jobs:
       - name: Ad-hoc sign the analyzer
         run: |
           find dist/analyzer -type f \( -name '*.dylib' -o -name '*.so' \) -exec codesign --force --sign - {} \;
+          find dist/analyzer -path '*/Python.framework/Versions/*/Python' -type f -exec codesign --force --sign - {} \;
           codesign --force --sign - dist/analyzer/analyzer
 
       - uses: pnpm/action-setup@v4
