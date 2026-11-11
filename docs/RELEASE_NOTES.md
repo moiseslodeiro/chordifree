@@ -1,6 +1,6 @@
 ## Chordifree desktop preview
 
-This release contains unsigned preview builds for Windows and macOS.
+This release contains unsigned preview builds for Windows, macOS and Linux.
 
 ### Windows
 
@@ -18,5 +18,13 @@ This release contains unsigned preview builds for Windows and macOS.
   Privacy & Security → Open Anyway**.
 - Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/MACOS_INSTALL.md>
 
+### Linux
+
+- `chordifree-<version>-x64.AppImage` or `chordifree-<version>-x64.deb`
+- Verify `SHA256SUMS.txt` before running it.
+- The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with `apt`.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/LINUX_INSTALL.md>
+
 The installers are built by GitHub Actions from the tagged commit. They bundle the local
-analyzer, ffmpeg and the ONNX models. Code signing and notarization are not available yet.
+analyzer, ffmpeg and the ONNX models. Code signing, notarization and auto-updates are not
+available yet.

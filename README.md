@@ -154,16 +154,16 @@ A local desktop build is being explored in `packaging/`:
   Express server on random local ports, serves the built web app and protects the
   analyzer with a per-launch token.
 - `.github/workflows/windows-analyzer.yml`: builds the Windows analyzer and NSIS
-  installer, and the macOS arm64/x64 DMGs and ZIPs, then publishes them on tags.
-  The workflow produces `chordifree-analyzer-windows`, `chordifree-macos-arm64`
-  and `chordifree-macos-x64`.
+  installer, the macOS arm64/x64 DMGs and ZIPs, and the Linux AppImage and `.deb`,
+  then publishes them on tags. The workflow produces `chordifree-analyzer-windows`,
+  `chordifree-macos-arm64`, `chordifree-macos-x64` and `chordifree-linux-x64`.
 
 The desktop builds are validated end to end (`/health`, audio analysis and the
 `C/F/G` smoke test). The workflow stages the analyzer, web app, server and media
 binaries. Essentia does not publish an official Windows wheel, so the workflow
 builds one from the open Windows-wheel PR and applies small compatibility
-patches. On macOS it uses the official Essentia wheels. See the READMEs in
-`packaging/analyzer` and `packaging/electron` for build steps and limitations.
+patches. On macOS and Linux it uses the official Essentia wheels. See the READMEs
+in `packaging/analyzer` and `packaging/electron` for build steps and limitations.
 
 ### Windows installer
 
@@ -188,6 +188,18 @@ They are ad-hoc signed and not notarized, so Gatekeeper asks the user to allow t
 app in **System Settings → Privacy & Security**. See
 [`docs/MACOS_INSTALL.md`](docs/MACOS_INSTALL.md) for checksum verification, the
 Gatekeeper flow and uninstall steps.
+
+### Linux installer
+
+The same tag also publishes an x86_64 Linux build:
+
+- `chordifree-<version>-x64.AppImage`
+- `chordifree-<version>-x64.deb`
+
+The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with
+`apt`. ARM64 Linux is not supported yet because Essentia does not publish an arm64
+Linux wheel. See [`docs/LINUX_INSTALL.md`](docs/LINUX_INSTALL.md) for checksum
+verification, FUSE and uninstall steps.
 
 Code signing, notarization and auto-updates are still pending.
 

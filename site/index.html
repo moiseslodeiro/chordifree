@@ -444,9 +444,46 @@
               </div>
             </article>
 
+
             <article class="run-row">
               <div class="run-title">
                 <span class="run-index">03</span>
+                <h3 data-i18n="run.linux.title">Linux preview</h3>
+                <span class="run-badge" data-i18n="run.linux.badge">x64</span>
+              </div>
+              <div class="run-body">
+                <p data-i18n="run.linux.body">
+                  AppImage and .deb for x64. The analyzer, ffmpeg and the ONNX models are
+                  bundled. The AppImage is portable; the .deb installs with apt.
+                </p>
+                <p class="run-note" data-i18n="run.linux.note">
+                  Built on Ubuntu 22.04 for glibc 2.35 or later. The AppImage may need FUSE. A
+                  SHA-256 checksum is published with every release.
+                </p>
+              </div>
+              <div class="run-action">
+                <a
+                  class="btn btn-secondary btn-small"
+                  href="https://github.com/moiseslodeiro/chordifree/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.linux.cta"
+                  >Download the AppImage</a
+                >
+                <a
+                  class="run-inline-link"
+                  href="https://github.com/moiseslodeiro/chordifree/blob/main/docs/LINUX_INSTALL.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.linux.guide"
+                  >Linux guide</a
+                >
+              </div>
+            </article>
+
+            <article class="run-row">
+              <div class="run-title">
+                <span class="run-index">04</span>
                 <h3 data-i18n="run.docker.title">Docker</h3>
               </div>
               <div class="run-body">
@@ -485,7 +522,7 @@ docker compose up --build -d</code></pre>
 
             <article class="run-row">
               <div class="run-title">
-                <span class="run-index">04</span>
+                <span class="run-index">05</span>
                 <h3 data-i18n="run.pwa.title">Self hosted web app</h3>
               </div>
               <div class="run-body">
@@ -577,8 +614,8 @@ docker compose up --build -d</code></pre>
           <details>
             <summary data-i18n="faq.3.q">Do the desktop builds need Docker?</summary>
             <p data-i18n="faq.3.a">
-              No. The Windows and macOS installers bundle the analyzer, ffmpeg and the ONNX
-              models. Docker is the alternative for the web app and servers.
+              No. The Windows, macOS and Linux installers bundle the analyzer, ffmpeg and
+              the ONNX models. Docker is the alternative for the web app and servers.
             </p>
           </details>
           <details>
@@ -593,6 +630,13 @@ docker compose up --build -d</code></pre>
             <p data-i18n="faq.10.a">
               The macOS build is ad-hoc signed and not notarized. Allow it in System Settings →
               Privacy & Security, then open it again. The macOS install guide has the steps.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.11.q">Is there an ARM Linux build?</summary>
+            <p data-i18n="faq.11.a">
+              Not yet. Essentia does not publish an arm64 Linux wheel, so the Linux desktop
+              build is x86_64 only. An ARM build would need Essentia compiled from source.
             </p>
           </details>
           <details>

@@ -25,6 +25,19 @@ mac:
   gatekeeperAssess: false
   artifactName: chordifree-${version}-${arch}.${ext}
 
+linux:
+  target:
+    - AppImage
+    - deb
+  category: AudioVideo
+  icon: assets/icon.png
+  executableName: chordifree
+  syncDesktopName: true
+  artifactName: chordifree-${version}-${arch}.${ext}
+  synopsis: Local-first chord practice
+  description: Turn YouTube videos or your own audio into synchronized chord sheets.
+  maintainer: Chordifree contributors
+
 win:
   executableName: Chordifree
   icon: assets/icon.ico
