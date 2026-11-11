@@ -153,15 +153,16 @@ A local desktop build is being explored in `packaging/`:
 - `packaging/electron`: Electron shell that starts the analyzer and the bundled
   Express server on random local ports, serves the built web app and protects the
   analyzer with a per-launch token.
-- `.github/workflows/windows-analyzer.yml`: builds an Essentia Windows wheel,
-  freezes the analyzer with PyInstaller and smoke-tests it on Windows. The
-  workflow produces `chordifree-analyzer-windows`.
+- `.github/workflows/windows-analyzer.yml`: builds the Windows analyzer and NSIS
+  installer, and the macOS arm64/x64 DMGs and ZIPs, then publishes them on tags.
+  The workflow produces `chordifree-analyzer-windows`, `chordifree-macos-arm64`
+  and `chordifree-macos-x64`.
 
-The Windows spike is validated end to end (`/health`, audio analysis and the
-`C/F/G` smoke test). The same workflow stages the analyzer, web app, server and
-media binaries, and produces an **unsigned NSIS installer**. Essentia does not
-publish an official Windows wheel, so the workflow builds one from the open
-Windows-wheel PR and applies small compatibility patches. See the READMEs in
+The desktop builds are validated end to end (`/health`, audio analysis and the
+`C/F/G` smoke test). The workflow stages the analyzer, web app, server and media
+binaries. Essentia does not publish an official Windows wheel, so the workflow
+builds one from the open Windows-wheel PR and applies small compatibility
+patches. On macOS it uses the official Essentia wheels. See the READMEs in
 `packaging/analyzer` and `packaging/electron` for build steps and limitations.
 
 ### Windows installer
@@ -175,6 +176,18 @@ checksum verification, the **More info → Run anyway** flow and uninstall steps
 git tag v0.1.0
 git push origin v0.1.0
 ```
+
+### macOS installer
+
+The same tag also publishes two macOS builds:
+
+- `chordifree-<version>-arm64.dmg` (Apple Silicon, macOS 15+)
+- `chordifree-<version>-x64.dmg` (Intel, macOS 13+)
+
+They are ad-hoc signed and not notarized, so Gatekeeper asks the user to allow the
+app in **System Settings → Privacy & Security**. See
+[`docs/MACOS_INSTALL.md`](docs/MACOS_INSTALL.md) for checksum verification, the
+Gatekeeper flow and uninstall steps.
 
 Code signing, notarization and auto-updates are still pending.
 

@@ -90,6 +90,14 @@ const spanish = {
   'run.windows.note': 'Se publica un checksum SHA-256 con cada release.',
   'run.windows.cta': 'Descargar el instalador',
   'run.windows.guide': 'Guía de instalación',
+  'run.macos.title': 'Vista previa para macOS',
+  'run.macos.badge': 'Sin notarizar',
+  'run.macos.body':
+    'Builds DMG y ZIP para Apple Silicon e Intel. Están firmadas de forma ad-hoc, no notarizadas, así que Gatekeeper pedirá permitir la app en Privacidad y seguridad.',
+  'run.macos.note':
+    'macOS 13 o posterior en Intel, macOS 15 o posterior en Apple Silicon. Se publica un checksum SHA-256 con cada release.',
+  'run.macos.cta': 'Descargar el DMG',
+  'run.macos.guide': 'Guía de macOS',
   'run.docker.title': 'Docker',
   'run.docker.body':
     'Clona el repositorio y arranca el stack. La primera build instala Essentia, ONNX Runtime, ffmpeg y los modelos.',
@@ -127,12 +135,15 @@ const spanish = {
   'faq.2.q': '¿Sube mi audio a un tercero?',
   'faq.2.a':
     'No. La app web solo envía el audio a la API y al analizador que tú ejecutas. La versión de escritorio lo mantiene todo en tu equipo.',
-  'faq.3.q': '¿La versión de Windows necesita Docker?',
+  'faq.3.q': '¿Las versiones de escritorio necesitan Docker?',
   'faq.3.a':
-    'No. El instalador incluye el analizador, ffmpeg y los modelos ONNX. Docker es la alternativa para la app web y los servidores.',
+    'No. Los instaladores de Windows y macOS incluyen el analizador, ffmpeg y los modelos ONNX. Docker es la alternativa para la app web y los servidores.',
   'faq.4.q': '¿La versión de Windows está firmada?',
   'faq.4.a':
     'Todavía no. Es una vista previa generada por CI, así que SmartScreen avisará: elige Más información y luego Ejecutar de todas formas. Verifica el SHA-256 de SHA256SUMS.txt antes de ejecutarlo.',
+  'faq.10.q': '¿Por qué macOS bloquea la app?',
+  'faq.10.a':
+    'La versión de macOS está firmada de forma ad-hoc y no notarizada. Permítela en Ajustes del Sistema → Privacidad y seguridad y vuelve a abrirla. La guía de macOS tiene los pasos.',
   'faq.5.q': '¿Funciona con YouTube?',
   'faq.5.a':
     'Sí, mediante yt-dlp. Descargar audio de YouTube puede contravenir sus Términos de Servicio, así que usa tus propios archivos cuando no tengas derechos.',
