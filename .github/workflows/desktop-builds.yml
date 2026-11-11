@@ -166,7 +166,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.9
 
@@ -290,7 +290,7 @@ jobs:
           find dist/analyzer -type f \( -name '*.dylib' -o -name '*.so' \) -exec codesign --force --sign - {} \;
           codesign --force --sign - dist/analyzer/analyzer
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.9
 
@@ -383,7 +383,7 @@ jobs:
       - name: Build the analyzer sidecar
         run: pyinstaller packaging/analyzer/analyzer.spec --noconfirm
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.9
 
