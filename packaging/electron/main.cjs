@@ -38,9 +38,14 @@ async function waitForUrl(url, predicate = () => true, timeoutMs = 30_000) {
   throw new Error(`Service did not become healthy at ${url}`);
 }
 
+function packagedResource(...parts) {
+  return path.join(process.resourcesPath, ...parts);
+}
+
 function analyzerBinary() {
   if (process.env.CHORDIFREE_ANALYZER) return process.env.CHORDIFREE_ANALYZER;
   const name = process.platform === 'win32' ? 'analyzer.exe' : 'analyzer';
+  if (app.isPackaged) return packagedResource('analyzer', name);
   return path.join(__dirname, '..', '..', 'dist', 'analyzer', name);
 }
 
@@ -57,6 +62,11 @@ function bundledPath(packageName, key) {
 
 function mediaPath(envName, packageName, key, fallback) {
   if (process.env[envName]) return process.env[envName];
+  if (app.isPackaged) {
+    const name = `${fallback}${process.platform === 'win32' ? '.exe' : ''}`;
+    const bundled = packagedResource('media', name);
+    if (existsSync(bundled)) return bundled;
+  }
   return bundledPath(packageName, key) ?? fallback;
 }
 
@@ -88,15 +98,20 @@ async function startAnalyzer(token) {
 }
 
 async function startServer(analyzerUrl, token) {
-  const serverEntry = path.join(__dirname, 'dist', 'server.mjs');
+  const serverEntry = app.isPackaged
+    ? packagedResource('server', 'server.mjs')
+    : path.join(__dirname, 'dist', 'server.mjs');
   if (!existsSync(serverEntry)) {
     throw new Error(
-      `Server bundle not found: ${serverEntry}. Run "pnpm build:server" in packaging/electron.`,
+      `Server bundle not found: ${serverEntry}. Run "pnpm build:server" and "pnpm resources".`,
     );
   }
 
   const webDist =
-    process.env.CHORDIFREE_WEB_DIST ?? path.join(__dirname, '..', '..', 'apps', 'web', 'dist');
+    process.env.CHORDIFREE_WEB_DIST ??
+    (app.isPackaged
+      ? packagedResource('web')
+      : path.join(__dirname, '..', '..', 'apps', 'web', 'dist'));
   if (!existsSync(webDist)) {
     throw new Error(`Web build not found: ${webDist}. Run "pnpm --filter @chordifree/web build".`);
   }
