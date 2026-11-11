@@ -378,20 +378,29 @@
               <div class="run-body">
                 <p data-i18n="run.windows.body">
                   An NSIS installer built by CI. It bundles the analyzer, ffmpeg and the ONNX
-                  models. Windows SmartScreen will warn until the build is signed.
+                  models. It is unsigned, so SmartScreen will warn: choose More info, then
+                  Run anyway.
                 </p>
                 <p class="run-note" data-i18n="run.windows.note">
-                  Preview build from the latest workflow run.
+                  A SHA-256 checksum is published with every release.
                 </p>
               </div>
               <div class="run-action">
                 <a
                   class="btn btn-primary btn-small"
-                  href="https://github.com/moiseslodeiro/chordifree/actions/workflows/windows-analyzer.yml"
+                  href="https://github.com/moiseslodeiro/chordifree/releases/latest"
                   target="_blank"
                   rel="noopener noreferrer"
                   data-i18n="run.windows.cta"
-                  >Open the CI build</a
+                  >Download the installer</a
+                >
+                <a
+                  class="run-inline-link"
+                  href="https://github.com/moiseslodeiro/chordifree/blob/main/docs/WINDOWS_INSTALL.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.windows.guide"
+                  >Install guide</a
                 >
               </div>
             </article>
@@ -536,8 +545,8 @@ docker compose up --build -d</code></pre>
           <details>
             <summary data-i18n="faq.4.q">Is the Windows build signed?</summary>
             <p data-i18n="faq.4.a">
-              Not yet. It is a preview built by CI, so SmartScreen will warn on first launch.
-              Code signing is planned.
+              Not yet. It is a preview built by CI, so SmartScreen will warn: choose More info,
+              then Run anyway. Verify the SHA-256 from SHA256SUMS.txt before running.
             </p>
           </details>
           <details>
