@@ -7,6 +7,18 @@ on:
         description: Build the Windows installer
         type: boolean
         default: true
+      linux:
+        description: Build the Linux installer
+        type: boolean
+        default: true
+      macos_arch:
+        description: macOS architectures to build
+        type: choice
+        options:
+          - both
+          - arm64
+          - x64
+        default: both
   push:
     tags:
       - 'v*'
@@ -255,6 +267,7 @@ jobs:
 
   macos-installer:
     name: Build the macOS installer (${{ matrix.arch }})
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arch == 'both' || inputs.macos_arch == matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
@@ -290,8 +303,22 @@ jobs:
           echo '04e27fca08e7a3aea2630d1a63a51e6b437c803e0ff6e26399f80870ac251dda  services/analyzer/models/yamnet.onnx' | shasum -a 256 -c -
           echo 'f619b35a95a44d8c3ec27a205d4c93ec988401fca443ff552ed007b3f1c018a0  services/analyzer/models/voice_instrumental.onnx' | shasum -a 256 -c -
 
+      - name: Check the analyzer imports
+        run: |
+          python - <<'PY'
+          import signal
+          signal.alarm(120)
+          import essentia
+          print('essentia', essentia.__version__)
+          import onnxruntime
+          print('onnxruntime', onnxruntime.__version__)
+          import numpy
+          print('numpy', numpy.__version__)
+          PY
+
       - name: Build the analyzer sidecar
-        run: pyinstaller packaging/analyzer/analyzer.spec --noconfirm
+        timeout-minutes: 20
+        run: pyinstaller packaging/analyzer/analyzer.spec --noconfirm --log-level DEBUG
 
       - name: Ad-hoc sign the analyzer
         run: |
@@ -364,6 +391,7 @@ jobs:
 
   linux-installer:
     name: Build the Linux installer
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.linux }}
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
