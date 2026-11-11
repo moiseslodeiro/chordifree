@@ -55,6 +55,16 @@ pnpm dist:win
 `dist:win` builds the server bundle, stages `resources/` and writes the installer
 to `release/`.
 
+## Smoke test
+
+The packaged app accepts `--smoke-test`. It starts the analyzer and the server,
+checks `/api/health`, posts `scripts/fixtures/chords.wav`, waits for the analysis
+and exits `0` only if chords were detected. CI runs it against
+`release/win-unpacked/Chordifree.exe` and uploads the log.
+
+Set `CHORDIFREE_SMOKE_LOG` to write the log to a file and
+`CHORDIFREE_SMOKE_FIXTURE` to point at a different audio file.
+
 ## What gets bundled
 
 ```
