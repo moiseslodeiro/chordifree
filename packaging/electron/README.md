@@ -36,7 +36,7 @@ On Windows the analyzer binary is `analyzer.exe` inside the
 The `Desktop builds` workflow builds the analyzer and then the NSIS installer in
 the same run:
 
-1. `windows-analyzer` builds the Essentia wheel and freezes the analyzer.
+1. `desktop-builds` builds the Essentia wheel and freezes the analyzer.
 2. `windows-installer` downloads that artifact, builds the web app and the
    server bundle, stages `resources/` and runs `electron-builder`.
 

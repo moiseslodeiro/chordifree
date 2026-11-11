@@ -17,7 +17,7 @@ ANALYZER_PORT=8123 ./dist/analyzer/analyzer
 ## Windows
 
 Essentia does not publish an official Windows wheel yet. The GitHub workflow
-`windows-analyzer.yml` builds a wheel from the open Essentia Windows PR and then
+`desktop-builds.yml` builds a wheel from the open Essentia Windows PR and then
 freezes the analyzer with PyInstaller. This is a spike, not a stable release
 dependency.
 
