@@ -198,6 +198,25 @@ jobs:
         working-directory: packaging/electron
         run: pnpm exec electron-builder --win nsis --publish never
 
+      - name: Smoke-test the packaged app
+        working-directory: packaging/electron
+        shell: pwsh
+        env:
+          CHORDIFREE_SMOKE_LOG: ${{ github.workspace }}\desktop-smoke.log
+          CHORDIFREE_SMOKE_FIXTURE: ${{ github.workspace }}\scripts\fixtures\chords.wav
+        run: |
+          $process = Start-Process -FilePath "release\win-unpacked\Chordifree.exe" -ArgumentList "--smoke-test" -Wait -PassThru
+          if (Test-Path $env:CHORDIFREE_SMOKE_LOG) { Get-Content $env:CHORDIFREE_SMOKE_LOG }
+          exit $process.ExitCode
+
+      - name: Upload the desktop smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chordifree-desktop-smoke-log
+          path: desktop-smoke.log
+          if-no-files-found: ignore
+
       - uses: actions/upload-artifact@v4
         with:
           name: chordifree-windows-installer
