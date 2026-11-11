@@ -52,7 +52,7 @@ const spanish = {
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
-    'Guarda canciones y repertorios en una biblioteca local con historial de práctica. Exporta ChordPro, imprime un PDF o haz una copia en JSON.',
+    'Guarda canciones y repertorios en una biblioteca local con historial de práctica. Exporta ChordPro, imprime un PDF, haz una copia en JSON o envía la hoja por WhatsApp, Telegram o correo.',
   'feature.5.tag': 'Biblioteca local',
 
   'product.eyebrow': 'La línea de tiempo',

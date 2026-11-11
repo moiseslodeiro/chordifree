@@ -155,6 +155,14 @@ const en = {
 
   'share.eyebrow': 'Share',
   'share.title': 'Share this song',
+  'share.quickTitle': 'Send it',
+  'share.quickBody':
+    'Open the chord sheet in WhatsApp, Telegram or your email. The song text is included.',
+  'share.whatsapp': 'WhatsApp',
+  'share.telegram': 'Telegram',
+  'share.email': 'Email',
+  'share.quickNote':
+    'Long songs may be truncated by chat apps. Use Copy chord sheet if you need the complete text.',
   'share.copySheetTitle': 'Copy the chord sheet',
   'share.copySheetBody':
     'ChordPro text with chords and lyrics. Paste it into a message or email.',
@@ -631,6 +639,14 @@ const es: Record<MessageKey, string> = {
 
   'share.eyebrow': 'Compartir',
   'share.title': 'Comparte esta canción',
+  'share.quickTitle': 'Envíalo',
+  'share.quickBody':
+    'Abre la hoja de acordes en WhatsApp, Telegram o tu correo. El texto de la canción va incluido.',
+  'share.whatsapp': 'WhatsApp',
+  'share.telegram': 'Telegram',
+  'share.email': 'Correo',
+  'share.quickNote':
+    'Las canciones largas pueden truncarse en las apps de mensajería. Usa Copiar hoja de acordes si necesitas el texto completo.',
   'share.copySheetTitle': 'Copia la hoja de acordes',
   'share.copySheetBody': 'Texto ChordPro con acordes y letra. Pégalo en un mensaje o un correo.',
   'share.copySheetAction': 'Copiar hoja de acordes',
