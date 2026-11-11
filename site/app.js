@@ -86,9 +86,10 @@ const spanish = {
   'run.windows.title': 'Vista previa para Windows',
   'run.windows.badge': 'Sin firma',
   'run.windows.body':
-    'Un instalador NSIS generado por CI. Incluye el analizador, ffmpeg y los modelos ONNX. SmartScreen avisará hasta que la build esté firmada.',
-  'run.windows.note': 'Build de vista previa de la última ejecución del workflow.',
-  'run.windows.cta': 'Abrir la build de CI',
+    'Un instalador NSIS generado por CI. Incluye el analizador, ffmpeg y los modelos ONNX. No está firmado, así que SmartScreen avisará: elige Más información y luego Ejecutar de todas formas.',
+  'run.windows.note': 'Se publica un checksum SHA-256 con cada release.',
+  'run.windows.cta': 'Descargar el instalador',
+  'run.windows.guide': 'Guía de instalación',
   'run.docker.title': 'Docker',
   'run.docker.body':
     'Clona el repositorio y arranca el stack. La primera build instala Essentia, ONNX Runtime, ffmpeg y los modelos.',
@@ -131,7 +132,7 @@ const spanish = {
     'No. El instalador incluye el analizador, ffmpeg y los modelos ONNX. Docker es la alternativa para la app web y los servidores.',
   'faq.4.q': '¿La versión de Windows está firmada?',
   'faq.4.a':
-    'Todavía no. Es una vista previa generada por CI, así que SmartScreen avisará al abrirla. La firma está prevista.',
+    'Todavía no. Es una vista previa generada por CI, así que SmartScreen avisará: elige Más información y luego Ejecutar de todas formas. Verifica el SHA-256 de SHA256SUMS.txt antes de ejecutarlo.',
   'faq.5.q': '¿Funciona con YouTube?',
   'faq.5.a':
     'Sí, mediante yt-dlp. Descargar audio de YouTube puede contravenir sus Términos de Servicio, así que usa tus propios archivos cuando no tengas derechos.',
