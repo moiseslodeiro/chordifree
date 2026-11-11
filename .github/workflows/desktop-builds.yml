@@ -11,14 +11,6 @@ on:
         description: Build the Linux installer
         type: boolean
         default: true
-      macos_arch:
-        description: macOS architectures to build
-        type: choice
-        options:
-          - both
-          - arm64
-          - x64
-        default: both
   push:
     tags:
       - 'v*'
@@ -267,7 +259,6 @@ jobs:
 
   macos-installer:
     name: Build the macOS installer (${{ matrix.arch }})
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.macos_arch == 'both' || inputs.macos_arch == matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
