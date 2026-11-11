@@ -163,6 +163,22 @@ compatibility patches. See the READMEs in `packaging/analyzer` and
 `packaging/electron` for build steps and limitations.
 
 
+## Landing page (GitHub Pages)
+
+The project site lives in `site/` and is plain HTML, CSS and a small JavaScript file.
+It has no build step. `.github/workflows/pages.yml` publishes it on every push to `main`
+that changes `site/`.
+
+To preview it locally:
+
+```bash
+python3 -m http.server 8088 -d site
+```
+
+Then open **http://localhost:8088**. To publish, enable GitHub Pages with
+**Source: GitHub Actions** in the repository settings. Pages for a private repository
+requires a plan that includes it.
+
 ## Troubleshooting
 
 - **Analyzer is down**: check `docker compose logs analyzer` and open
