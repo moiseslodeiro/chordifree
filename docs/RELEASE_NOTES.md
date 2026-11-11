@@ -20,7 +20,7 @@ This release contains unsigned preview builds for Windows, macOS and Linux.
 
 ### Linux
 
-- `chordifree-<version>-x64.AppImage` or `chordifree-<version>-x64.deb`
+- `chordifree-<version>-x86_64.AppImage` or `chordifree-<version>-amd64.deb`
 - Verify `SHA256SUMS.txt` before running it.
 - The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with `apt`.
 - Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/LINUX_INSTALL.md>

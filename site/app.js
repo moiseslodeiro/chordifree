@@ -101,7 +101,7 @@ const spanish = {
   'run.linux.title': 'Vista previa para Linux',
   'run.linux.badge': 'x64',
   'run.linux.body':
-    'AppImage y .deb para x64. Incluye el analizador, ffmpeg y los modelos ONNX. El AppImage es portable; el .deb se instala con apt.',
+    'AppImage y .deb para x86_64. Incluye el analizador, ffmpeg y los modelos ONNX. El AppImage es portable; el .deb se instala con apt.',
   'run.linux.note':
     'Compilado en Ubuntu 22.04 para glibc 2.35 o posterior. El AppImage puede necesitar FUSE. Se publica un checksum SHA-256 con cada release.',
   'run.linux.cta': 'Descargar el AppImage',

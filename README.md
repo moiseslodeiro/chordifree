@@ -193,8 +193,8 @@ Gatekeeper flow and uninstall steps.
 
 The same tag also publishes an x86_64 Linux build:
 
-- `chordifree-<version>-x64.AppImage`
-- `chordifree-<version>-x64.deb`
+- `chordifree-<version>-x86_64.AppImage`
+- `chordifree-<version>-amd64.deb`
 
 The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with
 `apt`. ARM64 Linux is not supported yet because Essentia does not publish an arm64
