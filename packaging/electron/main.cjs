@@ -202,12 +202,16 @@ async function runSmokeTest(target) {
 }
 
 function createWindow(target) {
+  const icon = app.isPackaged
+    ? packagedResource('icon.png')
+    : path.join(__dirname, 'assets', 'icon.png');
   window = new BrowserWindow({
     width: 1280,
     height: 900,
     minWidth: 900,
     minHeight: 640,
     backgroundColor: '#f6f7f9',
+    ...(existsSync(icon) ? { icon } : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -222,6 +226,7 @@ function createWindow(target) {
 }
 
 app.setName('Chordifree');
+if (process.platform === 'win32') app.setAppUserModelId('app.chordifree.desktop');
 
 app.whenReady().then(async () => {
   const token = randomBytes(32).toString('hex');

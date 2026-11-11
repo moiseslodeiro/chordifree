@@ -266,7 +266,7 @@ p {
   }
 
   .note-warning {
-    @apply border-warning bg-warning/5 text-ink;
+    @apply border-warning bg-page text-ink;
   }
 
   .note-info {
@@ -274,11 +274,11 @@ p {
   }
 
   .note-danger {
-    @apply border-danger bg-danger/5 text-ink;
+    @apply border-danger bg-page text-ink;
   }
 
   .note-success {
-    @apply border-positive bg-positive/5 text-ink;
+    @apply border-positive bg-page text-ink;
   }
 
   /* Toolbar: cells separated by thin rules. */
