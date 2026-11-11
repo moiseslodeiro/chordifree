@@ -426,7 +426,8 @@ const en = {
   'apiError.INVALID_URL': 'The link is not valid.',
   'apiError.UNSUPPORTED_HOST': 'Only YouTube links are supported.',
   'apiError.MISSING_VIDEO_ID': 'The link does not include a video ID.',
-  'apiError.VIDEO_UNAVAILABLE': 'The video is not available.',
+  'apiError.VIDEO_UNAVAILABLE':
+    'The video is not available. If you pasted a YouTube Mix or radio link, open the individual video and copy its direct link, or upload the audio.',
   'apiError.DURATION_EXCEEDED': 'The audio is too long.',
   'apiError.RATE_LIMITED': 'Too many analyses. Try again later.',
   'apiError.INVALID_AUDIO': 'The audio file is not valid.',
@@ -917,7 +918,8 @@ const es: Record<MessageKey, string> = {
   'apiError.INVALID_URL': 'El enlace no es válido.',
   'apiError.UNSUPPORTED_HOST': 'Solo se admiten enlaces de YouTube.',
   'apiError.MISSING_VIDEO_ID': 'El enlace no incluye un identificador de video.',
-  'apiError.VIDEO_UNAVAILABLE': 'El video no está disponible.',
+  'apiError.VIDEO_UNAVAILABLE':
+    'El video no está disponible. Si has pegado un Mix o radio de YouTube, abre el vídeo individual y copia su enlace directo, o sube el archivo de audio.',
   'apiError.DURATION_EXCEEDED': 'El audio es demasiado largo.',
   'apiError.RATE_LIMITED': 'Demasiados análisis. Inténtalo más tarde.',
   'apiError.INVALID_AUDIO': 'El archivo de audio no es válido.',
