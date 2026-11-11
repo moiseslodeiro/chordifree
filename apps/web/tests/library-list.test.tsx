@@ -90,7 +90,7 @@ describe('LibraryList', () => {
     expect(onExport).toHaveBeenCalledTimes(1);
 
     const file = new File(['{}'], 'backup.json', { type: 'application/json' });
-    fireEvent.change(screen.getByLabelText('Archivo de copia de seguridad'), {
+    fireEvent.change(screen.getByLabelText(/Copia de seguridad/), {
       target: { files: [file] },
     });
     expect(onImport).toHaveBeenCalledWith(file);

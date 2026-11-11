@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { t } from '../i18n';
 import { localizeApiError } from '../i18n/errors';
 import type { AnalysisResult, AnalysisView } from '../types';
-import { ApiClientError, pollAnalysis } from './api';
+import { ApiClientError, deleteAnalysis, pollAnalysis } from './api';
 
 export type RunnerPhase = 'idle' | 'starting' | 'polling' | 'done' | 'error';
 
@@ -24,10 +24,15 @@ export interface AnalysisRunner {
 export function useAnalysisRunner(): AnalysisRunner {
   const [state, setState] = useState<RunnerState>(initialState);
   const controllerRef = useRef<AbortController | null>(null);
+  const viewIdRef = useRef<string | null>(null);
 
   const cancel = useCallback(() => {
+    const id = viewIdRef.current;
+    viewIdRef.current = null;
     controllerRef.current?.abort();
     controllerRef.current = null;
+    setState(initialState);
+    if (id) void deleteAnalysis(id).catch(() => undefined);
   }, []);
 
   const reset = useCallback(() => {
@@ -44,11 +49,13 @@ export function useAnalysisRunner(): AnalysisRunner {
 
       try {
         const created = await start(controller.signal);
+        viewIdRef.current = created.id;
         setState({ phase: 'polling', view: created, error: null });
         const result = await pollAnalysis(created.id, {
           signal: controller.signal,
           onUpdate: (view) => setState({ phase: 'polling', view, error: null }),
         });
+        viewIdRef.current = null;
         setState({
           phase: 'done',
           view: { ...created, status: 'done', progress: 100, result },
@@ -56,6 +63,7 @@ export function useAnalysisRunner(): AnalysisRunner {
         });
         return result;
       } catch (error) {
+        viewIdRef.current = null;
         if (error instanceof DOMException && error.name === 'AbortError') return null;
         const apiError =
           error instanceof ApiClientError

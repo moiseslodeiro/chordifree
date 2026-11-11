@@ -35,7 +35,7 @@ services:
       TEMP_DIR: /tmp/chordifree
       MAX_DURATION_SECONDS: 900
       MAX_UPLOAD_BYTES: 26214400
-      RATE_LIMIT_MAX: 5
+      RATE_LIMIT_MAX: 60
       RATE_LIMIT_WINDOW_MS: 3600000
       TRUST_PROXY: '1'
     expose:

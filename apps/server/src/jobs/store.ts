@@ -104,6 +104,16 @@ export class JobStore {
     return view;
   }
 
+  remove(id: string): boolean {
+    const removed = this.jobs.delete(id);
+    if (removed) {
+      for (const [videoId, entry] of this.videoIndex) {
+        if (entry.jobId === id) this.videoIndex.delete(videoId);
+      }
+    }
+    return removed;
+  }
+
   sweep(): number {
     const now = this.now();
     let removed = 0;

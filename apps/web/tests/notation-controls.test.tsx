@@ -34,7 +34,7 @@ describe('NotationControls', () => {
     expect(onChange).toHaveBeenCalledWith({ transpose: 4 });
     fireEvent.click(screen.getByRole('button', { name: 'Bajar un semitono' }));
     expect(onChange).toHaveBeenCalledWith({ transpose: 2 });
-    fireEvent.click(screen.getByRole('button', { name: 'Restablecer' }));
+    fireEvent.click(screen.getByRole('button', { name: /Restablecer/ }));
     expect(onChange).toHaveBeenCalledWith({ transpose: 0 });
   });
 

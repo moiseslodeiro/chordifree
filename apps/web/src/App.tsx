@@ -13,7 +13,8 @@ import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
 import { BackupError, downloadBackup, parseBackup } from './storage/backup';
 import { decodeSongFromToken } from './lib/share';
-import { Library } from './storage/library';
+import { ChordProError, parseChordPro } from './lib/chordpro';
+import { Library, analysisCacheStats, clearAnalysisCache } from './storage/library';
 import { loadPreferences, savePreferences } from './storage/preferences';
 import { removePractice } from './storage/practice';
 import {
@@ -408,9 +409,29 @@ export default function App() {
     });
   };
 
+  const clearAnalysisCacheAndNotify = () => {
+    const removed = clearAnalysisCache(storage);
+    setNotice({ message: t('app.cacheCleared', { count: removed }), tone: 'info' });
+  };
+
   const importLibrary = async (file: File) => {
     try {
-      const imported = parseBackup(await file.text());
+      const text = await file.text();
+      const trimmed = text.trimStart();
+      const isJson = file.name.toLowerCase().endsWith('.json') || trimmed.startsWith('{"');
+
+      if (!isJson) {
+        const sheet = parseChordPro(text, file.name, preferences);
+        library.importSongs([sheet]);
+        setSongs(library.list());
+        setNotice({
+          message: t('app.importedSheet', { title: sheet.title }),
+          tone: 'success',
+        });
+        return;
+      }
+
+      const imported = parseBackup(text);
       const result = library.importSongs(imported);
       setSongs(library.list());
       setNotice({
@@ -425,7 +446,9 @@ export default function App() {
     } catch (error) {
       setNotice({
         message:
-          error instanceof BackupError ? error.message : t('app.backupImportFailed'),
+          error instanceof BackupError || error instanceof ChordProError
+            ? error.message
+            : t('app.backupImportFailed'),
         tone: 'warning',
       });
     }
@@ -523,6 +546,8 @@ export default function App() {
             onDismissNotice={() => setNotice(null)}
             onExport={exportLibrary}
             onImport={(file) => void importLibrary(file)}
+            cache={analysisCacheStats(storage)}
+            onClearCache={clearAnalysisCacheAndNotify}
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
             onBack={() => navigate({ name: 'home' })}

@@ -55,6 +55,28 @@ describe('JobStore', () => {
     expect(store.toView(store.get(job.id)!)).not.toHaveProperty('result');
   });
 
+  it('elimina un trabajo y su índice de vídeo', () => {
+    const store = new JobStore();
+    const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
+    store.update(job.id, {
+      status: 'done',
+      result: {
+        source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+        duration: 10,
+        segments: [],
+        analyzerVersion: 'v1',
+        createdAt: new Date().toISOString(),
+      },
+    });
+    store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
+    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeDefined();
+
+    expect(store.remove(job.id)).toBe(true);
+    expect(store.get(job.id)).toBeUndefined();
+    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
+    expect(store.remove('missing')).toBe(false);
+  });
+
   it('cachea el resultado por video y respeta el TTL', () => {
     let now = 1_000;
     const store = new JobStore(1_000, () => now);

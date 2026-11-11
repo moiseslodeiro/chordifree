@@ -301,7 +301,7 @@ describe('App', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Detectar acordes' }));
 
-    expect(await screen.findByText('El video no está disponible.')).toBeInTheDocument();
+    expect(await screen.findByText(/El video no está disponible/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     await waitFor(() => expect(attempts).toBe(2));
   });
@@ -547,7 +547,7 @@ describe('App', () => {
     }) as HTMLOptionElement;
     fireEvent.change(select, { target: { value: option.value } });
 
-    expect(await screen.findByText('Demo sincronizada')).toBeInTheDocument();
+    expect((await screen.findAllByText('Demo sincronizada')).length).toBeGreaterThan(0);
   });
 
   it('abre la biblioteca vacía desde la pantalla de inicio', async () => {

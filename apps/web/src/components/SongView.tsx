@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   chordDegree,
   chordEquals,
@@ -107,6 +107,8 @@ export function SongView({
   const [editing, setEditing] = useState(false);
   const [editingLyrics, setEditingLyrics] = useState(false);
   const [lyricsDraft, setLyricsDraft] = useState('');
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsDraft, setDetailsDraft] = useState({ title: '', artist: '' });
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -115,7 +117,9 @@ export function SongView({
     tone: 'success' | 'warning';
   } | null>(null);
   const shareCloseRef = useRef<HTMLButtonElement>(null);
+  const shareDialogRef = useRef<HTMLDivElement>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
+  const [performance, setPerformance] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
 
@@ -128,7 +132,28 @@ export function SongView({
     if (!shareOpen) return;
     shareCloseRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setShareOpen(false);
+      if (event.key === 'Escape') {
+        setShareOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const dialog = shareDialogRef.current;
+      if (!dialog) return;
+      const focusables = [
+        ...dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((element) => element.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -158,6 +183,32 @@ export function SongView({
       cancelled = true;
     };
   }, [shareOpen, song]);
+
+  useEffect(() => {
+    document.body.classList.toggle('performance-mode', performance);
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setPerformance(false);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => {
+      document.body.classList.remove('performance-mode');
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+    };
+  }, [performance]);
+
+  const togglePerformance = () => {
+    if (performance) {
+      setPerformance(false);
+      if (document.fullscreenElement) {
+        const exit = document.exitFullscreen;
+        if (exit) void exit.call(document).catch(() => undefined);
+      }
+      return;
+    }
+    setPerformance(true);
+    const request = document.documentElement.requestFullscreen;
+    if (request) void request.call(document.documentElement).catch(() => undefined);
+  };
 
   const handleAdapter = useCallback((next: PlayerAdapter | null) => {
     setAdapter(next);
@@ -284,10 +335,27 @@ export function SongView({
   }, [displaySegments, song.notation, accidental, estimatedKey]);
 
   const artist = useMemo(() => {
+    if (song.artist?.trim()) return song.artist.trim();
     const separator = song.title.indexOf(' - ');
     if (separator <= 0) return null;
     return song.title.slice(0, separator).trim() || null;
-  }, [song.title]);
+  }, [song.artist, song.title]);
+
+  const openDetails = () => {
+    setDetailsDraft({ title: song.title, artist: artist ?? '' });
+    setEditingDetails(true);
+  };
+
+  const applyDetails = (event: FormEvent) => {
+    event.preventDefault();
+    const title = detailsDraft.title.trim() || song.title;
+    const artistValue = detailsDraft.artist.trim();
+    const updated: Song = { ...song, title, updatedAt: new Date().toISOString() };
+    if (artistValue) updated.artist = artistValue;
+    else delete updated.artist;
+    onChange(updated);
+    setEditingDetails(false);
+  };
 
   useEffect(() => {
     clock?.setSegments(displaySegments);
@@ -518,15 +586,18 @@ export function SongView({
   const sourceLabel =
     song.source.type === 'youtube'
       ? t('song.sourceYoutube', { id: song.source.videoId })
-      : t('song.sourceUpload', { name: song.source.filename });
+      : song.source.type === 'sheet'
+        ? t('song.sourceSheet', { name: song.source.filename })
+        : t('song.sourceUpload', { name: song.source.filename });
 
   return (
     <div className="space-y-5">
+      {performance ? <h1 className="sr-only">{song.title}</h1> : null}
       {notice ? (
         <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
       ) : null}
 
-      <header className="border-b border-line pb-5">
+      <header className="song-header border-b border-line pb-5">
         <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
           <button
             type="button"
@@ -565,6 +636,16 @@ export function SongView({
             {!editingLyrics ? (
               <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
                 {editing ? t('song.exitEdit') : t('song.editChords')}
+              </button>
+            ) : null}
+            {!editing && !editingLyrics ? (
+              <button type="button" className="btn" onClick={openDetails}>
+                {t('song.editDetails')}
+              </button>
+            ) : null}
+            {!editing && !editingLyrics ? (
+              <button type="button" className="btn" onClick={togglePerformance}>
+                {performance ? t('song.exitPerformance') : t('song.performance')}
               </button>
             ) : null}
             {!editing && !editingLyrics ? (
@@ -617,8 +698,48 @@ export function SongView({
         </div>
       </header>
 
+      {editingDetails ? (
+        <form
+          className="song-details-form grid gap-4 rounded-xl border border-line bg-panel-2/40 p-4 sm:grid-cols-2 sm:p-5"
+          onSubmit={applyDetails}
+        >
+          <label className="block">
+            <span className="eyebrow block">{t('song.detailsTitle')}</span>
+            <input
+              className="field mt-2"
+              value={detailsDraft.title}
+              onChange={(event) =>
+                setDetailsDraft((current) => ({ ...current, title: event.target.value }))
+              }
+              autoFocus
+            />
+          </label>
+          <label className="block">
+            <span className="eyebrow block">{t('song.detailsArtist')}</span>
+            <input
+              className="field mt-2"
+              value={detailsDraft.artist}
+              onChange={(event) =>
+                setDetailsDraft((current) => ({ ...current, artist: event.target.value }))
+              }
+            />
+          </label>
+          <p className="text-xs leading-relaxed text-ink3 sm:col-span-2">
+            {t('song.detailsHint')}
+          </p>
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <button type="submit" className="btn btn-primary">
+              {t('song.detailsApply')}
+            </button>
+            <button type="button" className="btn" onClick={() => setEditingDetails(false)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </form>
+      ) : null}
+
       {adapter && clock ? (
-        <div className="space-y-2">
+        <div className="song-controls space-y-2">
           <Transport
             adapter={adapter}
             clock={clock}
@@ -648,13 +769,13 @@ export function SongView({
           />
         </div>
       ) : (
-        <div className="rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
+        <div className="song-controls rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
           {t('song.controlsUnavailable')}
         </div>
       )}
 
       <section
-        className="flex flex-wrap items-stretch overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
+        className="song-toolbar flex flex-wrap items-stretch overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
         aria-label="Barra de herramientas"
       >
         <NotationControls
@@ -733,7 +854,7 @@ export function SongView({
 
         <aside
           data-testid="song-tools-column"
-          className="order-1 space-y-5 lg:order-none lg:sticky lg:top-5"
+          className="song-tools order-1 space-y-5 lg:order-none lg:sticky lg:top-5"
           aria-label="Video y herramientas"
         >
           <section
@@ -810,10 +931,22 @@ export function SongView({
         <footer className="print-footer">
           {song.source.type === 'youtube'
             ? t('song.printYoutube', { id: song.source.videoId })
-            : t('song.printAudio', { name: song.source.filename })}{' '}
+            : song.source.type === 'sheet'
+              ? t('song.printSheet', { name: song.source.filename })
+              : t('song.printAudio', { name: song.source.filename })}{' '}
           · {t('song.generatedOn', { date: new Date().toLocaleDateString() })}
         </footer>
       </section>
+
+      {performance ? (
+        <button
+          type="button"
+          className="btn btn-secondary fixed bottom-4 right-4 z-[60]"
+          onClick={togglePerformance}
+        >
+          {t('song.exitPerformance')}
+        </button>
+      ) : null}
 
       {shareOpen ? (
         <div
@@ -824,6 +957,7 @@ export function SongView({
           }}
         >
           <div
+            ref={shareDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="share-title"

@@ -19,3 +19,14 @@ export function videoIdFromUrl(input: string): string | null {
     return null;
   }
 }
+
+
+/** True for YouTube Mix/radio URLs, whose seed video may not be available. */
+export function isYoutubeRadio(input: string): boolean {
+  try {
+    const url = new URL(input.trim());
+    return url.searchParams.get('list')?.startsWith('RD') === true || url.searchParams.get('start_radio') === '1';
+  } catch {
+    return false;
+  }
+}

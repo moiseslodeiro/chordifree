@@ -387,3 +387,19 @@ describe('normalización de la respuesta del analizador', () => {
     expect(body.result.beatsPerBar).toBe(4);
   });
 });
+
+
+describe('DELETE /api/analyses/:id', () => {
+  it('elimina el trabajo y deja de estar disponible', async () => {
+    const app = await buildApp();
+    const created = await request(app)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+
+    const deleted = await request(app).delete(`/api/analyses/${created.body.id}`);
+    expect(deleted.status).toBe(204);
+
+    const missing = await request(app).get(`/api/analyses/${created.body.id}`);
+    expect(missing.status).toBe(404);
+  });
+});

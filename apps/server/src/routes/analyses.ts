@@ -39,6 +39,7 @@ function startJob(
       const report = (progress: number) => deps.store.update(job.id, { progress });
       try {
         const result = await task(report);
+        if (!deps.store.get(job.id)) return;
         deps.store.update(job.id, { status: 'done', progress: 100, result });
         if (job.source.type === 'youtube') {
           deps.store.indexVideo(job.source.videoId, job.id, result.analyzerVersion);
@@ -113,6 +114,17 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
       const job = deps.store.create(source);
       startJob(job, (report) => analyzeYoutube(videoId, deps, report), deps);
       res.status(202).json(deps.store.toView(job));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/:id', (req, res, next) => {
+    try {
+      if (!deps.store.remove(req.params.id)) {
+        throw new ApiError('NOT_FOUND', 'Analysis not found');
+      }
+      res.status(204).end();
     } catch (error) {
       next(error);
     }

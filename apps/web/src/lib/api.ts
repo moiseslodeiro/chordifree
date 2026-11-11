@@ -38,8 +38,7 @@ export async function getHealth(signal?: AbortSignal): Promise<{
       analyzer: body.analyzer === 'ok' ? 'ok' : 'down',
       analyzerVersion: body.analyzerVersion ?? 'unknown',
     };
-  } catch (error) {
-    if (error instanceof ApiClientError) throw error;
+  } catch {
     return { analyzer: 'down', analyzerVersion: 'unknown' };
   }
 }
@@ -65,6 +64,17 @@ export async function createUploadAnalysis(
   form.append('file', file);
   const response = await fetch('/api/analyses', { method: 'POST', body: form, signal });
   return parseResponse(response);
+}
+
+export async function deleteAnalysis(id: string): Promise<void> {
+  const response = await fetch(`/api/analyses/${id}`, { method: 'DELETE' });
+  if (!response.ok && response.status !== 404) {
+    throw new ApiClientError(
+      'DELETE_FAILED',
+      t('error.api', { status: response.status }),
+      response.status,
+    );
+  }
 }
 
 export async function getAnalysis(id: string, signal?: AbortSignal): Promise<AnalysisView> {

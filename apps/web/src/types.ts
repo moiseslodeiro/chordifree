@@ -1,7 +1,9 @@
 import type { AccidentalPreference, ChordSegment, Notation } from '@chordifree/chords';
 
 export type AnalysisSource =
-  { type: 'youtube'; videoId: string; title?: string } | { type: 'upload'; filename: string };
+  | { type: 'youtube'; videoId: string; title?: string }
+  | { type: 'upload'; filename: string }
+  | { type: 'sheet'; filename: string };
 
 export type AppNoticeTone = 'info' | 'warning' | 'success';
 
@@ -35,6 +37,8 @@ export interface AnalysisView {
 export interface Song {
   id: string;
   title: string;
+  /** Optional artist, separate from the title once the user edits details. */
+  artist?: string;
   source: AnalysisSource;
   duration: number;
   segments: ChordSegment[];
@@ -102,11 +106,13 @@ export function supportsCapo(instrument: Instrument): boolean {
 }
 
 export function sourceKey(source: AnalysisSource): string {
-  return source.type === 'youtube' ? `yt:${source.videoId}` : `upload:${source.filename}`;
+  if (source.type === 'youtube') return `yt:${source.videoId}`;
+  return `${source.type}:${source.filename}`;
 }
 
 export function defaultTitle(source: AnalysisSource): string {
-  return source.type === 'youtube' ? `Video ${source.videoId}` : source.filename;
+  if (source.type === 'youtube') return `Video ${source.videoId}`;
+  return source.filename.replace(/\.(cho|pro|crd|txt)$/i, '');
 }
 
 export function songFromResult(result: AnalysisResult, preferences: Preferences): Song {
