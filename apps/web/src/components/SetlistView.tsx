@@ -1,5 +1,8 @@
 import { formatTime } from '@chordifree/chords';
+import { useState } from 'react';
 import { useT } from '../i18n';
+import { emailShareUrl, telegramShareUrl, whatsappShareUrl } from '../lib/share';
+import { NoticeBanner } from './ErrorBanner';
 import type { Setlist, SongSummary } from '../types';
 
 interface SetlistViewProps {
@@ -26,12 +29,45 @@ export function SetlistView({
   onBack,
 }: SetlistViewProps) {
   const t = useT();
+  const [sharing, setSharing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<{
+    message: string;
+    tone: 'success' | 'warning';
+  } | null>(null);
   const byId = new Map(songs.map((song) => [song.id, song]));
   const ordered = setlist.songIds
     .map((id) => byId.get(id))
     .filter((song): song is SongSummary => Boolean(song));
   const missing = setlist.songIds.length - ordered.length;
   const available = songs.filter((song) => !setlist.songIds.includes(song.id));
+
+  const setlistText = () =>
+    [
+      setlist.name,
+      '',
+      ...ordered.map((song, index) => `${index + 1}. ${song.title}`),
+      '',
+      'Chordifree: https://github.com/moiseslodeiro/chordifree',
+    ].join('\n');
+
+  const copySetlist = async () => {
+    try {
+      await navigator.clipboard.writeText(setlistText());
+      setShareNotice({ message: t('setlists.copied'), tone: 'success' });
+    } catch {
+      setShareNotice({ message: t('setlists.copyFailed'), tone: 'warning' });
+    }
+  };
+
+  const shareSetlist = (target: 'whatsapp' | 'telegram' | 'email') => {
+    const text = setlistText();
+    if (target === 'email') {
+      window.location.href = emailShareUrl(setlist.name, text);
+      return;
+    }
+    const url = target === 'whatsapp' ? whatsappShareUrl(text) : telegramShareUrl(text);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const rename = () => {
     const name = window.prompt(t('setlists.renamePrompt'), setlist.name);
@@ -60,6 +96,12 @@ export function SetlistView({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn" onClick={() => setSharing((open) => !open)}>
+            {t('setlists.share')}
+          </button>
+          <button type="button" className="btn" onClick={() => window.print()}>
+            {t('setlists.print')}
+          </button>
           <button type="button" className="btn" onClick={rename}>
             {t('setlists.rename')}
           </button>
@@ -76,6 +118,43 @@ export function SetlistView({
           </button>
         </div>
       </header>
+
+      {sharing ? (
+        <div className="border-b border-line px-6 py-4 sm:px-8">
+          <p className="eyebrow">{t('setlists.shareTitle')}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn" onClick={() => void copySetlist()}>
+              {t('setlists.copy')}
+            </button>
+            <button type="button" className="btn" onClick={() => shareSetlist('whatsapp')}>
+              {t('share.whatsapp')}
+            </button>
+            <button type="button" className="btn" onClick={() => shareSetlist('telegram')}>
+              {t('share.telegram')}
+            </button>
+            <button type="button" className="btn" onClick={() => shareSetlist('email')}>
+              {t('share.email')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setSharing(false)}
+            >
+              {t('common.close')}
+            </button>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-ink3">{t('setlists.shareNote')}</p>
+          {shareNotice ? (
+            <div className="mt-3">
+              <NoticeBanner
+                message={shareNotice.message}
+                tone={shareNotice.tone}
+                onDismiss={() => setShareNotice(null)}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="border-b border-line px-6 py-4 sm:px-8">
         <label htmlFor="setlist-add-song" className="eyebrow block">
@@ -129,7 +208,11 @@ export function SetlistView({
                   {song.title}
                 </span>
                 <span className="badge shrink-0">
-                  {song.source.type === 'youtube' ? 'YouTube' : t('library.uploadSource')}
+                  {song.source.type === 'youtube'
+                    ? 'YouTube'
+                    : song.source.type === 'sheet'
+                      ? t('library.sheetSource')
+                      : t('library.uploadSource')}
                 </span>
                 <span className="font-mono text-xs tabular-nums text-ink3">
                   {formatTime(song.duration)}
@@ -166,6 +249,28 @@ export function SetlistView({
           ))}
         </ol>
       )}
+
+      <section className="print-setlist" aria-hidden="true">
+        <header>
+          <p className="print-brand">chordifree</p>
+          <h1>{setlist.name}</h1>
+          <p className="print-meta">
+            {t('setlists.songCount', {
+              count: ordered.length,
+              label: ordered.length === 1 ? t('common.song') : t('common.songs'),
+            })}
+          </p>
+        </header>
+        <ol>
+          {ordered.map((song, index) => (
+            <li key={song.id}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <span>{song.title}</span>
+              <span>{formatTime(song.duration)}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
     </section>
   );
 }

@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   WEB_DIST: z.string().optional(),
   MAX_DURATION_SECONDS: z.coerce.number().positive().default(900),
   MAX_UPLOAD_BYTES: z.coerce.number().positive().default(25 * 1024 * 1024),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
   TRUST_PROXY: z.coerce.number().int().min(0).default(1),
   TEMP_DIR: z.string().default('./.tmp'),

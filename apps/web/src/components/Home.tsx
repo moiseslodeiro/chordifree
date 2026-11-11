@@ -6,7 +6,7 @@ import { isDesktopApp } from '../lib/platform';
 import { useAnalysisRunner } from '../lib/useAnalysis';
 import { createDemoSong, DEMO_AUDIO_URL } from '../demo';
 import { useT } from '../i18n';
-import { videoIdFromUrl } from '../lib/youtube';
+import { isYoutubeRadio, videoIdFromUrl } from '../lib/youtube';
 import { AnalysisCache } from '../storage/library';
 import type { StorageLike } from '../storage/keys';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
@@ -59,6 +59,7 @@ export function Home({
   const retryRef = useRef<(() => void) | null>(null);
 
   const busy = runner.state.phase === 'starting' || runner.state.phase === 'polling';
+  const radioHint = mode === 'youtube' && isYoutubeRadio(url);
   const runnerError = runner.state.error;
 
   const guideSteps = desktop
@@ -199,6 +200,9 @@ export function Home({
                 <p className="text-xs leading-relaxed text-ink3">
                   {t('home.youtubeHelp')}
                 </p>
+                {radioHint ? (
+                  <p className="text-xs leading-relaxed text-warning">{t('home.radioHint')}</p>
+                ) : null}
               </div>
             ) : (
               <div className="space-y-2">
@@ -293,6 +297,16 @@ export function Home({
               <p className="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-ink3">
                 Essentia · {analyzerVersion}
               </p>
+              {analyzerStatus === 'down' ? (
+                <a
+                  className="mt-2 inline-block text-xs text-accent underline decoration-line-strong underline-offset-4"
+                  href="https://github.com/moiseslodeiro/chordifree#quick-start-with-docker"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('home.analyzerHelp')}
+                </a>
+              ) : null}
             </div>
           )}
 

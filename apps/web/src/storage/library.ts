@@ -30,6 +30,7 @@ function isSource(value: unknown): boolean {
   if (!isRecord(value)) return false;
   if (value.type === 'youtube') return typeof value.videoId === 'string';
   if (value.type === 'upload') return typeof value.filename === 'string';
+  if (value.type === 'sheet') return typeof value.filename === 'string';
   return false;
 }
 
@@ -47,6 +48,7 @@ export function isSong(value: unknown): value is Song {
   return (
     typeof value.id === 'string' &&
     typeof value.title === 'string' &&
+    (value.artist === undefined || typeof value.artist === 'string') &&
     isSource(value.source) &&
     typeof value.duration === 'number' &&
     Array.isArray(value.segments) &&
@@ -112,6 +114,21 @@ export function purgeAnalysisCache(storage: StorageLike, count = 5): number {
 
   entries.slice(0, count).forEach((entry) => removeKey(storage, entry.key));
   return Math.min(count, entries.length);
+}
+
+export function clearAnalysisCache(storage: StorageLike): number {
+  const keys = listKeys(storage, `${PREFIX}:analysis:`);
+  for (const key of keys) removeKey(storage, key);
+  return keys.length;
+}
+
+export function analysisCacheStats(storage: StorageLike): { entries: number; bytes: number } {
+  const keys = listKeys(storage, `${PREFIX}:analysis:`);
+  let bytes = 0;
+  for (const key of keys) {
+    bytes += (key.length + (storage.getItem(key)?.length ?? 0)) * 2;
+  }
+  return { entries: keys.length, bytes };
 }
 
 export interface ImportResult {
@@ -280,5 +297,9 @@ export class AnalysisCache {
 
   purge(count = 5): number {
     return purgeAnalysisCache(this.storage, count);
+  }
+
+  clear(): number {
+    return clearAnalysisCache(this.storage);
   }
 }

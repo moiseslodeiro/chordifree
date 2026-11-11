@@ -846,6 +846,39 @@ p {
   display: none;
 }
 
+.print-setlist {
+  display: none;
+}
+
+/* Performance mode: keep the chord grid and hide the app chrome. */
+body.performance-mode .shell > header,
+body.performance-mode [data-testid='site-footer'],
+body.performance-mode .song-header,
+body.performance-mode .song-details-form,
+body.performance-mode .song-controls,
+body.performance-mode .song-toolbar,
+body.performance-mode .song-tools,
+body.performance-mode .print-sheet {
+  display: none !important;
+}
+
+body.performance-mode main {
+  padding-top: 0 !important;
+}
+
+body.performance-mode [data-testid='song-layout'] {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0 !important;
+}
+
+body.performance-mode [data-testid='song-grid-column'] {
+  order: 0 !important;
+}
+
+body.performance-mode .song-view {
+  padding-bottom: 2rem;
+}
+
 @media print {
   @page {
     margin: 16mm;
@@ -872,6 +905,56 @@ p {
     color: #111;
     background: #fff;
     font-family: var(--font-display);
+  }
+
+  .print-setlist,
+  .print-setlist * {
+    visibility: visible;
+  }
+
+  .print-setlist {
+    display: block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #111;
+    background: #fff;
+    font-family: var(--font-display);
+  }
+
+  .print-setlist header {
+    border-bottom: 2px solid #111;
+    padding-bottom: 8mm;
+  }
+
+  .print-setlist h1 {
+    margin-top: 4mm;
+    font-size: 24pt;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .print-setlist ol {
+    margin: 8mm 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .print-setlist li {
+    display: grid;
+    grid-template-columns: 12mm minmax(0, 1fr) auto;
+    gap: 4mm;
+    border-bottom: 1px solid #ddd;
+    padding: 2.5mm 0;
+    font-size: 12pt;
+    break-inside: avoid;
+  }
+
+  .print-setlist li span:first-child,
+  .print-setlist li span:last-child {
+    color: #666;
+    font-family: var(--font-mono);
+    font-size: 9pt;
   }
 
   .print-sheet-header {

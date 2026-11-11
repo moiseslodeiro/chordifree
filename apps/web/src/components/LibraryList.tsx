@@ -5,13 +5,20 @@ import { useLanguage, useT, type MessageKey } from '../i18n';
 import { isDesktopApp } from '../lib/platform';
 import { NoticeBanner } from './ErrorBanner';
 
-type SourceFilter = 'all' | 'youtube' | 'upload';
+type SourceFilter = 'all' | 'youtube' | 'upload' | 'sheet';
 
 const SOURCE_FILTERS: { value: SourceFilter; label: MessageKey }[] = [
   { value: 'all', label: 'library.filterAll' },
   { value: 'youtube', label: 'library.filterYoutube' },
   { value: 'upload', label: 'library.filterUpload' },
+  { value: 'sheet', label: 'library.filterSheet' },
 ];
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function normalize(value: string): string {
   return value
@@ -32,6 +39,8 @@ interface LibraryListProps {
   onDismissNotice?: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
+  cache?: { entries: number; bytes: number };
+  onClearCache?: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onBack: () => void;
@@ -57,6 +66,8 @@ export function LibraryList({
   onDismissNotice,
   onExport,
   onImport,
+  cache,
+  onClearCache,
   onOpen,
   onDelete,
   onBack,
@@ -116,9 +127,9 @@ export function LibraryList({
           <input
             ref={fileInput}
             type="file"
-            accept=".json,application/json"
+            accept=".json,.cho,.pro,.crd,.txt,application/json,text/plain"
             className="sr-only"
-            aria-label={t('library.backupFile')}
+            aria-label={t('library.importFile')}
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = '';
@@ -248,7 +259,9 @@ export function LibraryList({
                       <span className="badge">
                         {song.source.type === 'youtube'
                           ? 'YouTube'
-                          : t('library.uploadSource')}
+                          : song.source.type === 'sheet'
+                            ? t('library.sheetSource')
+                            : t('library.uploadSource')}
                       </span>
                       <span className="font-mono tabular-nums">{formatTime(song.duration)}</span>
                       <span aria-hidden="true">·</span>
@@ -287,6 +300,23 @@ export function LibraryList({
           )}
         </>
       )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4 text-xs text-ink3 sm:px-8">
+        <span>
+          {t('library.cacheStats', {
+            count: cache?.entries ?? 0,
+            size: formatBytes(cache?.bytes ?? 0),
+          })}
+        </span>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={!cache?.entries}
+          onClick={onClearCache}
+        >
+          {t('library.clearCache')}
+        </button>
+      </div>
     </section>
   );
 }
