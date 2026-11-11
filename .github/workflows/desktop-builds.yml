@@ -18,10 +18,10 @@ jobs:
       # Our repository is checked out at the workspace root so the patch script
       # and the test fixture are available; Essentia lives in essentia-src.
       - name: Checkout Chordifree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout the Essentia Windows PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: MTG/essentia
           ref: refs/pull/1514/head
@@ -100,7 +100,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -164,7 +164,7 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         with:
@@ -262,7 +262,7 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -358,7 +358,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -447,7 +447,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/download-artifact@v4
         with:
