@@ -24,9 +24,13 @@ import { useT } from '../i18n';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
 import {
   MAX_SHARE_URL,
+  buildShareMessage,
   buildShareUrl,
   canShareLinks,
+  emailShareUrl,
   encodeSongForShare,
+  telegramShareUrl,
+  whatsappShareUrl,
 } from '../lib/share';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
@@ -110,6 +114,7 @@ export function SongView({
     tone: 'success' | 'warning';
   } | null>(null);
   const shareCloseRef = useRef<HTMLButtonElement>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
 
@@ -132,6 +137,26 @@ export function SongView({
       document.body.style.overflow = previousOverflow;
     };
   }, [shareOpen]);
+
+  useEffect(() => {
+    if (!shareOpen || !canShareLinks()) {
+      setShareLink(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = await encodeSongForShare(song);
+        const url = buildShareUrl(token);
+        if (!cancelled) setShareLink(url.length <= MAX_SHARE_URL ? url : null);
+      } catch {
+        if (!cancelled) setShareLink(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [shareOpen, song]);
 
   const handleAdapter = useCallback((next: PlayerAdapter | null) => {
     setAdapter(next);
@@ -454,18 +479,29 @@ export function SongView({
   };
 
   const copyShareLink = async () => {
+    if (!shareLink) {
+      setShareNotice({ message: t('share.tooLong'), tone: 'warning' });
+      return;
+    }
     try {
-      const token = await encodeSongForShare(song);
-      const url = buildShareUrl(token);
-      if (url.length > MAX_SHARE_URL) {
-        setShareNotice({ message: t('share.tooLong'), tone: 'warning' });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareLink);
       setShareNotice({ message: t('share.linkDone'), tone: 'success' });
     } catch {
       setShareNotice({ message: t('share.failed'), tone: 'warning' });
     }
+  };
+
+  const shareTo = (target: 'whatsapp' | 'telegram' | 'email') => {
+    const message = buildShareMessage(song.title, chordProContent(), shareLink);
+    if (target === 'email') {
+      window.location.href = emailShareUrl(song.title, message);
+      return;
+    }
+    const url =
+      target === 'whatsapp'
+        ? whatsappShareUrl(message)
+        : telegramShareUrl(message, shareLink);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const nativeShare = async () => {
@@ -534,6 +570,7 @@ export function SongView({
                 className="btn"
                 onClick={() => {
                   setShareNotice(null);
+                  setShareLink(null);
                   setShareOpen(true);
                 }}
               >
@@ -818,6 +855,31 @@ export function SongView({
 
             <div className="mt-6 space-y-5">
               <div>
+                <h3 className="text-sm font-semibold text-ink">{t('share.quickTitle')}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.quickBody')}</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => shareTo('whatsapp')}
+                  >
+                    {t('share.whatsapp')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => shareTo('telegram')}
+                  >
+                    {t('share.telegram')}
+                  </button>
+                  <button type="button" className="btn" onClick={() => shareTo('email')}>
+                    {t('share.email')}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-ink3">{t('share.quickNote')}</p>
+              </div>
+
+              <div className="border-t border-line pt-5">
                 <h3 className="text-sm font-semibold text-ink">{t('share.copySheetTitle')}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-ink3">
                   {t('share.copySheetBody')}

@@ -146,6 +146,36 @@ export function buildShareUrl(token: string): string {
   return url.toString();
 }
 
+/** Plain text for chat apps and email, with a link back to Chordifree. */
+export function buildShareMessage(
+  title: string,
+  chordSheet: string,
+  url?: string | null,
+): string {
+  const lines = [title.trim(), '', chordSheet.trim(), ''];
+  lines.push(
+    url
+      ? `Open in Chordifree: ${url}`
+      : 'Chordifree: https://github.com/moiseslodeiro/chordifree',
+  );
+  return lines.join('\n');
+}
+
+export function whatsappShareUrl(message: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+export function telegramShareUrl(message: string, url?: string | null): string {
+  const params = new URLSearchParams();
+  params.set('url', url ?? 'https://github.com/moiseslodeiro/chordifree');
+  params.set('text', message);
+  return `https://t.me/share/url?${params.toString()}`;
+}
+
+export function emailShareUrl(subject: string, body: string): string {
+  return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 /**
  * A link only makes sense when the sender and receiver use the same hosted
  * instance. On localhost or inside the desktop shell, share a file instead.

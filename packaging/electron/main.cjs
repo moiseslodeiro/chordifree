@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { existsSync, mkdirSync, openSync, appendFileSync, readFileSync } = require('node:fs');
@@ -151,6 +151,16 @@ async function startServer(analyzerUrl, token) {
   return `http://127.0.0.1:${port}`;
 }
 
+function openExternal(url) {
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) return;
+    void shell.openExternal(url);
+  } catch {
+    // Ignore malformed URLs.
+  }
+}
+
 function smokeFixture() {
   if (process.env.CHORDIFREE_SMOKE_FIXTURE) return process.env.CHORDIFREE_SMOKE_FIXTURE;
   const candidate = app.isPackaged
@@ -219,6 +229,18 @@ function createWindow(target) {
       preload: path.join(__dirname, 'preload.cjs'),
     },
   });
+
+  const origin = new URL(target).origin;
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    openExternal(url);
+    return { action: 'deny' };
+  });
+  window.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith(origin)) return;
+    event.preventDefault();
+    openExternal(url);
+  });
+
   void window.loadURL(target);
   window.on('closed', () => {
     window = null;
