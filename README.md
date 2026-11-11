@@ -154,11 +154,13 @@ A local desktop build is being explored in `packaging/`:
   workflow produces `chordifree-analyzer-windows`.
 
 The Windows spike is validated end to end (`/health`, audio analysis and the
-`C/F/G` smoke test). This is still not a signed installer: packaging with
-`electron-builder`, code signing and auto-updates are pending. Essentia does not
-publish an official Windows wheel, so the workflow builds one from the open
-Windows-wheel PR and applies small compatibility patches. See the READMEs in
-`packaging/analyzer` and `packaging/electron` for build steps and limitations.
+`C/F/G` smoke test). The same workflow stages the analyzer, web app, server and
+media binaries, and produces an **unsigned NSIS installer** as
+`chordifree-windows-installer`. Code signing, notarization and auto-updates are
+still pending. Essentia does not publish an official Windows wheel, so the
+workflow builds one from the open Windows-wheel PR and applies small
+compatibility patches. See the READMEs in `packaging/analyzer` and
+`packaging/electron` for build steps and limitations.
 
 
 ## Troubleshooting

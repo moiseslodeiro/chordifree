@@ -1,0 +1,28 @@
+appId: app.chordifree.desktop
+productName: Chordifree
+copyright: Copyright © Chordifree contributors
+
+directories:
+  output: release
+
+files:
+  - main.cjs
+  - preload.cjs
+  - package.json
+
+extraResources:
+  - from: resources
+    to: .
+
+win:
+  executableName: Chordifree
+  target:
+    - nsis
+  artifactName: chordifree-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
