@@ -3,6 +3,13 @@ import type { AccidentalPreference, ChordSegment, Notation } from '@chordifree/c
 export type AnalysisSource =
   { type: 'youtube'; videoId: string; title?: string } | { type: 'upload'; filename: string };
 
+export type AppNoticeTone = 'info' | 'warning' | 'success';
+
+export interface AppNotice {
+  message: string;
+  tone: AppNoticeTone;
+}
+
 export interface AnalysisResult {
   source: AnalysisSource;
   duration: number;

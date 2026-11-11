@@ -26,7 +26,7 @@ import {
   saveSetlists,
 } from './storage/setlists';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
-import type { Preferences, Setlist, Song } from './types';
+import type { AppNotice, Preferences, Setlist, Song } from './types';
 
 type Route =
   | { name: 'home' }
@@ -34,11 +34,6 @@ type Route =
   | { name: 'setlists' }
   | { name: 'setlist'; id: string }
   | { name: 'song'; id: string };
-
-interface Notice {
-  message: string;
-  tone: 'info' | 'warning' | 'success';
-}
 
 function parseHash(): Route {
   if (typeof window === 'undefined') return { name: 'home' };
@@ -103,7 +98,7 @@ export default function App() {
     initial.song ? audioUrlForSong(initial.song) : null,
   );
   const [songs, setSongs] = useState(() => library.list());
-  const [notice, setNotice] = useState<Notice | null>(() =>
+  const [notice, setNotice] = useState<AppNotice | null>(() =>
     hasQuarantinedData(storage)
       ? {
           message: t('app.storageCorrupt'),
@@ -513,7 +508,7 @@ export default function App() {
             analyzerVersion={health.version}
             analyzerStatus={health.status}
             libraryCount={songs.length}
-            notice={notice?.message ?? null}
+            notice={notice}
             onDismissNotice={() => setNotice(null)}
             onOpenLibrary={() => navigate({ name: 'library' })}
             onAnalyzed={openSong}
@@ -573,7 +568,7 @@ export default function App() {
             reduceChordsMax={preferences.reduceChordsMax}
             instrument={preferences.instrument}
             gridView={preferences.gridView}
-            notice={notice?.message ?? null}
+            notice={notice}
             onDismissNotice={() => setNotice(null)}
             onChange={(next) => {
               songRef.current = next;

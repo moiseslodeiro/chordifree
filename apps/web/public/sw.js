@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chordifree-v1';
+const CACHE_NAME = 'chordifree-v2';
 const APP_SHELL = [
   '/',
   '/index.html',

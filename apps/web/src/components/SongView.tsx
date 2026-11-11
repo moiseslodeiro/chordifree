@@ -39,6 +39,7 @@ import { usePracticeSession } from '../practice/usePracticeSession';
 import { PlaybackClock } from '../sync/clock';
 import {
   supportsCapo,
+  type AppNotice,
   type GridView,
   type Instrument,
   type Preferences,
@@ -67,7 +68,7 @@ interface SongViewProps {
   reduceChordsMax: boolean;
   instrument: Instrument;
   gridView: GridView;
-  notice: string | null;
+  notice: AppNotice | null;
   onDismissNotice: () => void;
   onChange: (song: Song) => void;
   onSave: (song: Song) => void;
@@ -521,7 +522,9 @@ export function SongView({
 
   return (
     <div className="space-y-5">
-      {notice ? <NoticeBanner message={notice} tone="warning" onDismiss={onDismissNotice} /> : null}
+      {notice ? (
+        <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
+      ) : null}
 
       <header className="border-b border-line pb-5">
         <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
