@@ -46,7 +46,13 @@ await mkdir(path.join(output, 'server'), { recursive: true });
 await mkdir(path.join(output, 'media'), { recursive: true });
 
 await cp(webDist, path.join(output, 'web'), { recursive: true });
-await cp(analyzerDir, path.join(output, 'analyzer'), { recursive: true });
+// PyInstaller relies on relative symlinks (especially Python.framework on
+// macOS). Node rewrites them to absolute source paths unless verbatimSymlinks
+// is set, which breaks codesign and makes the bundle non-relocatable.
+await cp(analyzerDir, path.join(output, 'analyzer'), {
+  recursive: true,
+  verbatimSymlinks: true,
+});
 await cp(serverBundle, path.join(output, 'server', 'server.mjs'));
 await cp(path.join(here, 'assets', 'icon.png'), path.join(output, 'icon.png'));
 

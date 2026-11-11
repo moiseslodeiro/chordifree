@@ -2,6 +2,11 @@ name: Desktop builds
 
 on:
   workflow_dispatch:
+    inputs:
+      windows:
+        description: Build the Windows installer
+        type: boolean
+        default: true
   push:
     tags:
       - 'v*'
@@ -9,6 +14,7 @@ on:
 jobs:
   essentia-wheel:
     name: Build Essentia Windows wheel
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
     runs-on: windows-latest
     timeout-minutes: 180
     env:
@@ -96,6 +102,7 @@ jobs:
 
   analyzer-sidecar:
     name: Freeze and smoke-test the analyzer
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
     needs: essentia-wheel
     runs-on: windows-latest
     timeout-minutes: 60
@@ -158,6 +165,7 @@ jobs:
 
   windows-installer:
     name: Build the Windows installer
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
     needs: analyzer-sidecar
     runs-on: windows-latest
     timeout-minutes: 45
