@@ -27,5 +27,13 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0",
     "vitest": "^2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moiseslodeiro/chordifree.git"
+  },
+  "homepage": "https://moiseslodeiro.github.io/chordifree/",
+  "bugs": {
+    "url": "https://github.com/moiseslodeiro/chordifree/issues"
   }
 }
