@@ -5,9 +5,15 @@
   "description": "Electron spike for the local Chordifree desktop app",
   "main": "main.cjs",
   "scripts": {
+    "build:server": "node build.mjs",
     "start": "electron ."
   },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "esbuild": "^0.25.0"
   }
 }

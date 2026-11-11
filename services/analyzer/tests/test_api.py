@@ -43,3 +43,23 @@ def test_analiza_wav_valido(chord_wav: Path) -> None:
     body = response.json()
     assert set(body) >= {"segments", "duration", "analyzerVersion"}
     assert body["segments"]
+
+
+def test_token_local(monkeypatch, chord_wav: Path) -> None:
+    monkeypatch.setattr("app.main.ANALYZER_TOKEN", "secret-token")
+
+    with chord_wav.open("rb") as handle:
+        payload = handle.read()
+
+    rejected = client.post(
+        "/analyze",
+        files={"file": (chord_wav.name, payload, "audio/wav")},
+    )
+    assert rejected.status_code == 401
+
+    accepted = client.post(
+        "/analyze",
+        headers={"X-Chordifree-Token": "secret-token"},
+        files={"file": (chord_wav.name, payload, "audio/wav")},
+    )
+    assert accepted.status_code == 200

@@ -146,14 +146,19 @@ The end-to-end suite needs Playwright browsers installed
 A local desktop build is being explored in `packaging/`:
 
 - `packaging/analyzer`: PyInstaller spec for the FastAPI analyzer sidecar.
-- `packaging/electron`: minimal Electron shell that starts the sidecar on a random
-  local port and opens the web app.
-- `.github/workflows/windows-analyzer.yml`: spike that builds an Essentia Windows
-  wheel, freezes the analyzer with PyInstaller and smoke-tests it on Windows.
+- `packaging/electron`: Electron shell that starts the analyzer and the bundled
+  Express server on random local ports, serves the built web app and protects the
+  analyzer with a per-launch token.
+- `.github/workflows/windows-analyzer.yml`: builds an Essentia Windows wheel,
+  freezes the analyzer with PyInstaller and smoke-tests it on Windows. The
+  workflow produces `chordifree-analyzer-windows`.
 
-This is not a stable installer yet. Essentia does not publish an official Windows
-wheel, so the workflow uses the open Windows-wheel PR. See the READMEs in
-`packaging/analyzer` and `packaging/electron` for current limitations.
+The Windows spike is validated end to end (`/health`, audio analysis and the
+`C/F/G` smoke test). This is still not a signed installer: packaging with
+`electron-builder`, code signing and auto-updates are pending. Essentia does not
+publish an official Windows wheel, so the workflow builds one from the open
+Windows-wheel PR and applies small compatibility patches. See the READMEs in
+`packaging/analyzer` and `packaging/electron` for build steps and limitations.
 
 
 ## Troubleshooting

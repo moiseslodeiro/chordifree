@@ -35,8 +35,9 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     store: options.store ?? new JobStore(),
     queue: options.queue ?? new JobQueue(2),
     tools: options.tools ?? createMediaTools(config),
-    analyzer: options.analyzer ?? createAnalyzerClient(config.analyzerUrl),
-    webDist: options.webDist ?? resolve(here, '../../web/dist'),
+    analyzer:
+      options.analyzer ?? createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken),
+    webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
   const app = express();

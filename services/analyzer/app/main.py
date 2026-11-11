@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hmac
 import os
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from starlette.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
@@ -12,8 +13,17 @@ from .analysis import ANALYZER_VERSION, AnalyzerUnavailable, analyze_file
 
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".webm", ".mp4"}
 MAX_UPLOAD_BYTES = 64 * 1024 * 1024
+ANALYZER_TOKEN = os.environ.get("ANALYZER_TOKEN", "")
 
 app = FastAPI(title="Chordifree Analyzer", version=ANALYZER_VERSION)
+
+
+def require_analyzer_token(x_chordifree_token: str | None = Header(default=None)) -> None:
+    """Reject cross-origin callers that guess the local analyzer port."""
+    if not ANALYZER_TOKEN:
+        return
+    if not x_chordifree_token or not hmac.compare_digest(x_chordifree_token, ANALYZER_TOKEN):
+        raise HTTPException(status_code=401, detail="Invalid analyzer token")
 
 
 @app.get("/health")
@@ -22,7 +32,10 @@ def health() -> dict[str, str]:
 
 
 @app.post("/analyze")
-async def analyze(file: UploadFile = File(...)) -> JSONResponse:
+async def analyze(
+    file: UploadFile = File(...),
+    _: None = Depends(require_analyzer_token),
+) -> JSONResponse:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=422, detail="Unsupported audio format")
