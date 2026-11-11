@@ -189,4 +189,23 @@ describe('Home', () => {
       filename: 'cancion.wav',
     });
   });
+
+  it('en escritorio oculta el estado del analizador y empieza por la subida', () => {
+    window.chordifreeDesktop = { isDesktop: true };
+    try {
+      renderHome();
+      expect(screen.queryByText('Estado del analizador')).not.toBeInTheDocument();
+      expect(screen.getByText('Análisis local')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Archivo de audio' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('tab', { name: 'Enlace de YouTube' })).toHaveAttribute(
+        'aria-selected',
+        'false',
+      );
+    } finally {
+      delete window.chordifreeDesktop;
+    }
+  });
 });

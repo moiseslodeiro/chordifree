@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { Preferences, Song } from '../types';
 import { songFromResult } from '../types';
 import { createUploadAnalysis, createYoutubeAnalysis, sha256File } from '../lib/api';
+import { isDesktopApp } from '../lib/platform';
 import { useAnalysisRunner } from '../lib/useAnalysis';
 import { createDemoSong, DEMO_AUDIO_URL } from '../demo';
 import { useT } from '../i18n';
@@ -48,9 +49,10 @@ export function Home({
   onAnalyzed,
 }: HomeProps) {
   const t = useT();
+  const desktop = isDesktopApp();
   const cache = useMemo(() => new AnalysisCache(storage), [storage]);
   const runner = useAnalysisRunner();
-  const [mode, setMode] = useState<'youtube' | 'upload'>('youtube');
+  const [mode, setMode] = useState<'youtube' | 'upload'>(desktop ? 'upload' : 'youtube');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -58,6 +60,18 @@ export function Home({
 
   const busy = runner.state.phase === 'starting' || runner.state.phase === 'polling';
   const runnerError = runner.state.error;
+
+  const guideSteps = desktop
+    ? [
+        ['01', t('home.desktopStep1Title'), t('home.desktopStep1Body')],
+        ['02', t('home.desktopStep2Title'), t('home.desktopStep2Body')],
+        ['03', t('home.desktopStep3Title'), t('home.desktopStep3Body')],
+      ]
+    : [
+        ['01', t('home.step1Title'), t('home.step1Body')],
+        ['02', t('home.step2Title'), t('home.step2Body')],
+        ['03', t('home.step3Title'), t('home.step3Body')],
+      ];
 
   const submitYoutube = async () => {
     setProblem(null);
@@ -138,28 +152,25 @@ export function Home({
           <p className="eyebrow">{t('home.eyebrow')}</p>
           <h1 className="display mt-3 text-4xl sm:text-5xl">{t('home.title')}</h1>
           <p className="mt-4 max-w-[47ch] text-sm leading-relaxed text-ink2 sm:text-base">
-            {t('home.subtitle')}
+            {t(desktop ? 'home.subtitleDesktop' : 'home.subtitle')}
           </p>
 
           <div className="mt-8 flex flex-wrap border-b border-line" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'youtube'}
-              className="tab -mb-px mr-6 pb-2"
-              onClick={() => setMode('youtube')}
-            >
-              {t('home.youtubeTab')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'upload'}
-              className="tab -mb-px pb-2"
-              onClick={() => setMode('upload')}
-            >
-              {t('home.uploadTab')}
-            </button>
+            {(desktop
+              ? (['upload', 'youtube'] as const)
+              : (['youtube', 'upload'] as const)
+            ).map((value, index, list) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={mode === value}
+                className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
+                onClick={() => setMode(value)}
+              >
+                {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
+              </button>
+            ))}
           </div>
 
           <form
@@ -248,38 +259,47 @@ export function Home({
         </div>
 
         <aside className="flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
-          <div>
-            <p className="eyebrow">{t('home.analyzerStatus')}</p>
-            <p className="mt-3 flex items-center gap-2 font-display text-xl font-bold leading-none text-ink">
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 rounded-full ${
-                  analyzerStatus === 'ok'
-                    ? 'bg-positive'
-                    : analyzerStatus === 'down'
-                      ? 'bg-accent'
-                      : 'bg-ink3'
-                }`}
-              />
-              {analyzerStatus === 'ok'
-                ? t('home.available')
-                : analyzerStatus === 'down'
-                  ? t('home.unavailable')
-                  : t('home.checking')}
-            </p>
-            <p className="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-ink3">
-              Essentia · {analyzerVersion}
-            </p>
-          </div>
+          {desktop ? (
+            <div>
+              <p className="eyebrow">{t('home.desktopLocalTitle')}</p>
+              <p className="mt-3 flex items-center gap-2 font-display text-xl font-bold leading-none text-ink">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-positive" />
+                {t('home.desktopLocalStatus')}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-ink3">
+                {t('home.desktopLocalBody')}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="eyebrow">{t('home.analyzerStatus')}</p>
+              <p className="mt-3 flex items-center gap-2 font-display text-xl font-bold leading-none text-ink">
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${
+                    analyzerStatus === 'ok'
+                      ? 'bg-positive'
+                      : analyzerStatus === 'down'
+                        ? 'bg-accent'
+                        : 'bg-ink3'
+                  }`}
+                />
+                {analyzerStatus === 'ok'
+                  ? t('home.available')
+                  : analyzerStatus === 'down'
+                    ? t('home.unavailable')
+                    : t('home.checking')}
+              </p>
+              <p className="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-ink3">
+                Essentia · {analyzerVersion}
+              </p>
+            </div>
+          )}
 
           <div>
             <p className="eyebrow">{t('home.howItWorks')}</p>
             <ol className="mt-3 space-y-3">
-              {[
-                ['01', t('home.step1Title'), t('home.step1Body')],
-                ['02', t('home.step2Title'), t('home.step2Body')],
-                ['03', t('home.step3Title'), t('home.step3Body')],
-              ].map(([number, title, body]) => (
+              {guideSteps.map(([number, title, body]) => (
                 <li key={number} className="flex gap-3">
                   <span className="mt-0.5 font-mono text-[0.62rem] tracking-[0.1em] text-accent">
                     {number}
@@ -295,10 +315,12 @@ export function Home({
             </ol>
           </div>
 
-          <div className="note note-info mt-auto text-xs leading-relaxed">
-            <strong className="font-semibold text-ink">{t('home.legalTitle')}</strong>{' '}
-            {t('home.legalBody')}
-          </div>
+          {!desktop || mode === 'youtube' ? (
+            <div className="note note-info mt-auto text-xs leading-relaxed">
+              <strong className="font-semibold text-ink">{t('home.legalTitle')}</strong>{' '}
+              {t('home.legalBody')}
+            </div>
+          ) : null}
         </aside>
       </section>
     </div>

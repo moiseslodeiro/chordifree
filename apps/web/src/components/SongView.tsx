@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   chordDegree,
   chordEquals,
@@ -22,6 +22,13 @@ import {
 import type { PlayerAdapter } from '../player/types';
 import { useT } from '../i18n';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
+import {
+  MAX_SHARE_URL,
+  buildShareUrl,
+  canShareLinks,
+  encodeSongForShare,
+} from '../lib/share';
+import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
@@ -97,6 +104,12 @@ export function SongView({
   const [lyricsDraft, setLyricsDraft] = useState('');
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareNotice, setShareNotice] = useState<{
+    message: string;
+    tone: 'success' | 'warning';
+  } | null>(null);
+  const shareCloseRef = useRef<HTMLButtonElement>(null);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
 
@@ -104,6 +117,21 @@ export function SongView({
     setEditingLyrics(false);
     setLyricsDraft('');
   }, [song.id]);
+
+  useEffect(() => {
+    if (!shareOpen) return;
+    shareCloseRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShareOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [shareOpen]);
 
   const handleAdapter = useCallback((next: PlayerAdapter | null) => {
     setAdapter(next);
@@ -389,8 +417,8 @@ export function SongView({
     setLyricsDraft('');
   };
 
-  const exportChordProFile = () => {
-    const content = buildChordPro({
+  const chordProContent = () =>
+    buildChordPro({
       title: song.title,
       artist,
       key: estimatedKey,
@@ -404,8 +432,50 @@ export function SongView({
       accidental,
       vocalRegions: song.vocalRegions,
     });
+
+  const exportChordProFile = () => {
+    const content = chordProContent();
     const base = song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
     downloadChordPro(`${base}.cho`, content);
+  };
+
+  const copyChordSheet = async () => {
+    try {
+      await navigator.clipboard.writeText(chordProContent());
+      setShareNotice({ message: t('share.copySheetDone'), tone: 'success' });
+    } catch {
+      setShareNotice({ message: t('share.failed'), tone: 'warning' });
+    }
+  };
+
+  const downloadShareFile = () => {
+    downloadSong(song);
+    setShareNotice({ message: t('share.fileDone'), tone: 'success' });
+  };
+
+  const copyShareLink = async () => {
+    try {
+      const token = await encodeSongForShare(song);
+      const url = buildShareUrl(token);
+      if (url.length > MAX_SHARE_URL) {
+        setShareNotice({ message: t('share.tooLong'), tone: 'warning' });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareNotice({ message: t('share.linkDone'), tone: 'success' });
+    } catch {
+      setShareNotice({ message: t('share.failed'), tone: 'warning' });
+    }
+  };
+
+  const nativeShare = async () => {
+    if (typeof navigator.share !== 'function') return;
+    try {
+      await navigator.share({ title: song.title, text: chordProContent() });
+    } catch (error) {
+      if ((error as DOMException)?.name === 'AbortError') return;
+      setShareNotice({ message: t('share.failed'), tone: 'warning' });
+    }
   };
 
   const sourceLabel =
@@ -456,6 +526,18 @@ export function SongView({
             {!editingLyrics ? (
               <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
                 {editing ? t('song.exitEdit') : t('song.editChords')}
+              </button>
+            ) : null}
+            {!editing && !editingLyrics ? (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setShareNotice(null);
+                  setShareOpen(true);
+                }}
+              >
+                {t('song.share')}
               </button>
             ) : null}
             {!editing && !editingLyrics && printRows.length > 0 ? (
@@ -692,6 +774,92 @@ export function SongView({
           · {t('song.generatedOn', { date: new Date().toLocaleDateString() })}
         </footer>
       </section>
+
+      {shareOpen ? (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 px-4 pb-10 pt-[10vh]"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShareOpen(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-title"
+            className="mx-auto w-full max-w-lg rounded-2xl border border-line bg-panel p-6 shadow-2xl sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">{t('share.eyebrow')}</p>
+                <h2 id="share-title" className="display mt-2 text-2xl">
+                  {t('share.title')}
+                </h2>
+              </div>
+              <button
+                ref={shareCloseRef}
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShareOpen(false)}
+              >
+                {t('common.close')}
+              </button>
+            </div>
+
+            {shareNotice ? (
+              <div className="mt-4">
+                <NoticeBanner
+                  message={shareNotice.message}
+                  tone={shareNotice.tone}
+                  onDismiss={() => setShareNotice(null)}
+                />
+              </div>
+            ) : null}
+
+            <div className="mt-6 space-y-5">
+              <div>
+                <h3 className="text-sm font-semibold text-ink">{t('share.copySheetTitle')}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-ink3">
+                  {t('share.copySheetBody')}
+                </p>
+                <button type="button" className="btn mt-3" onClick={() => void copyChordSheet()}>
+                  {t('share.copySheetAction')}
+                </button>
+              </div>
+
+              <div className="border-t border-line pt-5">
+                <h3 className="text-sm font-semibold text-ink">{t('share.fileTitle')}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.fileBody')}</p>
+                <button type="button" className="btn mt-3" onClick={downloadShareFile}>
+                  {t('share.fileAction')}
+                </button>
+              </div>
+
+              {canShareLinks() ? (
+                <div className="border-t border-line pt-5">
+                  <h3 className="text-sm font-semibold text-ink">{t('share.linkTitle')}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.linkBody')}</p>
+                  <button type="button" className="btn mt-3" onClick={() => void copyShareLink()}>
+                    {t('share.linkAction')}
+                  </button>
+                </div>
+              ) : (
+                <p className="border-t border-line pt-5 text-xs leading-relaxed text-ink3">
+                  {t('share.linkUnavailable')}
+                </p>
+              )}
+
+              {typeof navigator.share === 'function' ? (
+                <div className="border-t border-line pt-5">
+                  <button type="button" className="btn" onClick={() => void nativeShare()}>
+                    {t('share.native')}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

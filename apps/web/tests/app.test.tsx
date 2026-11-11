@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
+import { createDemoSong } from '../src/demo';
 import { setLanguage } from '../src/i18n';
+import { encodeSongForShare } from '../src/lib/share';
 import { KEYS } from '../src/storage/keys';
+import { DEFAULT_PREFERENCES } from '../src/storage/preferences';
 
 function response(body: unknown, status = 200): Response {
   return {
@@ -552,5 +555,17 @@ describe('App', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Biblioteca \(0\)/ }));
     expect(await screen.findByText('Todavía no hay canciones')).toBeInTheDocument();
+  });
+
+  it('importa una canción compartida desde el hash', async () => {
+    stubApi();
+    const song = createDemoSong(DEFAULT_PREFERENCES);
+    const token = await encodeSongForShare(song);
+    window.location.hash = `#share=${token}`;
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: song.title })).toBeInTheDocument();
+    expect(window.location.hash.startsWith('#/song/')).toBe(true);
   });
 });

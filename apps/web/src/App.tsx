@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getHealth } from './lib/api';
 import { createYoutubeAnalysis } from './lib/api';
+import { isDesktopApp } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT, setLanguage } from './i18n';
 import { Home } from './components/Home';
@@ -11,6 +12,7 @@ import { SongView } from './components/SongView';
 import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
 import { BackupError, downloadBackup, parseBackup } from './storage/backup';
+import { decodeSongFromToken } from './lib/share';
 import { Library } from './storage/library';
 import { loadPreferences, savePreferences } from './storage/preferences';
 import { removePractice } from './storage/practice';
@@ -71,6 +73,7 @@ function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
 
 export default function App() {
   const t = useT();
+  const desktop = isDesktopApp();
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
   const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
@@ -95,6 +98,7 @@ export default function App() {
   const [route, setRoute] = useState<Route>(initial.route);
   const [song, setSong] = useState<Song | null>(initial.song);
   const songRef = useRef<Song | null>(initial.song);
+  const shareHandled = useRef(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(
     initial.song ? audioUrlForSong(initial.song) : null,
   );
@@ -226,6 +230,26 @@ export default function App() {
     if (window.location.hash !== hashFor(next)) window.location.hash = hashFor(next);
     applyRoute(next);
   };
+
+  useEffect(() => {
+    const match = /^#share=(.+)$/.exec(window.location.hash);
+    if (!match || shareHandled.current) return;
+    shareHandled.current = true;
+
+    void (async () => {
+      try {
+        const shared = await decodeSongFromToken(decodeURIComponent(match[1]!));
+        library.importSongs([shared]);
+        setSongs(library.list());
+        openSong(shared, null);
+        setNotice({ message: t('share.imported'), tone: 'success' });
+      } catch {
+        setNotice({ message: t('share.invalid'), tone: 'warning' });
+        navigate({ name: 'home' });
+      }
+    })();
+    // The token is consumed once, on first load; later renders must not re-import it.
+  }, []);
 
   const updateSetlists = (updater: (current: Setlist[]) => Setlist[]) => {
     setSetlists((current) => {
@@ -440,7 +464,7 @@ export default function App() {
           </span>
         </button>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>
+          {desktop ? null : <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>}
           <button
             type="button"
             className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em]"
@@ -575,7 +599,7 @@ export default function App() {
         data-testid="site-footer"
         className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-ink3"
       >
-        <span>{t('footer.tagline')}</span>
+        <span>{t(desktop ? 'footer.desktopTagline' : 'footer.tagline')}</span>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
           <a
             className="transition hover:text-accent"

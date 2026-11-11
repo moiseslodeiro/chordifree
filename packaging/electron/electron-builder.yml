@@ -16,6 +16,7 @@ extraResources:
 
 win:
   executableName: Chordifree
+  icon: assets/icon.ico
   target:
     - nsis
   artifactName: chordifree-${version}-setup.${ext}

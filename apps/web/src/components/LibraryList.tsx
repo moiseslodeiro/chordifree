@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import type { SongHistory, SongSummary } from '../types';
 import { useLanguage, useT, type MessageKey } from '../i18n';
+import { isDesktopApp } from '../lib/platform';
 import { NoticeBanner } from './ErrorBanner';
 
 type SourceFilter = 'all' | 'youtube' | 'upload';
@@ -63,6 +64,7 @@ export function LibraryList({
 }: LibraryListProps) {
   const t = useT();
   const language = useLanguage();
+  const desktop = isDesktopApp();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<SourceFilter>('all');
   const fileInput = useRef<HTMLInputElement>(null);
@@ -91,7 +93,9 @@ export function LibraryList({
         <div>
           <p className="eyebrow">{t('library.eyebrow')}</p>
           <h1 className="display mt-2 text-3xl sm:text-4xl">{t('library.title')}</h1>
-          <p className="mt-2 text-sm text-ink2">{t('library.localOnly')}</p>
+          <p className="mt-2 text-sm text-ink2">
+            {t(desktop ? 'library.localOnlyDesktop' : 'library.localOnly')}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button

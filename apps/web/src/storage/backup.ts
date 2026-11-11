@@ -71,15 +71,33 @@ export function backupFilename(now: Date = new Date()): string {
   return `chordifree-biblioteca-${now.toISOString().slice(0, 10)}.json`;
 }
 
-/** Downloads the backup as JSON in the browser. */
-export function downloadBackup(songs: Song[], now: Date = new Date()): void {
-  const blob = new Blob([serializeBackup(songs, now)], { type: 'application/json' });
+export function songFilename(song: Song): string {
+  const base =
+    song.title
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'chordifree-song';
+  return `${base}.chordifree.json`;
+}
+
+function download(filename: string, content: string): void {
+  const blob = new Blob([content], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = backupFilename(now);
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Downloads the backup as JSON in the browser. */
+export function downloadBackup(songs: Song[], now: Date = new Date()): void {
+  download(backupFilename(now), serializeBackup(songs, now));
+}
+
+/** Downloads one song in the same format used by Import JSON. */
+export function downloadSong(song: Song, now: Date = new Date()): void {
+  download(songFilename(song), serializeBackup([song], now));
 }

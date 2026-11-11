@@ -48,6 +48,7 @@ await mkdir(path.join(output, 'media'), { recursive: true });
 await cp(webDist, path.join(output, 'web'), { recursive: true });
 await cp(analyzerDir, path.join(output, 'analyzer'), { recursive: true });
 await cp(serverBundle, path.join(output, 'server', 'server.mjs'));
+await cp(path.join(here, 'assets', 'icon.png'), path.join(output, 'icon.png'));
 
 for (const [name, source] of mediaBinaries()) {
   const target = path.join(output, 'media', `${name}${path.extname(source)}`);
