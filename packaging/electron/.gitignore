@@ -2,3 +2,5 @@ node_modules/
 dist/
 resources/
 release/
+assets/icon.icns
+assets/icon.iconset/

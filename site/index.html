@@ -406,9 +406,47 @@
               </div>
             </article>
 
+
             <article class="run-row">
               <div class="run-title">
                 <span class="run-index">02</span>
+                <h3 data-i18n="run.macos.title">macOS preview</h3>
+                <span class="run-badge" data-i18n="run.macos.badge">Not notarized</span>
+              </div>
+              <div class="run-body">
+                <p data-i18n="run.macos.body">
+                  DMG and ZIP builds for Apple Silicon and Intel. They are ad-hoc signed, not
+                  notarized, so Gatekeeper will ask you to allow the app in Privacy and
+                  Security.
+                </p>
+                <p class="run-note" data-i18n="run.macos.note">
+                  macOS 13 or later on Intel, macOS 15 or later on Apple Silicon. A SHA-256
+                  checksum is published with every release.
+                </p>
+              </div>
+              <div class="run-action">
+                <a
+                  class="btn btn-secondary btn-small"
+                  href="https://github.com/moiseslodeiro/chordifree/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.macos.cta"
+                  >Download the DMG</a
+                >
+                <a
+                  class="run-inline-link"
+                  href="https://github.com/moiseslodeiro/chordifree/blob/main/docs/MACOS_INSTALL.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.macos.guide"
+                  >macOS guide</a
+                >
+              </div>
+            </article>
+
+            <article class="run-row">
+              <div class="run-title">
+                <span class="run-index">03</span>
                 <h3 data-i18n="run.docker.title">Docker</h3>
               </div>
               <div class="run-body">
@@ -447,7 +485,7 @@ docker compose up --build -d</code></pre>
 
             <article class="run-row">
               <div class="run-title">
-                <span class="run-index">03</span>
+                <span class="run-index">04</span>
                 <h3 data-i18n="run.pwa.title">Self hosted web app</h3>
               </div>
               <div class="run-body">
@@ -537,10 +575,10 @@ docker compose up --build -d</code></pre>
             </p>
           </details>
           <details>
-            <summary data-i18n="faq.3.q">Does the Windows build need Docker?</summary>
+            <summary data-i18n="faq.3.q">Do the desktop builds need Docker?</summary>
             <p data-i18n="faq.3.a">
-              No. The installer bundles the analyzer, ffmpeg and the ONNX models. Docker is the
-              alternative for the web app and servers.
+              No. The Windows and macOS installers bundle the analyzer, ffmpeg and the ONNX
+              models. Docker is the alternative for the web app and servers.
             </p>
           </details>
           <details>
@@ -548,6 +586,13 @@ docker compose up --build -d</code></pre>
             <p data-i18n="faq.4.a">
               Not yet. It is a preview built by CI, so SmartScreen will warn: choose More info,
               then Run anyway. Verify the SHA-256 from SHA256SUMS.txt before running.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.10.q">Why does macOS block the app?</summary>
+            <p data-i18n="faq.10.a">
+              The macOS build is ad-hoc signed and not notarized. Allow it in System Settings →
+              Privacy & Security, then open it again. The macOS install guide has the steps.
             </p>
           </details>
           <details>

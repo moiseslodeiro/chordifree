@@ -1,11 +1,22 @@
-## Chordifree for Windows (unsigned preview)
+## Chordifree desktop preview
 
-This is an unsigned preview build. Windows SmartScreen will warn on first launch.
+This release contains unsigned preview builds for Windows and macOS.
 
-- Verify `SHA256SUMS.txt` before running the installer.
+### Windows
+
+- Download `chordifree-<version>-setup.exe`.
+- Verify `SHA256SUMS.txt` before running it.
 - SmartScreen: **More info → Run anyway**.
-- Install guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/WINDOWS_INSTALL.md>
-- License: AGPL-3.0.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/WINDOWS_INSTALL.md>
 
-The installer is built by GitHub Actions from the tagged commit. It bundles the local
-analyzer, ffmpeg and the ONNX models.
+### macOS
+
+- Apple Silicon: `chordifree-<version>-arm64.dmg`
+- Intel: `chordifree-<version>-x64.dmg`
+- Verify `SHA256SUMS.txt` before opening it.
+- The app is ad-hoc signed, not notarized. If Gatekeeper blocks it, open **System Settings →
+  Privacy & Security → Open Anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/MACOS_INSTALL.md>
+
+The installers are built by GitHub Actions from the tagged commit. They bundle the local
+analyzer, ffmpeg and the ONNX models. Code signing and notarization are not available yet.

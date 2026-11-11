@@ -1,4 +1,4 @@
-# Electron spike
+# Electron desktop app
 
 This shell runs the whole desktop stack locally:
 
@@ -33,8 +33,8 @@ On Windows the analyzer binary is `analyzer.exe` inside the
 
 ## Build the Windows installer
 
-The `Windows analyzer spike` workflow builds the analyzer and then the NSIS
-installer in the same run:
+The `Desktop builds` workflow builds the analyzer and then the NSIS installer in
+the same run:
 
 1. `windows-analyzer` builds the Essentia wheel and freezes the analyzer.
 2. `windows-installer` downloads that artifact, builds the web app and the
@@ -55,12 +55,39 @@ pnpm dist:win
 `dist:win` builds the server bundle, stages `resources/` and writes the installer
 to `release/`.
 
+## Build the macOS installer
+
+The macOS builds use the official Essentia wheels: arm64 on macOS 15+ and x64 on
+macOS 13+. The workflow builds both in a matrix on `macos-15` and
+`macos-15-intel`, ad-hoc signs the analyzer and the bundled tools, and runs the
+packaged smoke test.
+
+To build locally on macOS:
+
+```bash
+pnpm --filter @chordifree/web build
+# Build the analyzer first (see ../analyzer/README.md) so dist/analyzer exists.
+cd packaging/electron
+pnpm install --ignore-workspace
+pnpm dist:mac
+```
+
+`dist:mac` builds the server bundle, stages the resources, creates
+`assets/icon.icns` with `sips`/`iconutil`, and writes the DMG and ZIP to
+`release/`. The build is ad-hoc signed (`mac.identity: "-"`), not notarized, so
+Gatekeeper asks the user to allow it. See
+[`../../docs/MACOS_INSTALL.md`](../../docs/MACOS_INSTALL.md).
+
+The workflow needs `macos-15` (arm64) and `macos-15-intel` runners because the
+Essentia arm64 wheel targets macOS 15 and the x64 wheel targets macOS 13.
+
 ## Smoke test
 
 The packaged app accepts `--smoke-test`. It starts the analyzer and the server,
 checks `/api/health`, posts `scripts/fixtures/chords.wav`, waits for the analysis
-and exits `0` only if chords were detected. CI runs it against
-`release/win-unpacked/Chordifree.exe` and uploads the log.
+and exits `0` only if chords were detected. CI runs it against `release/win-unpacked/Chordifree.exe` on Windows and
+`release/mac*/Chordifree.app/Contents/MacOS/Chordifree` on macOS, and uploads
+the log.
 
 Set `CHORDIFREE_SMOKE_LOG` to write the log to a file and
 `CHORDIFREE_SMOKE_FIXTURE` to point at a different audio file.
@@ -69,10 +96,10 @@ Set `CHORDIFREE_SMOKE_LOG` to write the log to a file and
 
 ```
 resources/
-  analyzer/   analyzer.exe, _internal/ (DLLs and ONNX models)
+  analyzer/   analyzer (or analyzer.exe), _internal/ (libraries and ONNX models)
   web/        built web app
   server/     server.mjs
-  media/      ffmpeg.exe, ffprobe.exe
+  media/      ffmpeg and ffprobe (with .exe on Windows)
 ```
 
 ## Environment overrides
@@ -90,7 +117,9 @@ YouTube jobs.
 
 ## Still missing
 
-- Code signing, notarization and auto-updates.
-- A Windows smoke test that launches the installed app, not only the analyzer.
+- Real code signing, macOS notarization and auto-updates.
+- A release smoke test that launches the installed app from the installer, not
+  only the unpacked build.
+- Bundling `yt-dlp` for YouTube analysis on desktop. Uploads work out of the box.
 - Default the desktop UI to audio uploads and keep YouTube in an advanced
   section, to reduce legal risk.
