@@ -88,7 +88,7 @@ jobs:
         # Windows configuration that ships with the PR (vcpkg deps + env vars).
         run: python -m cibuildwheel --platform windows --config-file cibuildwheel.toml --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: essentia-windows-wheel
           path: essentia-src/wheelhouse/*.whl
@@ -150,7 +150,7 @@ jobs:
           PY
           taskkill //F //IM analyzer.exe || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chordifree-analyzer-windows
           path: dist/analyzer
@@ -214,7 +214,7 @@ jobs:
 
       - name: Upload the desktop smoke log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chordifree-desktop-smoke-log
           path: desktop-smoke.log
@@ -237,7 +237,7 @@ jobs:
             echo 'Unsigned preview. SmartScreen: **More info → Run anyway**.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chordifree-windows-installer
           path: |
@@ -339,13 +339,13 @@ jobs:
 
       - name: Upload the desktop smoke log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}-smoke-log
           path: desktop-smoke.log
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -425,13 +425,13 @@ jobs:
 
       - name: Upload the desktop smoke log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chordifree-linux-x64-smoke-log
           path: desktop-smoke.log
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chordifree-linux-x64
           path: |
