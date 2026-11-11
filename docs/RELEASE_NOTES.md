@@ -1,6 +1,8 @@
 ## Chordifree desktop preview
 
-This release contains unsigned preview builds for Windows, macOS and Linux.
+This release contains unsigned preview builds for Windows, macOS Apple Silicon and Linux x86_64.
+
+> The macOS Intel build is pending and will be added when available.
 
 ### Windows
 
@@ -12,7 +14,7 @@ This release contains unsigned preview builds for Windows, macOS and Linux.
 ### macOS
 
 - Apple Silicon: `chordifree-<version>-arm64.dmg`
-- Intel: `chordifree-<version>-x64.dmg`
+- Intel: pending; it will be added to the release.
 - Verify `SHA256SUMS.txt` before opening it.
 - The app is ad-hoc signed, not notarized. If Gatekeeper blocks it, open **System Settings →
   Privacy & Security → Open Anyway**.

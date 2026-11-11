@@ -182,7 +182,7 @@ git push origin v0.1.0
 The same tag also publishes two macOS builds:
 
 - `chordifree-<version>-arm64.dmg` (Apple Silicon, macOS 15+)
-- `chordifree-<version>-x64.dmg` (Intel, macOS 13+)
+- `chordifree-<version>-x64.dmg` (Intel, macOS 13+; pending for the first preview)
 
 They are ad-hoc signed and not notarized, so Gatekeeper asks the user to allow the
 app in **System Settings → Privacy & Security**. See

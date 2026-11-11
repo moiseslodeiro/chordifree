@@ -1,5 +1,8 @@
 # Install Chordifree on macOS
 
+The v0.1.0 preview currently ships the Apple Silicon build only; the Intel build will be
+added when available.
+
 Chordifree for macOS is a preview build. It is **ad-hoc signed and not notarized**, so macOS
 Gatekeeper will ask you to allow it the first time you open it.
 
