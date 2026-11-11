@@ -153,7 +153,7 @@ A local desktop build is being explored in `packaging/`:
 - `packaging/electron`: Electron shell that starts the analyzer and the bundled
   Express server on random local ports, serves the built web app and protects the
   analyzer with a per-launch token.
-- `.github/workflows/windows-analyzer.yml`: builds the Windows analyzer and NSIS
+- `.github/workflows/desktop-builds.yml`: builds the Windows analyzer and NSIS
   installer, the macOS arm64/x64 DMGs and ZIPs, and the Linux AppImage and `.deb`,
   then publishes them on tags. The workflow produces `chordifree-analyzer-windows`,
   `chordifree-macos-arm64`, `chordifree-macos-x64` and `chordifree-linux-x64`.
