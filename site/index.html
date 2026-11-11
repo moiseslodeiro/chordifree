@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chordifree — synchronized chords from YouTube or your audio</title>
+    <meta
+      name="description"
+      content="Turn a YouTube link or your own audio into a synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first."
+    />
+    <link rel="canonical" href="https://moiseslodeiro.github.io/chordifree/" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="color-scheme" content="light" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Chordifree — chords that follow the song" />
+    <meta
+      property="og:description"
+      content="A synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first."
+    />
+    <meta property="og:url" content="https://moiseslodeiro.github.io/chordifree/" />
+    <meta property="og:image" content="https://moiseslodeiro.github.io/chordifree/assets/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chordifree — chords that follow the song" />
+    <meta
+      name="twitter:description"
+      content="Turn a YouTube link or your own audio into a synchronized chord sheet. Local first, open source."
+    />
+    <meta name="twitter:image" content="https://moiseslodeiro.github.io/chordifree/assets/og-image.png" />
+
+    <link rel="icon" href="assets/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.add('js');
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Chordifree",
+        "applicationCategory": "MusicApplication",
+        "operatingSystem": "Windows, Linux, macOS, Web",
+        "description": "Turn YouTube videos or your own audio into synchronized chord sheets with beats, bars, lyrics and A–B practice.",
+        "url": "https://moiseslodeiro.github.io/chordifree/",
+        "codeRepository": "https://github.com/moiseslodeiro/chordifree",
+        "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main" data-i18n="a11y.skip">Skip to content</a>
+
+    <header class="site-header" id="top">
+      <div class="shell header-inner">
+        <a class="brand" href="#top" aria-label="Chordifree">
+          <img src="assets/brand-light.png" alt="Chordifree" width="656" height="108" />
+        </a>
+
+        <nav class="desktop-nav" aria-label="Primary">
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#product" data-i18n="nav.timeline">Timeline</a>
+          <a href="#run" data-i18n="nav.run">Run it</a>
+          <a href="#faq" data-i18n="nav.faq">FAQ</a>
+        </nav>
+
+        <div class="header-actions">
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
+              EN
+            </button>
+            <button type="button" class="lang-btn" data-lang="es" aria-pressed="false">ES</button>
+          </div>
+          <a
+            class="btn btn-secondary btn-small header-github"
+            href="https://github.com/moiseslodeiro/chordifree"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="nav.github"
+            >GitHub</a
+          >
+          <button
+            type="button"
+            class="menu-btn"
+            id="menu-btn"
+            aria-controls="mobile-menu"
+            aria-expanded="false"
+            data-i18n-aria="nav.openMenu"
+            aria-label="Open menu"
+          >
+            <span class="menu-lines" aria-hidden="true"><i></i><i></i></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="mobile-menu" id="mobile-menu" hidden>
+      <nav aria-label="Mobile">
+        <a href="#features" data-i18n="nav.features">Features</a>
+        <a href="#product" data-i18n="nav.timeline">Timeline</a>
+        <a href="#run" data-i18n="nav.run">Run it</a>
+        <a href="#faq" data-i18n="nav.faq">FAQ</a>
+        <a
+          href="https://github.com/moiseslodeiro/chordifree"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="nav.github"
+          >GitHub</a
+        >
+      </nav>
+      <p class="mobile-menu-note" data-i18n="nav.menuNote">Local first · open source</p>
+    </div>
+
+    <main id="main">
+      <section class="hero shell">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="eyebrow-rule" aria-hidden="true"></span>
+            <span data-i18n="hero.eyebrow">Local first chord practice</span>
+          </p>
+          <h1 data-i18n="hero.title">Chords that follow the song.</h1>
+          <p class="lead" data-i18n="hero.lead">
+            Turn a YouTube link or your own audio into a synchronized chord sheet with beats,
+            bars, lyrics and A–B practice. The analysis runs on your machine.
+          </p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#run" data-i18n="hero.primary">Get the app</a>
+            <a class="btn btn-secondary" href="#product" data-i18n="hero.secondary"
+              >See it in action</a
+            >
+          </div>
+          <p class="proof">
+            <span data-i18n="hero.proofOpen">Free and open source</span>
+            <span class="dot" aria-hidden="true">·</span>
+            <span>AGPL-3.0</span>
+            <span class="dot" aria-hidden="true">·</span>
+            <span data-i18n="hero.proofLanguages">English and Spanish</span>
+          </p>
+        </div>
+
+        <figure class="hero-visual" data-reveal>
+          <div class="window">
+            <div class="window-bar">
+              <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="window-url">localhost:3000</span>
+              <span class="window-tag" data-i18n="hero.windowTag">Bar view</span>
+            </div>
+            <img
+              src="assets/app-bars.webp"
+              alt="Chordifree song view with a bar grid for a demo song, showing C, G, Am and F chords, playback controls and a guitar chord diagram."
+              width="1800"
+              height="1250"
+              fetchpriority="high"
+            />
+          </div>
+          <figcaption data-i18n="hero.caption">
+            The demo song, analyzed into bars, chords and a playable timeline.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="chord-band" aria-hidden="true">
+        <div class="shell">
+          <div class="chord-sheet" id="chord-sheet">
+            <div class="chord-slot is-active">
+              <span class="chord-name">C</span>
+              <span class="chord-lyric" data-i18n="sheet.one">Take the</span>
+              <span class="chord-beats"><i></i><i></i><i></i><i></i></span>
+            </div>
+            <div class="chord-slot">
+              <span class="chord-name">G</span>
+              <span class="chord-lyric" data-i18n="sheet.two">next bar,</span>
+              <span class="chord-beats"><i></i><i></i><i></i><i></i></span>
+            </div>
+            <div class="chord-slot">
+              <span class="chord-name">Am</span>
+              <span class="chord-lyric" data-i18n="sheet.three">play it</span>
+              <span class="chord-beats"><i></i><i></i><i></i><i></i></span>
+            </div>
+            <div class="chord-slot">
+              <span class="chord-name">F</span>
+              <span class="chord-lyric" data-i18n="sheet.four">back slow.</span>
+              <span class="chord-beats"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+          <div class="chord-meta">
+            <span data-i18n="sheet.timeline">Timeline</span>
+            <span data-i18n="sheet.bars">4 bars</span>
+            <span data-i18n="sheet.loop">A–B loop</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section shell" id="features">
+        <div class="section-head" data-reveal>
+          <div>
+            <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="features.eyebrow">What it does</span></p>
+            <h2 data-i18n="features.title">A chord sheet, not a guess.</h2>
+          </div>
+          <p class="section-lead" data-i18n="features.lead">
+            Every view comes from the same analysis: key, beat grid, bars, chords and the parts
+            where someone is singing.
+          </p>
+        </div>
+
+        <ol class="track-list" data-reveal>
+          <li>
+            <span class="track-num">01</span>
+            <div class="track-copy">
+              <h3 data-i18n="feature.1.title">Detect</h3>
+              <p data-i18n="feature.1.body">
+                Essentia reads the audio, estimates the key and finds chord changes. Viterbi
+                smoothing stops the sheet flickering between similar chords.
+              </p>
+            </div>
+            <span class="track-tag">NNLSChroma</span>
+          </li>
+          <li>
+            <span class="track-num">02</span>
+            <div class="track-copy">
+              <h3 data-i18n="feature.2.title">Align</h3>
+              <p data-i18n="feature.2.body">
+                Lyrics line up with the parts where someone is singing. When a line drifts,
+                move an anchor and the rest follows.
+              </p>
+            </div>
+            <span class="track-tag" data-i18n="feature.2.tag">Vocal regions</span>
+          </li>
+          <li>
+            <span class="track-num">03</span>
+            <div class="track-copy">
+              <h3 data-i18n="feature.3.title">Practice</h3>
+              <p data-i18n="feature.3.body">
+                Arm A and B in the grid, preview a bar on hover, then play the range or loop it.
+                Slow the tempo down and count in before you start.
+              </p>
+            </div>
+            <span class="track-tag" data-i18n="feature.3.tag">A–B loop</span>
+          </li>
+          <li>
+            <span class="track-num">04</span>
+            <div class="track-copy">
+              <h3 data-i18n="feature.4.title">Shape</h3>
+              <p data-i18n="feature.4.body">
+                Transpose, add a capo, simplify or reduce chords. Switch between guitar, piano
+                and ukelele diagrams, with sharps, flats or solfège.
+              </p>
+            </div>
+            <span class="track-tag" data-i18n="feature.4.tag">Guitar · piano · uke</span>
+          </li>
+          <li>
+            <span class="track-num">05</span>
+            <div class="track-copy">
+              <h3 data-i18n="feature.5.title">Keep</h3>
+              <p data-i18n="feature.5.body">
+                Save songs and setlists in a local library with practice history. Export
+                ChordPro, print a PDF or back everything up as JSON.
+              </p>
+            </div>
+            <span class="track-tag" data-i18n="feature.5.tag">Local library</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section section-tinted" id="product">
+        <div class="shell">
+          <div class="section-head" data-reveal>
+            <div>
+              <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="product.eyebrow">The timeline</span></p>
+              <h2 data-i18n="product.title">See every bar before you play it.</h2>
+            </div>
+            <p class="section-lead" data-i18n="product.lead">
+              The grid gives each beat a cell and each bar a row. The active beat follows
+              playback, so you always know where you are.
+            </p>
+          </div>
+
+          <figure class="wide-visual" data-reveal>
+            <div class="window">
+              <div class="window-bar">
+                <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="window-url">localhost:3000</span>
+                <span class="window-tag" data-i18n="product.windowTag">Beat grid</span>
+              </div>
+              <img
+                src="assets/app-beats.webp"
+                alt="Chordifree beat grid for the demo song, with one row per bar, four beat cells per bar and the chords C, G, Am and F."
+                width="1800"
+                height="1250"
+                loading="lazy"
+              />
+            </div>
+          </figure>
+
+          <div class="caption-grid" data-reveal>
+            <p><span class="caption-num">01</span><span data-i18n="product.caption1">One row per bar</span></p>
+            <p><span class="caption-num">02</span><span data-i18n="product.caption2">Active beat follows playback</span></p>
+            <p><span class="caption-num">03</span><span data-i18n="product.caption3">Click a bar to jump or loop</span></p>
+            <p><span class="caption-num">04</span><span data-i18n="product.caption4">Chord shape for the current bar</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section shell" id="how">
+        <div class="section-head" data-reveal>
+          <div>
+            <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="how.eyebrow">From audio to practice</span></p>
+            <h2 data-i18n="how.title">Three steps, no account.</h2>
+          </div>
+          <p class="section-lead" data-i18n="how.lead">
+            Bring a link or a file. The analyzer does the timing, you keep the musical
+            decisions.
+          </p>
+        </div>
+
+        <ol class="step-list" data-reveal>
+          <li>
+            <span class="step-num">01</span>
+            <h3 data-i18n="how.1.title">Add a source</h3>
+            <p data-i18n="how.1.body">
+              Paste a YouTube link or choose an audio file. Uploads support MP3, WAV, M4A, OGG,
+              FLAC, WebM and MP4.
+            </p>
+          </li>
+          <li>
+            <span class="step-num">02</span>
+            <h3 data-i18n="how.2.title">Let the analyzer work</h3>
+            <p data-i18n="how.2.body">
+              Beats, bars, key and chords are detected locally. The first run loads the models
+              and takes a little longer.
+            </p>
+          </li>
+          <li>
+            <span class="step-num">03</span>
+            <h3 data-i18n="how.3.title">Fix, save, practice</h3>
+            <p data-i18n="how.3.body">
+              Correct any chord in the editor, add lyrics, then save to your library or
+              setlists. Nothing leaves your machine.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section section-tinted" id="run">
+        <div class="shell">
+          <div class="section-head" data-reveal>
+            <div>
+              <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="run.eyebrow">Run it your way</span></p>
+              <h2 data-i18n="run.title">A desktop app, or your own server.</h2>
+            </div>
+            <p class="section-lead" data-i18n="run.lead">
+              The desktop build bundles the analyzer. The Docker stack puts the same app on a
+              laptop, a home server or a VPS.
+            </p>
+          </div>
+
+          <div class="run-list" data-reveal>
+            <article class="run-row">
+              <div class="run-title">
+                <span class="run-index">01</span>
+                <h3 data-i18n="run.windows.title">Windows preview</h3>
+                <span class="run-badge" data-i18n="run.windows.badge">Unsigned</span>
+              </div>
+              <div class="run-body">
+                <p data-i18n="run.windows.body">
+                  An NSIS installer built by CI. It bundles the analyzer, ffmpeg and the ONNX
+                  models. Windows SmartScreen will warn until the build is signed.
+                </p>
+                <p class="run-note" data-i18n="run.windows.note">
+                  Preview build from the latest workflow run.
+                </p>
+              </div>
+              <div class="run-action">
+                <a
+                  class="btn btn-primary btn-small"
+                  href="https://github.com/moiseslodeiro/chordifree/actions/workflows/windows-analyzer.yml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.windows.cta"
+                  >Open the CI build</a
+                >
+              </div>
+            </article>
+
+            <article class="run-row">
+              <div class="run-title">
+                <span class="run-index">02</span>
+                <h3 data-i18n="run.docker.title">Docker</h3>
+              </div>
+              <div class="run-body">
+                <p data-i18n="run.docker.body">
+                  Clone the repository and start the stack. The first build installs Essentia,
+                  ONNX Runtime, ffmpeg and the models.
+                </p>
+                <div class="code-block">
+                  <pre tabindex="0" data-i18n-aria="run.codeAria" aria-label="Docker commands"><code id="docker-command">git clone https://github.com/moiseslodeiro/chordifree.git
+cd chordifree
+docker compose up --build -d</code></pre>
+                  <button
+                    type="button"
+                    class="copy-btn"
+                    data-copy="docker-command"
+                    data-i18n="run.copy"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p class="run-note" data-i18n="run.docker.note">
+                  Then open http://localhost:3000.
+                </p>
+              </div>
+              <div class="run-action">
+                <a
+                  class="btn btn-secondary btn-small"
+                  href="https://github.com/moiseslodeiro/chordifree#quick-start-with-docker"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.docker.cta"
+                  >Docker guide</a
+                >
+              </div>
+            </article>
+
+            <article class="run-row">
+              <div class="run-title">
+                <span class="run-index">03</span>
+                <h3 data-i18n="run.pwa.title">Self hosted web app</h3>
+              </div>
+              <div class="run-body">
+                <p data-i18n="run.pwa.body">
+                  Put the web app behind HTTPS to install it as a PWA. The API and the analyzer
+                  still run on the same host.
+                </p>
+              </div>
+              <div class="run-action">
+                <a
+                  class="btn btn-secondary btn-small"
+                  href="https://github.com/moiseslodeiro/chordifree#vps-with-https"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.pwa.cta"
+                  >Deployment notes</a
+                >
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="night" id="privacy">
+        <div class="shell night-grid">
+          <div data-reveal>
+            <p class="eyebrow eyebrow-light">
+              <span class="eyebrow-rule" aria-hidden="true"></span>
+              <span data-i18n="privacy.eyebrow">Local by design</span>
+            </p>
+            <h2 data-i18n="privacy.title">Your songs stay with you.</h2>
+            <p class="night-lead" data-i18n="privacy.lead">
+              Chordifree has no accounts and no tracking. The library lives in your browser,
+              and the desktop build keeps the analyzer on your computer.
+            </p>
+          </div>
+
+          <dl class="fact-list" data-reveal>
+            <div>
+              <dt data-i18n="privacy.1.title">No accounts</dt>
+              <dd data-i18n="privacy.1.body">Open the app and start. Nothing to sign up for.</dd>
+            </div>
+            <div>
+              <dt data-i18n="privacy.2.title">Local library</dt>
+              <dd data-i18n="privacy.2.body">
+                Songs, setlists and practice history stay in local storage. Export them whenever
+                you want.
+              </dd>
+            </div>
+            <div>
+              <dt data-i18n="privacy.3.title">Your audio</dt>
+              <dd data-i18n="privacy.3.body">
+                Uploads are analyzed and not kept in the library. Temporary files are removed.
+              </dd>
+            </div>
+          </dl>
+
+          <p class="night-note" data-i18n="privacy.legal">
+            YouTube downloads may violate YouTube's Terms of Service. Use audio upload when you
+            do not own the content.
+          </p>
+        </div>
+      </section>
+
+      <section class="section shell" id="faq">
+        <div class="section-head" data-reveal>
+          <div>
+            <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="faq.eyebrow">Questions</span></p>
+            <h2 data-i18n="faq.title">Before you start.</h2>
+          </div>
+          <p class="section-lead" data-i18n="faq.lead">
+            The short answers. The README has the details, the environment variables and the
+            architecture.
+          </p>
+        </div>
+
+        <div class="faq-grid" data-reveal>
+          <details>
+            <summary data-i18n="faq.1.q">Do I need an account?</summary>
+            <p data-i18n="faq.1.a">No. There is no sign up, no login and no tracking.</p>
+          </details>
+          <details>
+            <summary data-i18n="faq.2.q">Does it upload my audio to a third party?</summary>
+            <p data-i18n="faq.2.a">
+              No. The web app sends audio only to the API and analyzer you run. The desktop
+              build keeps everything on your computer.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.3.q">Does the Windows build need Docker?</summary>
+            <p data-i18n="faq.3.a">
+              No. The installer bundles the analyzer, ffmpeg and the ONNX models. Docker is the
+              alternative for the web app and servers.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.4.q">Is the Windows build signed?</summary>
+            <p data-i18n="faq.4.a">
+              Not yet. It is a preview built by CI, so SmartScreen will warn on first launch.
+              Code signing is planned.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.5.q">Does YouTube work?</summary>
+            <p data-i18n="faq.5.a">
+              Yes, through yt-dlp. Downloading YouTube audio may violate its Terms of Service,
+              so prefer your own files when you do not own the content.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.6.q">Where are my songs stored?</summary>
+            <p data-i18n="faq.6.a">
+              In your browser's local storage for the web app, and on your computer for the
+              desktop app. Export JSON for backups or ChordPro for other tools.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.7.q">Can I use it offline?</summary>
+            <p data-i18n="faq.7.a">
+              The installed desktop app works without an internet connection. The web app needs
+              the API and analyzer running, but the app shell can be installed as a PWA.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.8.q">Which instruments and languages?</summary>
+            <p data-i18n="faq.8.a">
+              Guitar, piano and ukelele; English and Spanish; sharps, flats, solfège, capo,
+              transposition, simplified and reduced chords.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.9.q">Is it free?</summary>
+            <p data-i18n="faq.9.a">Yes. Chordifree is open source under AGPL-3.0.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="finale">
+        <div class="shell finale-inner" data-reveal>
+          <p class="eyebrow eyebrow-light">
+            <span class="eyebrow-rule" aria-hidden="true"></span>
+            <span data-i18n="finale.eyebrow">Ready when you are</span>
+          </p>
+          <h2 data-i18n="finale.title">Turn the next song into a chord sheet.</h2>
+          <p data-i18n="finale.lead">
+            Download the Windows preview or run the Docker stack. The library is yours.
+          </p>
+          <div class="actions">
+            <a class="btn btn-inverted" href="#run" data-i18n="finale.primary">Get the app</a>
+            <a
+              class="btn btn-outline-light"
+              href="https://github.com/moiseslodeiro/chordifree"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="finale.secondary"
+              >View on GitHub</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <div class="footer-brand">
+          <img src="assets/brand-light.png" alt="Chordifree" width="656" height="108" />
+          <p data-i18n="footer.tagline">
+            Synchronized chords from YouTube or your audio. Local first and open source.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Footer">
+          <a
+            href="https://github.com/moiseslodeiro/chordifree"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="footer.github"
+            >GitHub</a
+          >
+          <a
+            href="https://github.com/moiseslodeiro/chordifree#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="footer.readme"
+            >README</a
+          >
+          <a
+            href="https://github.com/moiseslodeiro/chordifree/blob/main/PRIVACY.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="footer.privacy"
+            >Privacy</a
+          >
+          <a
+            href="https://github.com/moiseslodeiro/chordifree/blob/main/TERMS.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="footer.terms"
+            >Terms</a
+          >
+          <a
+            href="https://www.gnu.org/licenses/agpl-3.0.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n="footer.license"
+            >AGPL-3.0</a
+          >
+        </nav>
+      </div>
+      <div class="shell footer-bottom">
+        <p data-i18n="footer.legal">
+          YouTube downloads may violate its Terms of Service. Chordifree does not bypass
+          technical restrictions.
+        </p>
+        <p><span id="year">2026</span> · Chordifree contributors</p>
+      </div>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

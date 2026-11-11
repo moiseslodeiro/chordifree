@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page not found — Chordifree</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <link rel="icon" href="assets/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell" style="padding: 96px 0 120px">
+      <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span>404</p>
+      <h1 style="max-width: 16ch; font-size: clamp(2.6rem, 6vw, 4.5rem)">
+        This page is not in the setlist.
+      </h1>
+      <p class="section-lead" style="margin-top: 24px">
+        The link may be old, or the page may have moved. Head back to the landing page and start
+        from the top.
+      </p>
+      <div class="actions" style="margin-top: 32px">
+        <a class="btn btn-primary" href="./">Back to Chordifree</a>
+        <a class="btn btn-secondary" href="https://github.com/moiseslodeiro/chordifree">GitHub</a>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="shell footer-bottom" style="margin-top: 0; border-top: 0; padding-top: 0">
+        <p>Chordifree · AGPL-3.0</p>
+        <p><span id="year">2026</span></p>
+      </div>
+    </footer>
+    <script>
+      document.getElementById('year').textContent = String(new Date().getFullYear());
+    </script>
+  </body>
+</html>
