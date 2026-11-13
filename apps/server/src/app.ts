@@ -10,7 +10,9 @@ import { ApiError, errorBody } from './errors';
 import { JobQueue } from './jobs/queue';
 import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
+import { createLyricsRouter } from './routes/lyrics';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
+import { createLyricsClient, type LyricsClient } from './services/lyrics';
 import { createMediaTools, type MediaTools } from './services/media';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,11 +23,45 @@ export interface AppDependencies {
   queue: JobQueue;
   tools: MediaTools;
   analyzer: AnalyzerClient;
+  lyrics: LyricsClient;
   webDist: string;
 }
 
 export interface CreateAppOptions extends Partial<AppDependencies> {
   config?: AppConfig;
+}
+
+/**
+ * Rejects browser writes from another origin. CORS only controls whether the
+ * response can be read; a cross-site form or multipart POST is still executed
+ * unless the server refuses it explicitly.
+ */
+function sameOriginWriteGuard(config: AppConfig) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+      next();
+      return;
+    }
+
+    const origin = req.get('origin');
+    const fetchSite = req.get('sec-fetch-site');
+    if (!origin) {
+      if (fetchSite === 'cross-site' || fetchSite === 'same-site') {
+        res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
+        return;
+      }
+      next();
+      return;
+    }
+
+    const host = req.get('host');
+    const requestOrigin = host ? `${req.protocol}://${host}` : null;
+    if (origin !== config.corsOrigin && origin !== requestOrigin) {
+      res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
+      return;
+    }
+    next();
+  };
 }
 
 export function createApp(options: CreateAppOptions = {}): express.Express {
@@ -37,6 +73,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     tools: options.tools ?? createMediaTools(config),
     analyzer:
       options.analyzer ?? createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken),
+    lyrics: options.lyrics ?? createLyricsClient(fetch),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -68,6 +105,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   );
   app.use(cors({ origin: config.corsOrigin }));
   app.use(express.json({ limit: '1mb' }));
+  app.use('/api', sameOriginWriteGuard(config));
 
   app.get('/api/health', async (_req, res) => {
     const health = await deps.analyzer.health();
@@ -79,6 +117,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   });
 
   app.use('/api/analyses', createAnalysesRouter(deps));
+  app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));
