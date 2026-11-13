@@ -216,7 +216,8 @@ test.describe('flujo completo', () => {
   test('prepara una hoja de acordes para imprimir o guardar en PDF', async ({ page }) => {
     await analyze(page);
 
-    await expect(page.getByRole('button', { name: 'Imprimir / PDF' })).toBeVisible();
+    await page.getByRole('button', { name: 'Más acciones' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Imprimir / PDF' })).toBeVisible();
     await page.emulateMedia({ media: 'print' });
 
     const sheet = page.getByTestId('print-sheet');
@@ -444,8 +445,9 @@ test.describe('flujo completo', () => {
     await page.getByRole('button', { name: 'Guardar letra' }).click();
     await expect(page.getByText('Línea que debe conservarse')).toBeVisible();
 
+    await page.getByRole('button', { name: 'Más acciones' }).click();
     page.once('dialog', (dialog) => void dialog.accept());
-    await page.getByRole('button', { name: 'Reanalizar' }).click();
+    await page.getByRole('menuitem', { name: 'Reanalizar' }).click();
     await expect(page.getByText('Canción reanalizada con el analizador actual.')).toBeVisible({
       timeout: 10_000,
     });

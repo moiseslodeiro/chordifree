@@ -141,6 +141,7 @@ const en = {
   'song.library': 'Library',
   'song.editChords': 'Edit chords',
   'song.editDetails': 'Edit details',
+  'song.moreActions': 'More actions',
   'song.performance': 'Performance mode',
   'song.exitPerformance': 'Exit performance',
   'song.detailsTitle': 'Title',
@@ -312,8 +313,9 @@ const en = {
   'lyrics.adjust': 'Adjust chords',
   'lyrics.adjustDone': 'Done adjusting',
   'lyrics.resetChords': 'Reset positions',
+  'lyrics.moveChord': 'Move {chord}',
   'lyrics.adjustHint':
-    'Drag a chord sideways or use ←/→ to move it. Use ↑/↓ to move it to the previous or next line. The position is saved with the song.',
+    'Drag the crosshair in any direction, or use the arrow keys, to move the chord. The position is saved with the song.',
   'lyrics.anchorPlaceholder': 'Insert an anchor like [01:23] at the start of a line.',
 
   'editor.eyebrow': 'Editing',
@@ -656,6 +658,7 @@ const es: Record<MessageKey, string> = {
   'song.library': 'Biblioteca',
   'song.editChords': 'Editar acordes',
   'song.editDetails': 'Editar detalles',
+  'song.moreActions': 'Más acciones',
   'song.performance': 'Modo actuación',
   'song.exitPerformance': 'Salir de actuación',
   'song.detailsTitle': 'Título',
@@ -832,8 +835,9 @@ const es: Record<MessageKey, string> = {
   'lyrics.adjust': 'Ajustar acordes',
   'lyrics.adjustDone': 'Terminar ajuste',
   'lyrics.resetChords': 'Restablecer posiciones',
+  'lyrics.moveChord': 'Mover {chord}',
   'lyrics.adjustHint':
-    'Arrastra un acorde o usa ←/→ para moverlo. Usa ↑/↓ para pasarlo a la línea anterior o siguiente. La posición se guarda con la canción.',
+    'Arrastra la cruceta en cualquier dirección, o usa las flechas, para mover el acorde. La posición se guarda con la canción.',
   'lyrics.anchorPlaceholder': 'Inserta un ancla como [01:23] al inicio de una línea.',
 
   'editor.eyebrow': 'Edición',

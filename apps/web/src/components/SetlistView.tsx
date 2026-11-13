@@ -145,13 +145,11 @@ export function SetlistView({
           </div>
           <p className="mt-2 text-xs leading-relaxed text-ink3">{t('setlists.shareNote')}</p>
           {shareNotice ? (
-            <div className="mt-3">
-              <NoticeBanner
-                message={shareNotice.message}
-                tone={shareNotice.tone}
-                onDismiss={() => setShareNotice(null)}
-              />
-            </div>
+            <NoticeBanner
+              message={shareNotice.message}
+              tone={shareNotice.tone}
+              onDismiss={() => setShareNotice(null)}
+            />
           ) : null}
         </div>
       ) : null}

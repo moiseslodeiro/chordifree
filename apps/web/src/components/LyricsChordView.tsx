@@ -130,11 +130,13 @@ export function LyricsChordView({
   const [dragging, setDragging] = useState<{
     segmentIndex: number;
     startX: number;
+    startY: number;
     startOffset: number;
+    startLine: number;
     offset: number;
+    lineDelta: number;
     moved: boolean;
   } | null>(null);
-  const suppressClick = useRef(false);
 
   const clampOffset = (value: number) => Math.max(-4, Math.min(4, Math.round(value * 20) / 20));
   const offsetFor = (segmentIndex: number) => chordOffsets?.[String(segmentIndex)] ?? 0;
@@ -142,14 +144,34 @@ export function LyricsChordView({
     onChordOffsetChange?.(segmentIndex, clampOffset(offset));
   };
 
-  const startDrag = (event: PointerEvent<HTMLButtonElement>, segmentIndex: number) => {
-    if (!adjusting || !onChordOffsetChange) return;
+  const lineAtDelta = (lineIndex: number, delta: number): number => {
+    const nonEmpty = lines.filter((line) => line.text.trim().length > 0);
+    const position = nonEmpty.findIndex((line) => line.index === lineIndex);
+    if (position < 0) return lineIndex;
+    const target = nonEmpty[Math.max(0, Math.min(nonEmpty.length - 1, position + delta))];
+    return target?.index ?? lineIndex;
+  };
+
+  const neighborLine = (lineIndex: number, direction: -1 | 1): number | null => {
+    const target = lineAtDelta(lineIndex, direction);
+    return target === lineIndex ? null : target;
+  };
+
+  const startDrag = (
+    event: PointerEvent<HTMLButtonElement>,
+    segmentIndex: number,
+    lineIndex: number,
+  ) => {
+    if (!adjusting || (!onChordOffsetChange && !onChordLineChange)) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setDragging({
       segmentIndex,
       startX: event.clientX,
+      startY: event.clientY,
       startOffset: offsetFor(segmentIndex),
+      startLine: lineIndex,
       offset: offsetFor(segmentIndex),
+      lineDelta: 0,
       moved: false,
     });
   };
@@ -157,27 +179,33 @@ export function LyricsChordView({
   const moveDrag = (event: PointerEvent<HTMLButtonElement>, segmentIndex: number) => {
     if (!dragging || dragging.segmentIndex !== segmentIndex) return;
     const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const next = clampOffset(dragging.startOffset + (event.clientX - dragging.startX) / rootFontSize);
-    if (next !== dragging.offset) {
-      setDragging({ ...dragging, offset: next, moved: true });
+    const offset = onChordOffsetChange
+      ? clampOffset(dragging.startOffset + (event.clientX - dragging.startX) / rootFontSize)
+      : dragging.startOffset;
+    const lineDelta = onChordLineChange
+      ? Math.trunc((event.clientY - dragging.startY) / 36)
+      : 0;
+    if (offset !== dragging.offset || lineDelta !== dragging.lineDelta) {
+      setDragging({ ...dragging, offset, lineDelta, moved: true });
     }
   };
 
   const endDrag = (segmentIndex: number) => {
     if (!dragging || dragging.segmentIndex !== segmentIndex) return;
     if (dragging.moved) {
-      suppressClick.current = true;
-      changeOffset(segmentIndex, dragging.offset);
+      if (onChordOffsetChange) changeOffset(segmentIndex, dragging.offset);
+      if (onChordLineChange) {
+        const target = lineAtDelta(dragging.startLine, dragging.lineDelta);
+        if (target !== dragging.startLine) onChordLineChange(segmentIndex, target);
+      }
     }
     setDragging(null);
   };
 
-  const neighborLine = (lineIndex: number, direction: -1 | 1): number | null => {
-    const nonEmpty = lines.filter((line) => line.text.trim().length > 0);
-    const position = nonEmpty.findIndex((line) => line.index === lineIndex);
-    if (position < 0) return null;
-    return nonEmpty[position + direction]?.index ?? null;
-  };
+  const dropLine =
+    dragging && dragging.lineDelta !== 0
+      ? lineAtDelta(dragging.startLine, dragging.lineDelta)
+      : null;
 
   useEffect(() => {
     if (activeLineIndex === null) return;
@@ -250,7 +278,7 @@ export function LyricsChordView({
           return (
             <li
               key={line.index}
-              className="lyrics-line"
+              className={`lyrics-line${dropLine === line.index ? ' lyrics-line-drop' : ''}`}
               data-lyric-line={line.index}
               aria-current={active ? 'true' : undefined}
             >
@@ -268,54 +296,78 @@ export function LyricsChordView({
                         ? dragging.offset
                         : offsetFor(chord.segmentIndex);
                     return (
-                      <button
+                      <span
                         key={`${chord.segmentIndex}-${chord.time}`}
-                        type="button"
-                        className={`lyrics-chord${adjusting ? ' lyrics-chord-adjust' : ''}`}
-                        style={{ transform: `translateX(${offset}em)` }}
-                        aria-current={chordIsActive ? 'true' : undefined}
-                        aria-label={`${chord.label} en ${formatTime(chord.time)}`}
-                        title={adjusting ? t('lyrics.adjustHint') : undefined}
-                        onPointerDown={(event) => startDrag(event, chord.segmentIndex)}
-                        onPointerMove={(event) => moveDrag(event, chord.segmentIndex)}
-                        onPointerUp={() => endDrag(chord.segmentIndex)}
-                        onPointerCancel={() => setDragging(null)}
-                        onKeyDown={(event) => {
-                          if (!adjusting) return;
-                          if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                            event.preventDefault();
-                            changeOffset(
-                              chord.segmentIndex,
-                              offsetFor(chord.segmentIndex) + (event.key === 'ArrowLeft' ? -0.25 : 0.25),
-                            );
-                            return;
-                          }
-                          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-                            event.preventDefault();
-                            if (!onChordLineChange) return;
-                            const target = neighborLine(
-                              line.index,
-                              event.key === 'ArrowUp' ? -1 : 1,
-                            );
-                            if (target !== null) onChordLineChange(chord.segmentIndex, target);
-                            return;
-                          }
-                          if (event.key === 'Home' || event.key === '0') {
-                            event.preventDefault();
-                            onChordLineChange?.(chord.segmentIndex, null);
-                            changeOffset(chord.segmentIndex, 0);
-                          }
-                        }}
-                        onClick={() => {
-                          if (suppressClick.current) {
-                            suppressClick.current = false;
-                            return;
-                          }
-                          onSeek(chord.time);
-                        }}
+                        className="lyrics-chord-item"
                       >
-                        {chord.label}
-                      </button>
+                        <button
+                          type="button"
+                          className="lyrics-chord"
+                          style={{ transform: `translateX(${offset}em)` }}
+                          aria-current={chordIsActive ? 'true' : undefined}
+                          aria-label={`${chord.label} en ${formatTime(chord.time)}`}
+                          onClick={() => onSeek(chord.time)}
+                        >
+                          {chord.label}
+                        </button>
+                        {adjusting ? (
+                          <button
+                            type="button"
+                            className="lyrics-chord-handle"
+                            aria-label={t('lyrics.moveChord', { chord: chord.label })}
+                            title={t('lyrics.adjustHint')}
+                            onPointerDown={(event) =>
+                              startDrag(event, chord.segmentIndex, line.index)
+                            }
+                            onPointerMove={(event) => moveDrag(event, chord.segmentIndex)}
+                            onPointerUp={() => endDrag(chord.segmentIndex)}
+                            onPointerCancel={() => setDragging(null)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                                event.preventDefault();
+                                changeOffset(
+                                  chord.segmentIndex,
+                                  offsetFor(chord.segmentIndex) +
+                                    (event.key === 'ArrowLeft' ? -0.25 : 0.25),
+                                );
+                                return;
+                              }
+                              if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                                event.preventDefault();
+                                if (!onChordLineChange) return;
+                                const target = neighborLine(
+                                  line.index,
+                                  event.key === 'ArrowUp' ? -1 : 1,
+                                );
+                                if (target !== null) onChordLineChange(chord.segmentIndex, target);
+                                return;
+                              }
+                              if (event.key === 'Home' || event.key === '0') {
+                                event.preventDefault();
+                                onChordLineChange?.(chord.segmentIndex, null);
+                                changeOffset(chord.segmentIndex, 0);
+                              }
+                            }}
+                          >
+                            <svg
+                              viewBox="0 0 16 16"
+                              width="12"
+                              height="12"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path
+                                d="M8 1v14M1 8h14M8 1 6 3m2-2 2 2M8 15l-2-2m2 2 2-2M1 8l2-2m-2 2 2 2M15 8l-2-2m2 2-2 2"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.4"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        ) : null}
+                      </span>
                     );
                   })}
                 </div>

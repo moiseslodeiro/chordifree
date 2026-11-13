@@ -45,6 +45,7 @@ import {
   type Preferences,
   type Song,
 } from '../types';
+import { ActionMenu, type ActionMenuItem } from './ActionMenu';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
 import { DisplayControls } from './DisplayControls';
@@ -675,63 +676,55 @@ export function SongView({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!editingLyrics ? (
               <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
                 {editing ? t('song.exitEdit') : t('song.editChords')}
               </button>
             ) : null}
-            {!editing && !editingLyrics ? (
-              <button type="button" className="btn" onClick={openDetails}>
-                {t('song.editDetails')}
-              </button>
-            ) : null}
-            {!editing && !editingLyrics ? (
-              <button type="button" className="btn" onClick={togglePerformance}>
-                {performance ? t('song.exitPerformance') : t('song.performance')}
-              </button>
-            ) : null}
-            {!editing && !editingLyrics ? (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setShareNotice(null);
-                  setShareLink(null);
-                  setShareOpen(true);
-                }}
-              >
-                {t('song.share')}
-              </button>
-            ) : null}
-            {!editing && !editingLyrics && printRows.length > 0 ? (
-              <>
-                <button type="button" className="btn" onClick={() => window.print()}>
-                  {t('song.print')}
-                </button>
-                <button type="button" className="btn" onClick={exportChordProFile}>
-                  {t('song.chordpro')}
-                </button>
-              </>
-            ) : null}
-            {!editing && !editingLyrics && song.source.type === 'youtube' ? (
-              <button
-                type="button"
-                className="btn"
-                disabled={reanalyzing}
-                onClick={() => {
-                  if (window.confirm(t('song.reanalyzeConfirm'))) {
-                    onReanalyze();
-                  }
-                }}
-              >
-                {reanalyzing
-                  ? `${t('song.reanalyzing')}${
-                      reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                    }`
-                  : t('song.reanalyze')}
-              </button>
-            ) : null}
+            <ActionMenu
+              label={t('song.moreActions')}
+              items={[
+                ...(!editing && !editingLyrics
+                  ? ([
+                      { label: t('song.editDetails'), onSelect: openDetails },
+                      {
+                        label: performance ? t('song.exitPerformance') : t('song.performance'),
+                        onSelect: togglePerformance,
+                      },
+                      {
+                        label: t('song.share'),
+                        onSelect: () => {
+                          setShareNotice(null);
+                          setShareLink(null);
+                          setShareOpen(true);
+                        },
+                      },
+                    ] satisfies ActionMenuItem[])
+                  : []),
+                ...(!editing && !editingLyrics && printRows.length > 0
+                  ? ([
+                      { label: t('song.print'), onSelect: () => window.print() },
+                      { label: t('song.chordpro'), onSelect: exportChordProFile },
+                    ] satisfies ActionMenuItem[])
+                  : []),
+                ...(!editing && !editingLyrics && song.source.type === 'youtube'
+                  ? ([
+                      {
+                        label: reanalyzing
+                          ? `${t('song.reanalyzing')}${
+                              reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
+                            }`
+                          : t('song.reanalyze'),
+                        onSelect: () => {
+                          if (window.confirm(t('song.reanalyzeConfirm'))) onReanalyze();
+                        },
+                        disabled: reanalyzing,
+                      },
+                    ] satisfies ActionMenuItem[])
+                  : []),
+              ]}
+            />
             {!editingLyrics ? (
               <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
                 {saved ? t('song.save') : t('song.saveToLibrary')}
@@ -1029,13 +1022,11 @@ export function SongView({
             </div>
 
             {shareNotice ? (
-              <div className="mt-4">
-                <NoticeBanner
-                  message={shareNotice.message}
-                  tone={shareNotice.tone}
-                  onDismiss={() => setShareNotice(null)}
-                />
-              </div>
+              <NoticeBanner
+                message={shareNotice.message}
+                tone={shareNotice.tone}
+                onDismiss={() => setShareNotice(null)}
+              />
             ) : null}
 
             <div className="mt-6 space-y-5">

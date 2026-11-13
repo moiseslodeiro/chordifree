@@ -126,12 +126,12 @@ describe('LyricsChordView', () => {
     setup({ onChordOffsetChange });
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
-    const chord = screen.getByRole('button', { name: 'C en 00:00' });
-    chord.focus();
-    fireEvent.keyDown(chord, { key: 'ArrowRight' });
+    const handle = screen.getByRole('button', { name: 'Mover C' });
+    handle.focus();
+    fireEvent.keyDown(handle, { key: 'ArrowRight' });
     expect(onChordOffsetChange).toHaveBeenCalledWith(0, 0.25);
 
-    fireEvent.keyDown(chord, { key: 'ArrowLeft' });
+    fireEvent.keyDown(handle, { key: 'ArrowLeft' });
     expect(onChordOffsetChange).toHaveBeenLastCalledWith(0, -0.25);
   });
 
@@ -140,9 +140,9 @@ describe('LyricsChordView', () => {
     setup({ onChordOffsetChange: vi.fn(), onChordLineChange });
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
-    const chord = screen.getByRole('button', { name: 'C en 00:00' });
-    chord.focus();
-    fireEvent.keyDown(chord, { key: 'ArrowDown' });
+    const handle = screen.getByRole('button', { name: 'Mover C' });
+    handle.focus();
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
     expect(onChordLineChange).toHaveBeenCalledWith(0, 1);
   });
 
@@ -155,9 +155,9 @@ describe('LyricsChordView', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
-    const chord = screen.getByRole('button', { name: 'C en 00:00' });
-    chord.focus();
-    fireEvent.keyDown(chord, { key: 'ArrowUp' });
+    const handle = screen.getByRole('button', { name: 'Mover C' });
+    handle.focus();
+    fireEvent.keyDown(handle, { key: 'ArrowUp' });
     expect(onChordLineChange).toHaveBeenCalledWith(0, 0);
   });
 
@@ -182,9 +182,9 @@ describe('LyricsChordView', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
-    const chord = screen.getByRole('button', { name: 'C en 00:00' });
-    chord.focus();
-    fireEvent.keyDown(chord, { key: 'Home' });
+    const handle = screen.getByRole('button', { name: 'Mover C' });
+    handle.focus();
+    fireEvent.keyDown(handle, { key: 'Home' });
     expect(onChordLineChange).toHaveBeenCalledWith(0, null);
     expect(onChordOffsetChange).toHaveBeenCalledWith(0, 0);
   });

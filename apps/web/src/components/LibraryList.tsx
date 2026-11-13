@@ -146,13 +146,7 @@ export function LibraryList({
       </header>
 
       {notice ? (
-        <div className="border-b border-line px-6 py-3 sm:px-8">
-          <NoticeBanner
-            message={notice.message}
-            tone={notice.tone}
-            onDismiss={onDismissNotice}
-          />
-        </div>
+        <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
       ) : null}
 
       {songs.length === 0 ? (
