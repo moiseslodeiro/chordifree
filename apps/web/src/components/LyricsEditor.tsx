@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { useT } from '../i18n';
+import { ApiClientError } from '../lib/api';
 import { splitLyricLines } from '../lyrics/align';
 
 interface LyricsEditorProps {
@@ -13,6 +14,7 @@ interface LyricsEditorProps {
   onSave: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onFindLyrics?: () => Promise<string | null>;
 }
 
 const ANCHOR_PATTERN = /^\s*\[\d{1,3}:[0-5]\d\]\s?/;
@@ -27,11 +29,33 @@ export function LyricsEditor({
   onSave,
   onCancel,
   onDelete,
+  onFindLyrics,
 }: LyricsEditorProps) {
   const t = useT();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [finding, setFinding] = useState(false);
+  const [findError, setFindError] = useState<string | null>(null);
   const lines = splitLyricLines(value).filter((line) => line.trim().length > 0).length;
   const dirty = value !== initialValue;
+
+  const findLyrics = async () => {
+    if (!onFindLyrics || finding) return;
+    setFinding(true);
+    setFindError(null);
+    try {
+      const lyrics = await onFindLyrics();
+      if (lyrics?.trim()) onChange(lyrics);
+      else setFindError(t('lyrics.notFound'));
+    } catch (error) {
+      setFindError(
+        error instanceof ApiClientError && error.status === 404
+          ? t('lyrics.notFound')
+          : t('lyrics.findFailed'),
+      );
+    } finally {
+      setFinding(false);
+    }
+  };
 
   const currentTime = () => {
     const time = getCurrentTime();
@@ -116,6 +140,16 @@ export function LyricsEditor({
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {onFindLyrics ? (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => void findLyrics()}
+            disabled={finding}
+          >
+            {finding ? t('lyrics.finding') : t('lyrics.find')}
+          </button>
+        ) : null}
         <button type="button" className="btn btn-primary" onClick={onSave} disabled={!dirty}>
           {t('lyrics.save')}
         </button>
@@ -146,6 +180,14 @@ export function LyricsEditor({
           </button>
         ) : null}
       </div>
+      {onFindLyrics ? (
+        <p className="mt-2 text-xs leading-relaxed text-ink3">{t('lyrics.providerNote')}</p>
+      ) : null}
+      {findError ? (
+        <p className="mt-2 text-xs text-warning" role="status">
+          {findError}
+        </p>
+      ) : null}
     </section>
   );
 }

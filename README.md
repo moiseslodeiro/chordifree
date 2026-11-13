@@ -53,6 +53,9 @@ sudo systemctl reload caddy
 Caddy obtains and renews the TLS certificate automatically. Open only ports 80 and 443 in the
 VPS firewall; do not expose 3000, 3001 or 8000.
 
+When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for example
+`https://app.example.com`) so same-origin writes pass the CSRF guard.
+
 ## Features
 
 - **Chord detection** with Essentia `NNLSChroma`, key estimation and Viterbi smoothing.
@@ -63,7 +66,8 @@ VPS firewall; do not expose 3000, 3001 or 8000.
   play from A to B or loop the range.
 - **Transposition**, English/Spanish notation, sharps/flats, capo, guitar/piano/ukelele.
 - **Simplify / reduce chords** for simpler accompaniment.
-- **Local library** stored in the browser, with JSON backups, **ChordPro import/export** and print/PDF.
+- **Local library** stored in the browser, with folders to group songs, JSON backups,
+  **ChordPro import/export** and print/PDF.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
@@ -101,13 +105,14 @@ Copy `.env.example` to `.env` and adjust as needed.
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3001` | Express API port |
+| `HOST` | `127.0.0.1` | Bind address; use `0.0.0.0` only inside a container or behind a proxy |
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
 | `ANALYZER_URL` | `http://localhost:8000` | Internal analyzer URL |
 | `MAX_DURATION_SECONDS` | `900` | Maximum audio/video length |
 | `MAX_UPLOAD_BYTES` | `26214400` | Maximum upload size (25 MB) |
 | `RATE_LIMIT_MAX` | `60` | Analysis requests per window and IP |
 | `RATE_LIMIT_WINDOW_MS` | `3600000` | Rate-limit window |
-| `TRUST_PROXY` | `1` | Trusted reverse-proxy hops |
+| `TRUST_PROXY` | `0` | Trusted reverse-proxy hops; set `1` behind nginx/Caddy |
 | `TEMP_DIR` | `./.tmp` | Temporary audio directory |
 | `YTDLP_PATH` | `yt-dlp` | yt-dlp binary |
 | `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
@@ -167,19 +172,29 @@ in `packaging/analyzer` and `packaging/electron` for build steps and limitations
 
 ### Windows installer
 
-Pushing a tag `vX.Y.Z` builds the installer, writes `SHA256SUMS.txt` and publishes
-both on the GitHub release for that tag. The executable is unsigned, so SmartScreen
-warns on first launch. See [`docs/WINDOWS_INSTALL.md`](docs/WINDOWS_INSTALL.md) for
-checksum verification, the **More info → Run anyway** flow and uninstall steps.
+The **Desktop builds** workflow runs manually, so it does not consume CI minutes on
+every push. It builds the installer and writes `SHA256SUMS.txt`:
+
+```bash
+gh workflow run desktop-builds.yml --ref main
+```
+
+To publish a GitHub release, dispatch the same workflow on a version tag; the
+release job only runs for `refs/tags/v*`:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
+gh workflow run desktop-builds.yml --ref v0.1.0
 ```
+
+The executable is unsigned, so SmartScreen warns on first launch. See
+[`docs/WINDOWS_INSTALL.md`](docs/WINDOWS_INSTALL.md) for checksum verification, the
+**More info → Run anyway** flow and uninstall steps.
 
 ### macOS installer
 
-The same tag also publishes two macOS builds:
+The same manual run also builds two macOS installers:
 
 - `chordifree-<version>-arm64.dmg` (Apple Silicon, macOS 15+)
 - `chordifree-<version>-x64.dmg` (Intel, macOS 13+; pending for the first preview)
@@ -191,7 +206,7 @@ Gatekeeper flow and uninstall steps.
 
 ### Linux installer
 
-The same tag also publishes an x86_64 Linux build:
+The same manual run also builds an x86_64 Linux build:
 
 - `chordifree-<version>-x86_64.AppImage`
 - `chordifree-<version>-amd64.deb`
@@ -201,7 +216,10 @@ The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs wi
 Linux wheel. See [`docs/LINUX_INSTALL.md`](docs/LINUX_INSTALL.md) for checksum
 verification, FUSE and uninstall steps.
 
-Code signing, notarization and auto-updates are still pending.
+Code signing and automatic installation of updates are still pending. The packaged
+desktop app does check the latest GitHub release on startup and shows a dismissible
+notice with a download link; set `CHORDIFREE_DISABLE_UPDATE_CHECK=1` to disable the
+check. Only the app version and the public GitHub release metadata are involved.
 
 
 ## Landing page (GitHub Pages)

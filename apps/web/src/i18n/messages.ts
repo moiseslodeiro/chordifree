@@ -135,6 +135,20 @@ const en = {
   'library.noResults': 'Try another title or change the source filter.',
   'library.deleteConfirm':
     'Delete “{title}” from the library? This action cannot be undone.',
+  'library.foldersAria': 'Filter by folder',
+  'library.allFolders': 'All folders',
+  'library.unfiled': 'Unfiled',
+  'library.newFolder': 'New folder',
+  'library.renameFolder': 'Rename folder',
+  'library.deleteFolder': 'Delete folder',
+  'library.folderPrompt': 'Folder name',
+  'library.folderDeleteConfirm':
+    'Delete the folder “{name}”? Its songs will be moved to Unfiled.',
+  'library.folderCreated': 'Folder created.',
+  'library.folderRenamed': 'Folder renamed.',
+  'library.folderDeleted': 'Folder deleted. Its songs are now unfiled.',
+  'library.moveToFolder': 'Move “{title}” to a folder',
+  'library.noFolder': 'Unfiled',
   'library.savedAt': 'Saved {date}',
 
   'song.back': '← Home',
@@ -317,6 +331,12 @@ const en = {
   'lyrics.moveChord': 'Move {chord}',
   'lyrics.adjustHint':
     'Drag the crosshair in any direction, or use the arrow keys, to move the chord. The position is saved with the song.',
+  'lyrics.find': 'Find lyrics',
+  'lyrics.finding': 'Searching…',
+  'lyrics.notFound': 'No lyrics found for this song.',
+  'lyrics.findFailed': 'Could not fetch lyrics. Try again later.',
+  'lyrics.providerNote':
+    'Title and artist are sent to LRCLIB only when you press Find lyrics. Review the result before saving.',
   'lyrics.anchorPlaceholder': 'Insert an anchor like [01:23] at the start of a line.',
 
   'editor.eyebrow': 'Editing',
@@ -514,6 +534,13 @@ const en = {
   'footer.github': 'GitHub',
   'footer.license': 'AGPL-3.0',
   'footer.essentia': 'Essentia',
+  'update.available': 'A new version is available: {version}',
+  'update.download': 'Download',
+  'update.dismiss': 'Not now',
+  'update.check': 'Check for updates',
+  'update.current': 'You are up to date.',
+  'update.failed': 'Could not check for updates.',
+  'update.disabled': 'Update checks are only available in the packaged desktop app.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -653,6 +680,20 @@ const es: Record<MessageKey, string> = {
   'library.noResults': 'Prueba con otro título o cambia el filtro de origen.',
   'library.deleteConfirm':
     '¿Eliminar «{title}» de la biblioteca? Esta acción no se puede deshacer.',
+  'library.foldersAria': 'Filtrar por carpeta',
+  'library.allFolders': 'Todas las carpetas',
+  'library.unfiled': 'Sin carpeta',
+  'library.newFolder': 'Nueva carpeta',
+  'library.renameFolder': 'Renombrar carpeta',
+  'library.deleteFolder': 'Eliminar carpeta',
+  'library.folderPrompt': 'Nombre de la carpeta',
+  'library.folderDeleteConfirm':
+    '¿Eliminar la carpeta «{name}»? Sus canciones pasarán a Sin carpeta.',
+  'library.folderCreated': 'Carpeta creada.',
+  'library.folderRenamed': 'Carpeta renombrada.',
+  'library.folderDeleted': 'Carpeta eliminada. Sus canciones están ahora sin carpeta.',
+  'library.moveToFolder': 'Mover «{title}» a una carpeta',
+  'library.noFolder': 'Sin carpeta',
   'library.savedAt': 'Guardada {date}',
 
   'song.back': '← Inicio',
@@ -840,6 +881,12 @@ const es: Record<MessageKey, string> = {
   'lyrics.moveChord': 'Mover {chord}',
   'lyrics.adjustHint':
     'Arrastra la cruceta en cualquier dirección, o usa las flechas, para mover el acorde. La posición se guarda con la canción.',
+  'lyrics.find': 'Buscar letra',
+  'lyrics.finding': 'Buscando…',
+  'lyrics.notFound': 'No se encontró la letra de esta canción.',
+  'lyrics.findFailed': 'No se pudo obtener la letra. Inténtalo más tarde.',
+  'lyrics.providerNote':
+    'El título y el artista se envían a LRCLIB solo al pulsar Buscar letra. Revisa el resultado antes de guardarlo.',
   'lyrics.anchorPlaceholder': 'Inserta un ancla como [01:23] al inicio de una línea.',
 
   'editor.eyebrow': 'Edición',
@@ -1041,6 +1088,13 @@ const es: Record<MessageKey, string> = {
   'footer.github': 'GitHub',
   'footer.license': 'AGPL-3.0',
   'footer.essentia': 'Essentia',
+  'update.available': 'Hay una nueva versión disponible: {version}',
+  'update.download': 'Descargar',
+  'update.dismiss': 'Ahora no',
+  'update.check': 'Buscar actualizaciones',
+  'update.current': 'Ya tienes la última versión.',
+  'update.failed': 'No se pudieron buscar actualizaciones.',
+  'update.disabled': 'La búsqueda de actualizaciones solo está disponible en la app de escritorio empaquetada.',
 };
 
 export const messages: Record<Language, Record<MessageKey, string>> = { en, es };

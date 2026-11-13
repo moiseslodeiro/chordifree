@@ -8,6 +8,14 @@ const RAW = 'r';
 
 /** Above this length, messaging apps start truncating the link. */
 export const MAX_SHARE_URL = 20_000;
+/** Hard limits for incoming links, which are untrusted. */
+export const MAX_SHARE_TOKEN = 1_000_000;
+export const MAX_SHARE_BYTES = 4 * 1024 * 1024;
+const MAX_LYRICS = 200_000;
+const MAX_SEGMENTS = 20_000;
+const MAX_BEATS = 200_000;
+const MAX_TEXT = 10_000;
+const MAX_VOCAL_REGIONS = 20_000;
 
 export class ShareError extends Error {
   constructor(message: string) {
@@ -23,11 +31,17 @@ interface SharePayload {
 }
 
 function shareableSong(song: Song): SharePayload['song'] {
-  const { id: _id, createdAt: _created, updatedAt: _updated, detectedSegments: _detected, ...rest } =
-    song;
+  const {
+    id: _id,
+    createdAt: _created,
+    updatedAt: _updated,
+    detectedSegments: _detected,
+    folderId: _folderId,
+    ...rest
+  } = song;
   return {
     ...rest,
-    // Do not leak an upload's original filename through a public link.
+    // Do not leak an upload's original filename or the sender's folder id.
     source:
       song.source.type === 'youtube'
         ? song.source
@@ -59,6 +73,20 @@ function streamFromBytes(bytes: Uint8Array): ReadableStream<BufferSource> {
   });
 }
 
+function limitBytes(limit: number): TransformStream<Uint8Array, Uint8Array> {
+  let total = 0;
+  return new TransformStream({
+    transform(chunk, controller) {
+      total += chunk.byteLength;
+      if (total > limit) {
+        controller.error(new ShareError('Shared song is too large'));
+        return;
+      }
+      controller.enqueue(chunk);
+    },
+  });
+}
+
 async function collect(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
@@ -82,7 +110,22 @@ async function gzip(bytes: Uint8Array): Promise<Uint8Array> {
 }
 
 async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
-  return collect(streamFromBytes(bytes).pipeThrough(new DecompressionStream('gzip')));
+  return collect(
+    streamFromBytes(bytes)
+      .pipeThrough(new DecompressionStream('gzip'))
+      .pipeThrough(limitBytes(MAX_SHARE_BYTES)),
+  );
+}
+
+function isReasonableSong(song: Song): boolean {
+  return (
+    (song.lyrics?.length ?? 0) <= MAX_LYRICS &&
+    song.segments.length <= MAX_SEGMENTS &&
+    song.detectedSegments.length <= MAX_SEGMENTS &&
+    (song.beats?.length ?? 0) <= MAX_BEATS &&
+    (song.vocalRegions?.length ?? 0) <= MAX_VOCAL_REGIONS &&
+    song.title.length + (song.artist?.length ?? 0) <= MAX_TEXT
+  );
 }
 
 /** Serializes one song into a compact token for a share link. */
@@ -104,6 +147,7 @@ export async function decodeSongFromToken(token: string): Promise<Song> {
   const mode = token.slice(0, separator);
   const encoded = token.slice(separator + 1);
   if (mode !== GZIP && mode !== RAW) throw new ShareError('Unknown share format');
+  if (encoded.length > MAX_SHARE_TOKEN) throw new ShareError('Shared song is too large');
 
   let bytes = fromBase64Url(encoded);
   if (mode === GZIP) {
@@ -111,6 +155,8 @@ export async function decodeSongFromToken(token: string): Promise<Song> {
       throw new ShareError('This browser cannot open shared links');
     }
     bytes = await gunzip(bytes);
+  } else if (bytes.length > MAX_SHARE_BYTES) {
+    throw new ShareError('Shared song is too large');
   }
 
   let data: unknown;
@@ -135,7 +181,9 @@ export async function decodeSongFromToken(token: string): Promise<Song> {
     updatedAt: now,
   };
 
-  if (!isSong(candidate)) throw new ShareError('Invalid song');
+  if (!isSong(candidate) || !isReasonableSong(candidate)) {
+    throw new ShareError('Invalid song');
+  }
   return candidate;
 }
 

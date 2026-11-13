@@ -33,8 +33,9 @@ On Windows the analyzer binary is `analyzer.exe` inside the
 
 ## Build the Windows installer
 
-The `Desktop builds` workflow builds the analyzer and then the NSIS installer in
-the same run:
+The `Desktop builds` workflow is manual only. Run it from the Actions tab or with
+`gh workflow run desktop-builds.yml`; it builds the analyzer and then the NSIS
+installer in the same run:
 
 1. `desktop-builds` builds the Essentia wheel and freezes the analyzer.
 2. `windows-installer` downloads that artifact, builds the web app and the
@@ -132,6 +133,24 @@ resources/
 
 `ffmpeg-static` and `ffprobe-static` provide the media binaries for uploads and
 YouTube jobs.
+
+## Update check
+
+The packaged app requests the latest release from the public GitHub API on startup and
+shows a dismissible notice when a newer version exists. The footer also has a manual
+**Check for updates** button. No library, audio or account data is sent.
+
+Set `CHORDIFREE_DISABLE_UPDATE_CHECK=1` to disable the check. Automatic installation
+of updates is not implemented.
+
+To test the banner without packaging a release:
+
+```bash
+CHORDIFREE_UPDATE_CHECK=1 CHORDIFREE_UPDATE_FAKE_VERSION=0.2.0 pnpm start
+```
+
+In development the check is disabled unless `CHORDIFREE_UPDATE_CHECK=1` is set; the
+fake version only works in development.
 
 ## Still missing
 

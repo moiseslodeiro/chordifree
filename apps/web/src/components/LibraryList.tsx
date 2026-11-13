@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
-import type { SongHistory, SongSummary } from '../types';
+import type { Folder, SongHistory, SongSummary } from '../types';
 import { useLanguage, useT, type MessageKey } from '../i18n';
 import { isDesktopApp } from '../lib/platform';
 import { NoticeBanner } from './ErrorBanner';
@@ -34,6 +34,7 @@ interface LibraryNotice {
 
 interface LibraryListProps {
   songs: SongSummary[];
+  folders?: Folder[];
   history?: Record<string, SongHistory>;
   notice?: LibraryNotice | null;
   onDismissNotice?: () => void;
@@ -43,6 +44,10 @@ interface LibraryListProps {
   onClearCache?: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  onCreateFolder?: (name: string) => void;
+  onRenameFolder?: (folder: Folder, name: string) => void;
+  onDeleteFolder?: (folder: Folder) => void;
+  onMoveSong?: (songId: string, folderId: string | null) => void;
   onBack: () => void;
   onHome: () => void;
 }
@@ -61,6 +66,7 @@ function formatDate(value: string, language: 'en' | 'es'): string {
 
 export function LibraryList({
   songs,
+  folders = [],
   history = {},
   notice,
   onDismissNotice,
@@ -70,6 +76,10 @@ export function LibraryList({
   onClearCache,
   onOpen,
   onDelete,
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onMoveSong,
   onBack,
   onHome,
 }: LibraryListProps) {
@@ -78,21 +88,40 @@ export function LibraryList({
   const desktop = isDesktopApp();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<SourceFilter>('all');
+  const [folder, setFolder] = useState('all');
+  const [folderEditor, setFolderEditor] = useState<{
+    mode: 'create' | 'rename';
+    value: string;
+    folderId?: string;
+  } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const activeFolder =
+    folder !== 'all' && folder !== 'unfiled'
+      ? folders.find((item) => item.id === folder) ?? null
+      : null;
+
+  useEffect(() => {
+    if (folder !== 'all' && folder !== 'unfiled' && !folders.some((item) => item.id === folder)) {
+      setFolder('all');
+    }
+  }, [folder, folders]);
 
   const filtered = useMemo(() => {
     const needle = normalize(query.trim());
     return songs.filter((song) => {
       if (source !== 'all' && song.source.type !== source) return false;
+      if (folder === 'unfiled' && song.folderId) return false;
+      if (folder !== 'all' && folder !== 'unfiled' && song.folderId !== folder) return false;
       if (!needle) return true;
       return normalize(song.title).includes(needle);
     });
-  }, [songs, query, source]);
+  }, [songs, query, source, folder]);
 
-  const hasFilters = query.trim().length > 0 || source !== 'all';
+  const hasFilters = query.trim().length > 0 || source !== 'all' || folder !== 'all';
   const clearFilters = () => {
     setQuery('');
     setSource('all');
+    setFolder('all');
   };
 
   return (
@@ -205,6 +234,121 @@ export function LibraryList({
               ) : null}
             </div>
 
+            <div
+              className="mt-3 flex flex-wrap items-center gap-1.5"
+              role="group"
+              aria-label={t('library.foldersAria')}
+            >
+              <button
+                type="button"
+                className={folder === 'all' ? 'tool-chip-active' : 'tool-chip'}
+                aria-pressed={folder === 'all'}
+                onClick={() => setFolder('all')}
+              >
+                {t('library.allFolders')}
+              </button>
+              <button
+                type="button"
+                className={folder === 'unfiled' ? 'tool-chip-active' : 'tool-chip'}
+                aria-pressed={folder === 'unfiled'}
+                onClick={() => setFolder('unfiled')}
+              >
+                {t('library.unfiled')}
+              </button>
+              {folders.map((item) => {
+                const active = folder === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={active ? 'tool-chip-active' : 'tool-chip'}
+                    aria-pressed={active}
+                    onClick={() => setFolder(item.id)}
+                  >
+                    {item.name}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setFolderEditor({ mode: 'create', value: '' })}
+              >
+                {t('library.newFolder')}
+              </button>
+              {activeFolder ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() =>
+                      setFolderEditor({
+                        mode: 'rename',
+                        value: activeFolder.name,
+                        folderId: activeFolder.id,
+                      })
+                    }
+                  >
+                    {t('library.renameFolder')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => onDeleteFolder?.(activeFolder)}
+                  >
+                    {t('library.deleteFolder')}
+                  </button>
+                </>
+              ) : null}
+              {folderEditor ? (
+                <form
+                  className="flex flex-wrap items-center gap-1.5"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const name = folderEditor.value.trim();
+                    if (!name) return;
+                    if (folderEditor.mode === 'create') {
+                      onCreateFolder?.(name);
+                    } else {
+                      const target = folders.find((item) => item.id === folderEditor.folderId);
+                      if (target) onRenameFolder?.(target, name);
+                    }
+                    setFolderEditor(null);
+                  }}
+                >
+                  <label htmlFor="folder-name" className="sr-only">
+                    {t('library.folderPrompt')}
+                  </label>
+                  <input
+                    id="folder-name"
+                    className="field max-w-48"
+                    value={folderEditor.value}
+                    onChange={(event) =>
+                      setFolderEditor((current) =>
+                        current ? { ...current, value: event.target.value } : current,
+                      )
+                    }
+                    placeholder={t('library.folderPrompt')}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={!folderEditor.value.trim()}
+                  >
+                    {t('common.save')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setFolderEditor(null)}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </form>
+              ) : null}
+            </div>
+
             <p
               className="mt-3 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3"
               aria-live="polite"
@@ -268,7 +412,23 @@ export function LibraryList({
                       </span>
                     </span>
                   </button>
-                  <div className="flex shrink-0 gap-2 pl-8 sm:pl-0">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 pl-8 sm:pl-0">
+                    <label htmlFor={`folder-${song.id}`} className="sr-only">
+                      {t('library.moveToFolder', { title: song.title })}
+                    </label>
+                    <select
+                      id={`folder-${song.id}`}
+                      className="tool-select max-w-40 text-xs"
+                      value={song.folderId ?? ''}
+                      onChange={(event) => onMoveSong?.(song.id, event.target.value || null)}
+                    >
+                      <option value="">{t('library.noFolder')}</option>
+                      {folders.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
                     <button type="button" className="btn" onClick={() => onOpen(song.id)}>
                       {t('common.open')}
                     </button>
