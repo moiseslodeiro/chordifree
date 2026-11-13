@@ -27,14 +27,14 @@ This step is optional but recommended while the build is unsigned.
 PowerShell:
 
 ```powershell
-Get-FileHash .\chordifree-0.1.0-setup.exe -Algorithm SHA256
+Get-FileHash .\chordifree-0.2.0-setup.exe -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
 ```
 
 Command Prompt:
 
 ```cmd
-certutil -hashfile chordifree-0.1.0-setup.exe SHA256
+certutil -hashfile chordifree-0.2.0-setup.exe SHA256
 ```
 
 The hash must match the line in `SHA256SUMS.txt`. If it does not match, delete the file,
