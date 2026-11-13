@@ -18,7 +18,7 @@ function renderControls(overrides: Partial<Parameters<typeof NotationControls>[0
 }
 
 describe('NotationControls', () => {
-  it('cambia entre notación inglesa y española', () => {
+  it('switches between English and Spanish notation', () => {
     const { onChange } = renderControls();
     expect(screen.getByRole('button', { name: 'Inglesa' })).toHaveAttribute(
       'aria-pressed',
@@ -28,7 +28,7 @@ describe('NotationControls', () => {
     expect(onChange).toHaveBeenCalledWith({ notation: 'spanish' });
   });
 
-  it('sube, baja y restablece la trasposición', () => {
+  it('raises, lowers and resets the transposition', () => {
     const { onChange } = renderControls({ transpose: 3 });
     fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
     expect(onChange).toHaveBeenCalledWith({ transpose: 4 });
@@ -38,18 +38,18 @@ describe('NotationControls', () => {
     expect(onChange).toHaveBeenCalledWith({ transpose: 0 });
   });
 
-  it('limita la trasposición al rango -11..+11', () => {
+  it('limits transposition to the -11..+11 range', () => {
     renderControls({ transpose: 11 });
     expect(screen.getByRole('button', { name: 'Subir un semitono' })).toBeDisabled();
   });
 
-  it('cambia la preferencia enarmónica', () => {
+  it('changes the enharmonic preference', () => {
     const { onChange } = renderControls();
     fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'flat' } });
     expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'flat' });
   });
 
-  it('muestra la tonalidad estimada', () => {
+  it('shows the estimated key', () => {
     renderControls({ keyLabel: 'Fa mayor' });
     expect(screen.getByText('Tonalidad estimada: Fa mayor')).toBeInTheDocument();
   });

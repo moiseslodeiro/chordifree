@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ActionMenu } from '../src/components/ActionMenu';
 
 describe('ActionMenu', () => {
-  it('abre el menú y ejecuta una acción', () => {
+  it('opens the menu and runs an action', () => {
     const onSelect = vi.fn();
     render(
       <ActionMenu
@@ -25,7 +25,7 @@ describe('ActionMenu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('cierra con Escape', () => {
+  it('closes with Escape', () => {
     render(<ActionMenu label="Más acciones" items={[{ label: 'Una', onSelect: vi.fn() }]} />);
     fireEvent.click(screen.getByRole('button', { name: /Más acciones/ }));
     fireEvent.keyDown(document, { key: 'Escape' });

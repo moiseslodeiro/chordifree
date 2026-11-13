@@ -21,8 +21,8 @@ function song(id: string, videoId: string, title: string, updatedAt = '2026-01-0
   };
 }
 
-describe('exportación e importación de la biblioteca', () => {
-  it('exporta las canciones completas en el orden de la biblioteca', () => {
+describe('library export and import', () => {
+  it('exports full songs in library order', () => {
     const library = new Library(createMemoryStorage());
     library.save(song('a', 'video-a', 'Primera', '2026-01-01T00:00:00.000Z'));
     library.save(song('b', 'video-b', 'Segunda', '2026-01-02T00:00:00.000Z'));
@@ -32,7 +32,7 @@ describe('exportación e importación de la biblioteca', () => {
     expect(exported[0]?.segments).toHaveLength(1);
   });
 
-  it('conserva la letra al exportar e importar', () => {
+  it('preserves lyrics when exporting and importing', () => {
     const source = new Library(createMemoryStorage());
     source.save({ ...song('a', 'video-a', 'Con letra'), lyrics: 'Línea uno\nLínea dos' });
     const exported = source.exportSongs();
@@ -44,7 +44,7 @@ describe('exportación e importación de la biblioteca', () => {
     expect(target.exportSongs()[0]?.lyrics).toBe('Línea uno\nLínea dos');
   });
 
-  it('añade canciones nuevas y actualiza las que comparten origen', () => {
+  it('adds new songs and updates those sharing a source', () => {
     const library = new Library(createMemoryStorage());
     library.save(song('local', 'video-a', 'Versión antigua'));
 
@@ -59,7 +59,7 @@ describe('exportación e importación de la biblioteca', () => {
     expect(library.list().some((item) => item.title === 'Canción nueva')).toBe(true);
   });
 
-  it('resuelve colisiones de id entre canciones de distinto origen', () => {
+  it('resolves id collisions between songs from different sources', () => {
     const library = new Library(createMemoryStorage());
     library.save(song('same-id', 'video-a', 'Original'));
 
@@ -83,7 +83,7 @@ describe('exportación e importación de la biblioteca', () => {
     expect(library.list()).toHaveLength(2);
   });
 
-  it('deduplica por origen dentro de la misma copia', () => {
+  it('deduplicates by source within the same backup', () => {
     const library = new Library(createMemoryStorage());
 
     const result = library.importSongs([

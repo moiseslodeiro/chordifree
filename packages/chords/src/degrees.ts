@@ -1,7 +1,7 @@
 import { mod12 } from './notes';
 import type { Chord, ChordSegment, EstimatedKey, Quality } from './types';
 
-/** Sufijo de extensión para el grado romano. */
+/** Extension suffix for the Roman numeral degree. */
 const QUALITY_SUFFIX: Record<Quality, string> = {
   major: '',
   minor: '',
@@ -48,7 +48,7 @@ interface DegreePosition {
   accidental: '' | '♭' | '♯';
 }
 
-/** Grado y alteración de cada una de las doce clases de altura en modo mayor. */
+/** Degree and accidental for each of the twelve pitch classes in major mode. */
 const MAJOR_DEGREES: readonly DegreePosition[] = [
   { degree: 1, accidental: '' },
   { degree: 2, accidental: '♭' },
@@ -64,7 +64,7 @@ const MAJOR_DEGREES: readonly DegreePosition[] = [
   { degree: 7, accidental: '' },
 ];
 
-/** Grado y alteración en modo menor natural, con las alteraciones usuales. */
+/** Degree and accidental in natural minor mode, with the usual accidentals. */
 const MINOR_DEGREES: readonly DegreePosition[] = [
   { degree: 1, accidental: '' },
   { degree: 2, accidental: '♭' },
@@ -86,7 +86,7 @@ function degreePosition(pitch: number, key: EstimatedKey): DegreePosition {
   return table[diff] ?? MAJOR_DEGREES[0]!;
 }
 
-/** Devuelve el grado romano de un acorde respecto a la tonalidad indicada. */
+/** Returns the Roman numeral degree of a chord relative to the given key. */
 export function chordDegree(chord: Chord, key: EstimatedKey): string {
   const position = degreePosition(chord.root, key);
   const roman = ROMAN[position.degree - 1] ?? 'I';
@@ -103,7 +103,7 @@ export function chordDegree(chord: Chord, key: EstimatedKey): string {
   return `${position.accidental}${numeral}${suffix}${bass}`;
 }
 
-/** Lista de grados en orden de aparición, colapsando repeticiones consecutivas. */
+/** List of degrees in order of appearance, collapsing consecutive repetitions. */
 export function progressionDegrees(
   segments: ChordSegment[],
   key: EstimatedKey,

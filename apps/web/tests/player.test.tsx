@@ -21,7 +21,7 @@ const segments: ChordSegment[] = [
 ];
 
 describe('FakePlayerAdapter', () => {
-  it('avanza con el reloj solo al reproducir', () => {
+  it('advances with the clock only during playback', () => {
     vi.useFakeTimers();
     try {
       const adapter = new FakePlayerAdapter(0, true);
@@ -37,7 +37,7 @@ describe('FakePlayerAdapter', () => {
     }
   });
 
-  it('permite buscar y notifica cambios de estado', () => {
+  it('allows seeking and notifies state changes', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const listener = vi.fn();
     const unsubscribe = adapter.onStateChange(listener);
@@ -56,7 +56,7 @@ describe('FakePlayerAdapter', () => {
     adapter.destroy();
   });
 
-  it('escala el tiempo según la velocidad y la limita al rango válido', () => {
+  it('scales time by the playback rate and clamps it to the valid range', () => {
     vi.useFakeTimers();
     try {
       const adapter = new FakePlayerAdapter(0, true);
@@ -80,7 +80,7 @@ describe('FakePlayerAdapter', () => {
 });
 
 describe('AudioPlayerAdapter', () => {
-  it('envuelve un elemento de audio y refleja play, pause y seek', () => {
+  it('wraps an audio element and reflects play, pause and seek', () => {
     const element = document.createElement('audio');
     const adapter = new AudioPlayerAdapter(element);
     expect(adapter.element).toBe(element);
@@ -106,7 +106,7 @@ describe('AudioPlayerAdapter', () => {
     adapter.destroy();
   });
 
-  it('crea su propio elemento cuando recibe una URL', () => {
+  it('creates its own element when given a URL', () => {
     const adapter = new AudioPlayerAdapter('https://example.test/audio.mp3');
     expect(adapter.element).toBeInstanceOf(HTMLAudioElement);
     adapter.destroy();
@@ -114,7 +114,7 @@ describe('AudioPlayerAdapter', () => {
 });
 
 describe('YouTubePlayerAdapter', () => {
-  it('crea el reproductor y delega play, pause y seek', async () => {
+  it('creates the player and delegates play, pause and seek', async () => {
     const calls: string[] = [];
     const handlers: { stateChange?: (event: { data: number }) => void } = {};
 
@@ -190,7 +190,7 @@ describe('YouTubePlayerAdapter', () => {
 });
 
 describe('PlaybackClock', () => {
-  it('publica el índice activo y solo notifica cuando cambia', () => {
+  it('publishes the active index and only notifies when it changes', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -224,7 +224,7 @@ describe('PlaybackClock', () => {
     clock.destroy();
   });
 
-  it('integra useSyncExternalStore para leer el índice', () => {
+  it('integrates useSyncExternalStore to read the index', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -240,7 +240,7 @@ describe('PlaybackClock', () => {
     clock.destroy();
   });
 
-  it('solo las filas afectadas cambian de estado al avanzar', () => {
+  it('only the affected rows change state as playback advances', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -272,14 +272,14 @@ describe('PlaybackClock', () => {
     });
     rerender(<Grid tick={1} />);
 
-    // La fila 0 deja de estar activa y la 1 pasa a estarlo; la 2 no cambia.
+    // Row 0 stops being active and row 1 becomes active; row 2 does not change.
     expect(renders[0]).toBeGreaterThan(before[0]);
     expect(renders[2]).toBe(before[2]);
     expect(renders[1]).toBeGreaterThan(before[1]);
     clock.destroy();
   });
 
-  it('publica el índice de pulso y solo notifica cuando cambia algún índice', () => {
+  it('publishes the beat index and only notifies when an index changes', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -319,7 +319,7 @@ describe('PlaybackClock', () => {
     clock.destroy();
   });
 
-  it('resuelve los bordes de búsqueda de pulsos', () => {
+  it('resolves beat search boundaries', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -349,7 +349,7 @@ describe('PlaybackClock', () => {
     clock.destroy();
   });
 
-  it('integra useBeatIndex y useIsBeatActive', () => {
+  it('integrates useBeatIndex and useIsBeatActive', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -365,7 +365,7 @@ describe('PlaybackClock', () => {
     clock.destroy();
   });
 
-  it('solo las celdas de pulso afectadas cambian de estado al avanzar', () => {
+  it('only the affected beat cells change state as playback advances', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -405,13 +405,13 @@ describe('PlaybackClock', () => {
 });
 
 describe('videoIdFromUrl', () => {
-  it('extrae el identificador de los formatos admitidos', () => {
+  it('extracts the ID from supported formats', () => {
     expect(videoIdFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
     expect(videoIdFromUrl('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
     expect(videoIdFromUrl('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
   });
 
-  it('rechaza hosts, esquemas e identificadores inválidos', () => {
+  it('rejects invalid hosts, schemes and IDs', () => {
     expect(videoIdFromUrl('https://example.com/watch?v=dQw4w9WgXcQ')).toBeNull();
     expect(videoIdFromUrl('ftp://youtube.com/watch?v=dQw4w9WgXcQ')).toBeNull();
     expect(videoIdFromUrl('https://youtu.be/abc')).toBeNull();

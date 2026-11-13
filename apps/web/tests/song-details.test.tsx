@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { SongDetails } from '../src/components/SongDetails';
 
 describe('SongDetails', () => {
-  it('muestra tonalidad, relativa y capo', () => {
+  it('shows key, relative key and capo', () => {
     render(
       <SongDetails
         keyLabel="Re mayor"
@@ -24,7 +24,7 @@ describe('SongDetails', () => {
     expect(screen.getByText('120')).toBeInTheDocument();
   });
 
-  it('indica cuando no hay capo', () => {
+  it('indicates when there is no capo', () => {
     render(
       <SongDetails
         keyLabel="Do mayor"
@@ -43,7 +43,7 @@ describe('SongDetails', () => {
     expect(screen.getByText('No se detectaron acordes.')).toBeInTheDocument();
   });
 
-  it('oculta el capo cuando el instrumento no lo admite', () => {
+  it('hides the capo when the instrument does not support it', () => {
     render(
       <SongDetails
         keyLabel="Do mayor"

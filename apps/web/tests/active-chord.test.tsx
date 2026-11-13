@@ -11,7 +11,7 @@ const segments: ChordSegment[] = [
 ];
 
 describe('ActiveChordDiagram', () => {
-  it('cambia el diagrama cuando avanza el segmento activo', () => {
+  it('changes the diagram when the active segment advances', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -37,7 +37,7 @@ describe('ActiveChordDiagram', () => {
     clock.destroy();
   });
 
-  it('muestra el estado vacío sin acorde activo', () => {
+  it('shows the empty state with no active chord', () => {
     render(
       <ActiveChordDiagram
         segments={segments}

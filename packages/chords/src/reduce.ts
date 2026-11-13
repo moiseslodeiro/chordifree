@@ -6,28 +6,28 @@ const FALLBACK_BEAT_SECONDS = 1.5;
 const EPSILON = 1e-6;
 
 /**
- * Fuerza de la reducción: `normal` absorbe los acordes de paso y `max` deja
- * como mucho un acorde por compás, conservando el que más suena en cada uno.
+ * Reduction strength: `normal` absorbs passing chords and `max` leaves
+ * at most one chord per bar, keeping the one that sounds the most in each.
  */
 export type ReduceLevel = 'normal' | 'max';
 
-/** Ventana mínima del modo máximo para evitar compases absurdos. */
+/** Minimum window for max mode to avoid absurd bars. */
 const MIN_BAR_SECONDS = 0.5;
 
 /**
- * Un acorde que dura al menos esta cantidad de pulsos se considera estructural
- * aunque no vuelva a aparecer en la canción.
+ * A chord that lasts at least this many beats is considered structural
+ * even if it does not reappear in the song.
  */
 const MIN_KEEP_BEATS = 1.5;
 
 /**
- * Una familia (mayor, menor, disminuida…) necesita sonar al menos esta cantidad
- * de pulsos a lo largo de la canción para que sus apariciones breves no se
- * descarten como acordes de paso.
+ * A family (major, minor, diminished…) needs to sound for at least this many
+ * beats over the song so that its brief appearances are not
+ * discarded as passing chords.
  */
 const MIN_ROOT_BEATS = 1.5;
 
-/** Proporción mínima de la fundamental que debe cubrir la familia del acorde. */
+/** Minimum share of the root that the chord family must cover. */
 const MIN_FAMILY_SHARE = 0.5;
 
 type QualityFamily = 'major' | 'minor' | 'dim' | 'aug' | 'power';
@@ -55,9 +55,9 @@ function qualityFamily(quality: Quality): QualityFamily {
 }
 
 interface HarmonyProfile {
-  /** Duración total, en segundos, de cada fundamental. */
+  /** Total duration, in seconds, of each root. */
   rootTotals: Map<PitchClass, number>;
-  /** Duración total de cada familia de calidad dentro de cada fundamental. */
+  /** Total duration of each quality family within each root. */
   familyTotals: Map<PitchClass, Map<QualityFamily, number>>;
 }
 
@@ -67,8 +67,8 @@ function sanitizeBeats(beats: number[]): number[] {
 }
 
 /**
- * Duración de un pulso: mediana de los intervalos detectados. Sin pulsos
- * utilizables se usa un valor conservador de 1,5 s.
+ * Duration of a beat: median of the detected intervals. Without usable
+ * beats a conservative value of 1.5 s is used.
  */
 export function beatDuration(beats: number[]): number {
   const times = sanitizeBeats(beats);
@@ -127,9 +127,9 @@ function duration(segment: ChordSegment): number {
 }
 
 /**
- * Perfil armónico de la canción: cuánto suena cada fundamental y qué familias
- * de calidad dominan en ella. Sirve para distinguir los acordes que sostienen
- * la armonía de los que solo pasan brevemente por un color ajeno.
+ * Harmonic profile of the song: how much each root sounds and which quality
+ * families dominate in it. It helps distinguish the chords that sustain
+ * the harmony from those that only pass briefly through a foreign color.
  */
 function buildProfile(segments: ChordSegment[]): HarmonyProfile {
   const rootTotals = new Map<PitchClass, number>();
@@ -155,11 +155,11 @@ function rootDuration(root: PitchClass, profile: HarmonyProfile): number {
 }
 
 /**
- * Un acorde es estructural si dura al menos pulsación y media, si su
- * fundamental y su familia de calidad forman parte de la armonía recurrente de
- * la canción, o si no está rodeado por acordes más largos. Solo los cambios
- * breves entre acordes estables se consideran de paso; así las progresiones con
- * cambios en cada pulsación se conservan.
+ * A chord is structural if it lasts at least a beat and a half, if its
+ * root and quality family are part of the recurring harmony of
+ * the song, or if it is not surrounded by longer chords. Only the brief
+ * changes between stable chords are considered passing; thus progressions with
+ * changes on every beat are preserved.
  */
 function isStructural(
   segment: ChordSegment,
@@ -204,13 +204,13 @@ function isStructural(
   return true;
 }
 
-/** Duración más peso armónico global de la fundamental, para desempatar. */
+/** Duration plus global harmonic weight of the root, to break ties. */
 function importance(segment: ChordSegment, profile: HarmonyProfile): number {
   if (!segment.chord) return duration(segment);
   return duration(segment) + rootDuration(segment.chord.root, profile);
 }
 
-/** Acorde con más presencia dentro de una ventana (un compás). */
+/** Chord with the most presence within a window (one bar). */
 function dominantChord(slots: ChordSegment[]): Chord | null {
   const totals: Array<{ chord: Chord; total: number }> = [];
   for (const slot of slots) {
@@ -219,16 +219,16 @@ function dominantChord(slots: ChordSegment[]): Chord | null {
     if (found) found.total += duration(slot);
     else totals.push({ chord: slot.chord, total: duration(slot) });
   }
-  // `sort` es estable: en caso de empate gana el acorde que aparece antes.
+  // `sort` is stable: on a tie the chord that appears first wins.
   totals.sort((a, b) => b.total - a.total);
   return totals[0]?.chord ?? null;
 }
 
 /**
- * Modo máximo: divide la línea en compases de cuatro pulsos (anclados en el
- * primer pulso detectado) y deja un único acorde por compás, el que más suena
- * dentro de él. Los silencios se respetan y los compases consecutivos con el
- * mismo acorde se fusionan al final.
+ * Max mode: splits the timeline into bars of four beats (anchored to the
+ * first detected beat) and leaves a single chord per bar, the one that sounds
+ * the most inside it. Silences are respected and consecutive bars with the
+ * same chord are merged at the end.
  */
 function collapseToBars(
   segments: ChordSegment[],
@@ -244,8 +244,8 @@ function collapseToBars(
   const first = segments[0]!.start;
   const last = segments[segments.length - 1]!.end;
 
-  // Fronteras de segmento y de compás; así cada tramo pertenece a un solo
-  // acorde y a un solo compás.
+  // Segment and bar boundaries; thus each stretch belongs to a single
+  // chord and a single bar.
   const boundaries = new Set<number>();
   for (const segment of segments) {
     boundaries.add(segment.start);
@@ -329,20 +329,20 @@ function collapseToBars(
 }
 
 /**
- * Reduce la línea de tiempo a sus acordes importantes para la presentación:
- * simplifica la calidad, fusiona acordes consecutivos iguales y absorbe los
- * acordes de paso. Un acorde de paso es un cambio breve que no pertenece a la
- * armonía recurrente de la canción (o que usa una calidad minoritaria dentro de
- * una misma fundamental, como un `E♭` mayor suelto en una canción en `E♭m`).
- * Las progresiones reales se conservan porque sus acordes, aunque breves,
- * vuelven a aparecer y dominan el perfil armónico de la pieza.
+ * Reduces the timeline to its important chords for presentation:
+ * simplifies the quality, merges consecutive equal chords and absorbs the
+ * passing chords. A passing chord is a brief change that does not belong to the
+ * recurring harmony of the song (or that uses a minority quality within the
+ * same root, such as a lone `E♭` major in a song in `E♭m`).
+ * Real progressions are preserved because their chords, although brief,
+ * reappear and dominate the harmonic profile of the piece.
  *
- * No muta la entrada. Los silencios se conservan y, si hubiera que descartar
- * todos los acordes, se mantiene el de mayor duración.
+ * Does not mutate the input. Silences are preserved and, if all chords had to
+ * be discarded, the one with the longest duration is kept.
  *
- * Con `level: 'max'` se añade una pasada que deja como mucho un acorde por
- * compás, conservando el acorde dominante en su tiempo real. Si el dominante
- * entra a mitad del compás, el acorde anterior se mantiene hasta ese punto.
+ * With `level: 'max'` a pass is added that leaves at most one chord per
+ * bar, keeping the dominant chord at its real time. If the dominant
+ * enters halfway through the bar, the previous chord is kept until that point.
  */
 export function reduceChordSegments(
   segments: ChordSegment[],
@@ -378,7 +378,7 @@ export function reduceChordSegments(
       continue;
     }
 
-    // Absorbe de golpe toda la racha de acordes de paso contiguos.
+    // Absorbs the whole run of contiguous passing chords at once.
     let last = index;
     while (last + 1 < working.length) {
       const candidate = working[last + 1]!;
@@ -402,8 +402,8 @@ export function reduceChordSegments(
     } else if (nextChord) {
       nextChord.start = segment.start;
     } else {
-      // Racha aislada entre silencios o extremos: no hay armonía estable a la
-      // que absorberla, así que se conserva tal cual.
+      // Isolated run between silences or extremes: there is no stable harmony
+      // to absorb it into, so it is kept as is.
       for (let cursor = index; cursor <= last; cursor += 1) {
         reduced.push({ ...working[cursor]! });
       }

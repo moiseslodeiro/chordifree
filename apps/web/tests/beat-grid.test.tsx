@@ -61,8 +61,8 @@ function setup({
   return { adapter, clock, onSeek, onViewChange, view: view_result };
 }
 
-describe('ChordGrid en vista de parrilla', () => {
-  it('renderiza filas de ocho celdas con dos compases y agrupa la etiqueta del acorde', () => {
+describe('ChordGrid in grid view', () => {
+  it('renders rows of eight cells with two bars and groups the chord label', () => {
     setup({ beats: twentyFourBeats });
     const firstRow = screen.getByTestId('beat-row-0');
     const secondRow = screen.getByTestId('beat-row-1');
@@ -76,7 +76,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getAllByText('G')).toHaveLength(1);
   });
 
-  it('colorea los compases A y B y atenúa los intermedios', () => {
+  it('colors bars A and B and dims the in-between ones', () => {
     setup({ beats: twentyFourBeats, loopA: 0, loopB: 16 });
 
     for (const index of [0, 1, 2, 3]) {
@@ -94,7 +94,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getByTestId('beat-cell-16')).not.toHaveAttribute('data-loop');
   });
 
-  it('marca con A·B el compás que contiene todo el bucle', () => {
+  it('marks the bar containing the whole loop with A·B', () => {
     setup({ beats: twentyFourBeats, loopA: 0, loopB: 4 });
 
     for (const index of [0, 1, 2, 3]) {
@@ -103,7 +103,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getByTestId('beat-cell-4')).not.toHaveAttribute('data-loop');
   });
 
-  it('previsualiza el compás completo bajo el ratón al armar A o B', () => {
+  it('previews the whole bar under the mouse when arming A or B', () => {
     setup({ beats: twentyFourBeats, markMode: 'a' });
 
     fireEvent.mouseEnter(screen.getByTestId('beat-cell-5'));
@@ -120,7 +120,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getByTestId('beat-cell-5')).not.toHaveAttribute('data-mark-preview');
   });
 
-  it('previsualiza en el color B y no previsualiza sin modo de marcado', () => {
+  it('previews in color B and does not preview without mark mode', () => {
     const first = setup({ beats: twentyFourBeats, markMode: 'b' });
     fireEvent.mouseEnter(screen.getByTestId('beat-cell-9'));
     expect(screen.getByTestId('beat-cell-8')).toHaveAttribute('data-mark-preview', 'b');
@@ -131,7 +131,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getByTestId('beat-cell-8')).not.toHaveAttribute('data-mark-preview');
   });
 
-  it('señala los acordes con confianza baja', () => {
+  it('flags chords with low confidence', () => {
     const chords: ChordSegment[] = [
       { start: 0, end: 4, chord: parseChord('C'), confidence: 0.35 },
       { start: 4, end: 8, chord: parseChord('G'), confidence: 0.9 },
@@ -146,7 +146,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getAllByText('?')).toHaveLength(1);
   });
 
-  it('muestra una insignia de dudoso en la vista de lista', () => {
+  it('shows a doubtful badge in list view', () => {
     const chords: ChordSegment[] = [
       { start: 0, end: 4, chord: parseChord('C'), confidence: 0.35 },
       { start: 4, end: 8, chord: parseChord('G'), confidence: 0.9 },
@@ -156,7 +156,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.getByText('dudoso')).toBeInTheDocument();
   });
 
-  it('deja vacías y no focusables las celdas de la última fila incompleta', () => {
+  it('leaves the cells of the last incomplete row empty and non-focusable', () => {
     setup({ beats: twentyFourBeats.slice(0, 18) });
     const thirdRow = screen.getByTestId('beat-row-2');
     expect(within(thirdRow).getAllByRole('button')).toHaveLength(2);
@@ -164,7 +164,7 @@ describe('ChordGrid en vista de parrilla', () => {
     expect(screen.queryByTestId('beat-cell-19')).not.toBeInTheDocument();
   });
 
-  it('completa la parrilla y el seguimiento hasta la duración si los pulsos se cortan', () => {
+  it('fills the grid and the tracking up to the duration if the beats are cut short', () => {
     const { adapter, clock } = setup({ beats: [0, 1, 2, 3], duration: 8 });
     expect(screen.getByTestId('beat-cell-7')).toBeInTheDocument();
     expect(screen.queryByTestId('beat-cell-8')).not.toBeInTheDocument();
@@ -177,7 +177,7 @@ describe('ChordGrid en vista de parrilla', () => {
     clock.destroy();
   });
 
-  it('resalta el pulso activo y salta al tiempo de la celda', () => {
+  it('highlights the active beat and seeks to the cell time', () => {
     const { adapter, clock, onSeek } = setup();
     expect(screen.getByTestId('beat-cell-0')).toHaveAttribute('data-active', 'true');
 
@@ -193,7 +193,7 @@ describe('ChordGrid en vista de parrilla', () => {
     clock.destroy();
   });
 
-  it('navega dentro de la fila, entre filas y en los extremos', () => {
+  it('navigates within a row, between rows, and at the edges', () => {
     const { clock } = setup({ beats: twentyFourBeats });
     const first = screen.getByTestId('beat-cell-0');
     first.focus();
@@ -220,7 +220,7 @@ describe('ChordGrid en vista de parrilla', () => {
     clock.destroy();
   });
 
-  it('desplaza la fila activa al cruzar el límite de ocho pulsos', () => {
+  it('scrolls the active row when crossing the eight-beat boundary', () => {
     const scrollIntoView = vi.fn();
     const original = Element.prototype.scrollIntoView;
     Element.prototype.scrollIntoView = scrollIntoView;
@@ -242,12 +242,12 @@ describe('ChordGrid en vista de parrilla', () => {
     }
   });
 
-  it('muestra el contador de filas y compases', () => {
+  it('shows the row and bar counter', () => {
     setup({ beats: twentyFourBeats });
     expect(screen.getByText('3 filas · 6 compases')).toBeInTheDocument();
   });
 
-  it('anuncia fila, compás, tiempo y acorde en la región aria-live', () => {
+  it('announces row, bar, beat, and chord in the aria-live region', () => {
     const { adapter, clock } = setup({ beats: twentyFourBeats });
     expect(
       screen.getByText('Fila 1, compás 1, tiempo 1, acorde C'),
@@ -271,7 +271,7 @@ describe('ChordGrid en vista de parrilla', () => {
     clock.destroy();
   });
 
-  it('alterna entre parrilla y lista sin tocar la reproducción', () => {
+  it('switches between grid and list without touching playback', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -309,7 +309,7 @@ describe('ChordGrid en vista de parrilla', () => {
     clock.destroy();
   });
 
-  it('cae a la lista con aviso cuando no hay pulsos', () => {
+  it('falls back to the list with a notice when there are no beats', () => {
     setup({ beats: [], view: 'beats' });
     expect(
       screen.getByText('No se detectaron pulsos en esta canción; se muestra la vista de lista.'),

@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe('EditorPanel', () => {
-  it('cambia un acorde y guarda el resultado', () => {
+  it('changes a chord and saves the result', () => {
     const { onSave } = renderEditor();
     const fields = screen.getAllByLabelText('Acorde del segmento');
     fireEvent.change(fields[0]!, { target: { value: 'A7' } });
@@ -61,7 +61,7 @@ describe('EditorPanel', () => {
     expect(saved[1]?.chord).toMatchObject({ root: 7 });
   });
 
-  it('rechaza H7 y conserva el acorde anterior', () => {
+  it('rejects H7 and keeps the previous chord', () => {
     const { onSave } = renderEditor();
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
     fireEvent.change(field, { target: { value: 'H7' } });
@@ -73,7 +73,7 @@ describe('EditorPanel', () => {
     expect(saved[0]?.chord).toMatchObject({ root: 0, quality: 'major' });
   });
 
-  it('marca un segmento como silencio', () => {
+  it('marks a segment as a rest', () => {
     const { onSave } = renderEditor();
     fireEvent.click(screen.getAllByRole('button', { name: 'Silencio' })[0]!);
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('—');
@@ -82,7 +82,7 @@ describe('EditorPanel', () => {
     expect(saved[0]?.chord).toBeNull();
   });
 
-  it('divide y vuelve a fusionar segmentos adyacentes', () => {
+  it('splits and merges adjacent segments again', () => {
     renderEditor();
     fireEvent.click(screen.getAllByRole('button', { name: 'Dividir' })[0]!);
     expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(3);
@@ -91,14 +91,14 @@ describe('EditorPanel', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(2);
   });
 
-  it('no ofrece fusionar cuando no hay segmento siguiente', () => {
+  it('does not offer merging when there is no next segment', () => {
     renderEditor();
     const mergeButtons = screen.getAllByRole('button', { name: 'Fusionar' });
     expect(mergeButtons[0]).toBeEnabled();
     expect(mergeButtons[1]).toBeDisabled();
   });
 
-  it('deshace y rehace los cambios', () => {
+  it('undoes and redoes changes', () => {
     renderEditor();
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
     fireEvent.change(field, { target: { value: 'Am' } });
@@ -111,7 +111,7 @@ describe('EditorPanel', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Am');
   });
 
-  it('restaura la detección original con confirmación', () => {
+  it('restores the original detection after confirmation', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderEditor();
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
@@ -123,7 +123,7 @@ describe('EditorPanel', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('C');
   });
 
-  it('no restaura si se cancela la confirmación', () => {
+  it('does not restore when confirmation is cancelled', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderEditor();
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
@@ -134,13 +134,13 @@ describe('EditorPanel', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('D');
   });
 
-  it('descarta los cambios y sale del editor', () => {
+  it('discards changes and exits the editor', () => {
     const { onDiscard } = renderEditor();
     fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
     expect(onDiscard).toHaveBeenCalledTimes(1);
   });
 
-  it('edita en afinación original cuando hay trasposición', () => {
+  it('edits in the original tuning when there is a transpose', () => {
     const { onSave } = renderEditor({ transpose: 2 });
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
     expect(field).toHaveValue('D');
@@ -152,7 +152,7 @@ describe('EditorPanel', () => {
     expect(saved[0]?.chord).toMatchObject({ root: 2 });
   });
 
-  it('muestra el error al intentar un rango de tiempo inválido', () => {
+  it('shows an error when attempting an invalid time range', () => {
     renderEditor();
     const endInputs = screen.getAllByLabelText(/Fin/);
     fireEvent.change(endInputs[0]!, { target: { value: '0.05' } });

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { sweepTempDirectory } from '../src/services/cleanup';
 
 describe('sweepTempDirectory', () => {
-  it('elimina solo directorios de trabajo antiguos', async () => {
+  it('removes only old work directories', async () => {
     const root = await mkdtemp(join(tmpdir(), 'chordifree-sweep-'));
     const oldDir = join(root, 'chordifree-old');
     const newDir = join(root, 'chordifree-new');
@@ -24,7 +24,7 @@ describe('sweepTempDirectory', () => {
     await expect(stat(otherDir)).resolves.toBeDefined();
   });
 
-  it('tolera directorios inexistentes', async () => {
+  it('tolerates nonexistent directories', async () => {
     await expect(sweepTempDirectory('/ruta/que/no/existe')).resolves.toBe(0);
   });
 });

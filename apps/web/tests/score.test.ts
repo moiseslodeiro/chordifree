@@ -38,7 +38,7 @@ function parse(xml: string): Document {
 }
 
 describe('score export', () => {
-  it('calcula la armadura con el círculo de quintas', () => {
+  it('computes the key signature with the circle of fifths', () => {
     expect(keySignatureFifths(null)).toBe(0);
     expect(keySignatureFifths({ tonic: 0, mode: 'major' })).toBe(0);
     expect(keySignatureFifths({ tonic: 7, mode: 'major' })).toBe(1);
@@ -49,7 +49,7 @@ describe('score export', () => {
     expect(keySignatureFifths({ tonic: 3, mode: 'major' })).toBe(-3);
   });
 
-  it('usa pentagrama doble para el piano y octava baja para la guitarra', () => {
+  it('uses a grand staff for piano and a low octave for guitar', () => {
     expect(clefFor('piano')).toEqual({ sign: 'G', line: 2, staves: 2 });
     expect(clefFor('guitar')).toEqual({
       sign: 'G',
@@ -60,7 +60,7 @@ describe('score export', () => {
     expect(clefFor('ukelele')).toEqual({ sign: 'G', line: 2, staves: 1 });
   });
 
-  it('escribe la clave de sol y la de fa en el piano', () => {
+  it('writes the treble and bass clefs for piano', () => {
     const xml = buildMusicXml(input({ instrument: 'piano' }));
     expect(xml).toContain('<staves>2</staves>');
     expect(xml).toContain('<clef number="1"><sign>G</sign><line>2</line></clef>');
@@ -68,21 +68,21 @@ describe('score export', () => {
     expect(xml).toContain('<backup><duration>16</duration></backup>');
   });
 
-  it('marca la guitarra una octava por debajo de lo escrito', () => {
+  it('marks guitar an octave below the written pitch', () => {
     const xml = buildMusicXml(input({ instrument: 'guitar' }));
     expect(xml).toContain('<clef-octave-change>-1</clef-octave-change>');
     expect(xml).not.toContain('<staves>2</staves>');
     expect(xml).toContain('<part-name>Guitar</part-name>');
   });
 
-  it('usa clave de sol sin octava para el ukelele', () => {
+  it('uses treble clef with no octave for ukulele', () => {
     const xml = buildMusicXml(input({ instrument: 'ukelele' }));
     expect(xml).toContain('<sign>G</sign>');
     expect(xml).not.toContain('clef-octave-change');
     expect(xml).toContain('<part-name>Ukulele</part-name>');
   });
 
-  it('genera MusicXML válido con acordes y compases', () => {
+  it('generates valid MusicXML with chords and bars', () => {
     const document = parse(buildMusicXml(input()));
     expect(document.documentElement.tagName).toBe('score-partwise');
     expect(document.querySelectorAll('measure')).toHaveLength(2);
@@ -91,7 +91,7 @@ describe('score export', () => {
     expect(document.querySelector('harmony kind')?.getAttribute('text')).toBe('G');
   });
 
-  it('completa cada compás con la duración correcta en ambos pentagramas', () => {
+  it('fills each bar with the correct duration on both staves', () => {
     const document = parse(buildMusicXml(input({ instrument: 'piano', beatsPerBar: 4 })));
     for (const measure of Array.from(document.querySelectorAll('measure'))) {
       const notes = Array.from(measure.querySelectorAll('note'));
@@ -106,7 +106,7 @@ describe('score export', () => {
     }
   });
 
-  it('respeta la tonalidad y el compás', () => {
+  it('respects the key and time signature', () => {
     const document = parse(
       buildMusicXml(
         input({
@@ -121,27 +121,27 @@ describe('score export', () => {
     expect(document.querySelector('time beat-type')?.textContent).toBe('4');
   });
 
-  it('incluye tempo y capo como indicaciones', () => {
+  it('includes tempo and capo as directions', () => {
     const xml = buildMusicXml(input({ tempo: 96, capo: 2 }));
     expect(xml).toContain('<per-minute>96</per-minute>');
     expect(xml).toContain('Capo 2');
   });
 
-  it('escapa el título y el artista', () => {
+  it('escapes the title and artist', () => {
     const xml = buildMusicXml(input({ title: 'AC/DC & <friends>', artist: "O'Neil" }));
     const document = parse(xml);
     expect(document.querySelector('work-title')?.textContent).toBe('AC/DC & <friends>');
     expect(document.querySelector('creator')?.textContent).toBe("O'Neil");
   });
 
-  it('exporta una partitura aunque la canción no tenga pulsos', () => {
+  it('exports a score even when the song has no beats', () => {
     const xml = buildMusicXml(input({ beats: [] }));
     const document = parse(xml);
     expect(document.querySelectorAll('measure').length).toBeGreaterThan(0);
     expect(document.querySelectorAll('harmony').length).toBeGreaterThan(0);
   });
 
-  it('escribe las alteraciones según la preferencia', () => {
+  it('writes accidentals according to the preference', () => {
     expect(midiToPitch(61, false)).toEqual({ step: 'C', alter: 1, octave: 4 });
     expect(midiToPitch(61, true)).toEqual({ step: 'D', alter: -1, octave: 4 });
     expect(midiToPitch(60, false)).toEqual({ step: 'C', alter: 0, octave: 4 });

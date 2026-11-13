@@ -8,7 +8,7 @@ const segments: ChordSegment[] = [
 ];
 
 describe('buildBeatGrid', () => {
-  it('agrupa los pulsos en compases completos de cuatro tiempos', () => {
+  it('groups the beats into complete four-beat bars', () => {
     const bars = buildBeatGrid(segments, [0, 1, 2, 3, 4, 5, 6, 7]);
     expect(bars).toHaveLength(2);
     expect(bars[0]?.start).toBe(0);
@@ -17,13 +17,13 @@ describe('buildBeatGrid', () => {
     expect(bars[0]?.cells.every((cell) => cell !== null)).toBe(true);
   });
 
-  it('rellena con celdas no focusables el último compás incompleto', () => {
+  it('fills the last incomplete bar with non-focusable cells', () => {
     const bars = buildBeatGrid(segments, [0, 1, 2, 3, 4, 5]);
     expect(bars).toHaveLength(2);
     expect(bars[1]?.cells.map((cell) => cell?.time ?? null)).toEqual([4, 5, null, null]);
   });
 
-  it('marca el cambio de acorde en el pulso correspondiente', () => {
+  it('marks the chord change on the corresponding beat', () => {
     const changing: ChordSegment[] = [
       { start: 0, end: 1.5, chord: parseChord('C') },
       { start: 1.5, end: 10, chord: parseChord('G') },
@@ -39,7 +39,7 @@ describe('buildBeatGrid', () => {
     expect(bars[0]?.cells[2]?.chord?.root).toBe(7);
   });
 
-  it('muestra el silencio como ausencia explícita de acorde', () => {
+  it('shows silence as an explicit absence of chord', () => {
     const withSilence: ChordSegment[] = [
       { start: 0, end: 2, chord: null },
       { start: 2, end: 10, chord: parseChord('C') },
@@ -51,17 +51,17 @@ describe('buildBeatGrid', () => {
     expect(bars[0]?.cells[2]?.change).toBe(true);
   });
 
-  it('devuelve una parrilla vacía sin pulsos', () => {
+  it('returns an empty grid without beats', () => {
     expect(buildBeatGrid(segments, [])).toEqual([]);
   });
 
-  it('sanea pulsos inválidos y usa cuatro tiempos por defecto', () => {
+  it('sanitizes invalid beats and uses four beats by default', () => {
     const bars = buildBeatGrid(segments, [3, 0, 0, 1, -1, Number.NaN], 0);
     expect(bars).toHaveLength(1);
     expect(bars[0]?.cells.map((cell) => cell?.time ?? null)).toEqual([0, 1, 3, null]);
   });
 
-  it('prolonga los pulsos incompletos hasta la duración con el intervalo mediano', () => {
+  it('extends incomplete beats up to the duration using the median interval', () => {
     const bars = buildBeatGrid(segments, [0, 1, 2, 3, 4], 4, 9.5);
     const times = bars
       .flatMap((bar) => bar.cells)
@@ -70,11 +70,11 @@ describe('buildBeatGrid', () => {
     expect(times).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
-  it('no inventa pulsos cuando la lista llega vacía', () => {
+  it('does not invent beats when the list arrives empty', () => {
     expect(buildBeatGrid(segments, [], 4, 120)).toEqual([]);
   });
 
-  it('no prolonga si el último pulso ya cubre hasta la duración', () => {
+  it('does not extend if the last beat already covers up to the duration', () => {
     const bars = buildBeatGrid(segments, [0, 1, 2, 3], 4, 4);
     const times = bars.flatMap((bar) => bar.cells.map((cell) => cell?.time ?? null));
     expect(times).toEqual([0, 1, 2, 3]);
@@ -82,28 +82,28 @@ describe('buildBeatGrid', () => {
 });
 
 describe('extendBeats', () => {
-  it('prolonga con el intervalo mediano y es idempotente', () => {
+  it('extends using the median interval and is idempotent', () => {
     const once = extendBeats([0, 2, 4], 7);
     expect(once).toEqual([0, 2, 4, 6]);
     expect(extendBeats(once, 7)).toEqual(once);
   });
 
-  it('devuelve la lista saneada sin duración', () => {
+  it('returns the sanitized list without a duration', () => {
     expect(extendBeats([3, 0, 0, -1, Number.NaN])).toEqual([0, 3]);
   });
 
-  it('reconstruye la rejilla con tempo constante y corrige el jitter', () => {
+  it('rebuilds the grid at a constant tempo and corrects jitter', () => {
     expect(extendBeats([0, 1.1, 1.9, 3.1, 4], 6)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 });
 
 describe('tempoFromBeats', () => {
-  it('estima los pulsos por minuto con la mediana de los intervalos', () => {
+  it('estimates beats per minute from the median of the intervals', () => {
     expect(tempoFromBeats([0, 0.5, 1, 1.5, 2])).toBe(120);
     expect(tempoFromBeats([0, 1.2, 2.4, 3.6])).toBe(50);
   });
 
-  it('devuelve null sin pulsos suficientes', () => {
+  it('returns null without enough beats', () => {
     expect(tempoFromBeats([])).toBeNull();
     expect(tempoFromBeats([12])).toBeNull();
   });
@@ -112,7 +112,7 @@ describe('tempoFromBeats', () => {
 describe('buildBeatRows', () => {
   const beats = Array.from({ length: 24 }, (_, index) => index);
 
-  it('agrupa dos compases de cuatro tiempos en una fila de ocho celdas', () => {
+  it('groups two four-beat bars into a row of eight cells', () => {
     const rows = buildBeatRows(segments, beats, 4);
     expect(rows).toHaveLength(3);
     expect(rows[0]?.cells).toHaveLength(8);
@@ -125,7 +125,7 @@ describe('buildBeatRows', () => {
     expect(rows[2]?.barStarts).toEqual([16, 20]);
   });
 
-  it('rellena hasta ocho posiciones la última fila incompleta', () => {
+  it('fills the last incomplete row up to eight positions', () => {
     const rows = buildBeatRows(segments, beats.slice(0, 18), 4);
     expect(rows).toHaveLength(3);
     expect(rows[2]?.cells).toHaveLength(8);
@@ -133,7 +133,7 @@ describe('buildBeatRows', () => {
     expect(rows[2]?.cells.slice(2)).toEqual([null, null, null, null, null, null]);
   });
 
-  it('respeta la frontera entre filas al resolver el acorde vigente', () => {
+  it('respects the boundary between rows when resolving the current chord', () => {
     const changing: ChordSegment[] = [
       { start: 0, end: 7.5, chord: parseChord('C') },
       { start: 7.5, end: 30, chord: parseChord('G') },
@@ -143,14 +143,14 @@ describe('buildBeatRows', () => {
     expect(rows[1]?.cells[0]?.chord?.root).toBe(7);
   });
 
-  it('cubre toda la canción cuando los pulsos guardados se cortan antes', () => {
+  it('covers the whole song when the saved beats are cut short', () => {
     const rows = buildBeatRows(segments, [0, 1, 2, 3, 4], 4, 2, 20);
     const cells = rows.flatMap((row) => row.cells).filter((cell) => cell !== null);
     expect(cells.at(-1)?.time).toBe(19);
     expect(cells.length).toBe(20);
   });
 
-  it('devuelve una lista vacía sin pulsos', () => {
+  it('returns an empty list without beats', () => {
     expect(buildBeatRows(segments, [], 4)).toEqual([]);
   });
 });

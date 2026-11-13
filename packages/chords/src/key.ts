@@ -8,7 +8,7 @@ import type {
   PitchClass,
 } from './types';
 
-/** Perfiles de Krumhansl-Schmuckler, rotados sobre la tónica. */
+/** Krumhansl-Schmuckler profiles, rotated over the tonic. */
 const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
 const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
 
@@ -89,8 +89,8 @@ function rotateProfile(profile: number[], tonic: number): number[] {
 }
 
 /**
- * Estima la tonalidad dominante a partir de las fundamentales ponderadas por duración.
- * Devuelve null si no hay material armónico.
+ * Estimates the dominant key from the roots weighted by duration.
+ * Returns null if there is no harmonic material.
  */
 export function estimateKey(segments: ChordSegment[]): EstimatedKey | null {
   const values = histogram(segments);
@@ -132,7 +132,7 @@ export function relativeMajor(tonic: PitchClass): PitchClass {
   return mod12(tonic + 3);
 }
 
-/** Tonalidad relativa: cambia entre mayor y menor conservando la armadura. */
+/** Relative key: switches between major and minor while keeping the key signature. */
 export function relativeKey(key: EstimatedKey): EstimatedKey {
   return {
     tonic: mod12(key.tonic + (key.mode === 'major' ? 9 : 3)),
@@ -140,7 +140,7 @@ export function relativeKey(key: EstimatedKey): EstimatedKey {
   };
 }
 
-/** Transporta una tonalidad completa manteniendo el modo. */
+/** Transposes a whole key while keeping the mode. */
 export function transposeKey(key: EstimatedKey, semitones: number): EstimatedKey {
   return {
     tonic: mod12(key.tonic + Math.trunc(semitones)),

@@ -94,7 +94,7 @@ function setup(
 }
 
 describe('PracticeBar', () => {
-  it('arma A y B para elegir el compás en la parrilla', () => {
+  it('arms A and B to choose the bar on the grid', () => {
     setup();
 
     const a = screen.getByRole('button', { name: 'Marcar inicio A' });
@@ -114,7 +114,7 @@ describe('PracticeBar', () => {
     expect(screen.getByText('Pulsa un compás para B')).toBeInTheDocument();
   });
 
-  it('activa el bucle cuando ya hay rango A-B', () => {
+  it('enables looping when an A-B range already exists', () => {
     setup(0, { initialA: 0, initialB: 8 });
 
     expect(screen.getByText('00:00 – 00:08')).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe('PracticeBar', () => {
     expect(loop).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('repite el compás actual desde su inicio', () => {
+  it('repeats the current bar from its start', () => {
     const { adapter } = setup(9);
 
     fireEvent.click(screen.getByRole('button', { name: 'Repetir compás' }));
@@ -142,7 +142,7 @@ describe('PracticeBar', () => {
     expect(screen.getByText('00:08 – 00:12')).toBeInTheDocument();
   });
 
-  it('cambia la velocidad del adaptador y la refleja en el selector', () => {
+  it('changes the adapter playback rate and reflects it in the selector', () => {
     const { adapter } = setup();
     const select = screen.getByRole('combobox', { name: 'Velocidad de reproducción' });
     expect(select).toHaveValue('1');
@@ -161,7 +161,7 @@ describe('PracticeBar', () => {
     expect(select).toHaveValue('1.5');
   });
 
-  it('habilita el metrónomo manual con BPM cuando no hay pulsos', () => {
+  it('enables the manual metronome with BPM when there are no beats', () => {
     setup(0, { beats: [] });
     const metronome = screen.getByRole('button', { name: 'Metrónomo' });
     expect(metronome).toBeEnabled();
@@ -176,7 +176,7 @@ describe('PracticeBar', () => {
     expect(metronome).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('limpia el rango y desactiva el bucle', () => {
+  it('clears the range and disables looping', () => {
     setup(0, { initialA: 0, initialB: 8, initialLoop: true });
     expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute(
       'aria-pressed',
@@ -200,7 +200,7 @@ describe('PracticeBar', () => {
     );
   });
 
-  it('hace una cuenta de cuatro pulsos antes de reproducir', () => {
+  it('counts in four beats before playing', () => {
     vi.useFakeTimers();
     try {
       const { adapter } = setup();
@@ -221,7 +221,7 @@ describe('PracticeBar', () => {
     }
   });
 
-  it('ajusta la cuenta atrás al compás de tres tiempos', () => {
+  it('adjusts the count-in to a three-beat bar', () => {
     vi.useFakeTimers();
     try {
       const { adapter } = setup(0, { beatsPerBar: 3 });
