@@ -204,6 +204,36 @@ describe('POST /api/analyses', () => {
     expect(missing.body.error.code).toBe('LYRICS_NOT_FOUND');
   });
 
+  it('rechaza escrituras cross-origin sin ejecutar el análisis', async () => {
+    let probes = 0;
+    const app = await buildApp({
+      tools: makeTools({
+        probeYoutube: async () => {
+          probes += 1;
+          return { duration: 10 };
+        },
+      }),
+    });
+
+    const response = await request(app)
+      .post('/api/analyses')
+      .set('Origin', 'https://evil.example')
+      .send({ youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe('FORBIDDEN');
+    expect(probes).toBe(0);
+  });
+
+  it('acepta escrituras desde el origen configurado', async () => {
+    const app = await buildApp();
+    const response = await request(app)
+      .post('/api/analyses')
+      .set('Origin', 'http://localhost:5173')
+      .send({ youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+    expect(response.status).toBe(202);
+  });
+
   it('rechaza tipos de contenido no soportados', async () => {
     const app = await buildApp();
     const response = await request(app)

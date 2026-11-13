@@ -11,9 +11,6 @@ on:
         description: Build the Linux installer
         type: boolean
         default: true
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   essentia-wheel:

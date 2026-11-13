@@ -219,7 +219,7 @@ curl -fsS http://localhost:3001/api/health
 | ---------------------------- | ----------------- | ---------------------------------------- |
 | Duración máxima por análisis | 15 minutos        | `MAX_DURATION_SECONDS`                   |
 | Tamaño máximo de subida      | 25 MB             | `MAX_UPLOAD_BYTES`                       |
-| Análisis por IP              | 5 por hora        | `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS` |
+| Análisis por IP              | 60 por hora       | `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS` |
 | Concurrencia de la cola      | 2 trabajos        | fija en esta versión                     |
 | Timeout de descarga          | 90 s              | fijo                                     |
 | Timeout de conversión        | 60 s              | fijo                                     |
