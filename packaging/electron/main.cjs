@@ -1,10 +1,11 @@
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { existsSync, mkdirSync, openSync, appendFileSync, readFileSync } = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { fetchLatestRelease, isNewerVersion, releaseUrlFor } = require('./update-check.cjs');
 
 let analyzer = null;
 let window = null;
@@ -169,6 +170,28 @@ function smokeFixture() {
   return existsSync(candidate) ? candidate : null;
 }
 
+async function checkForUpdates() {
+  const devCheck = !app.isPackaged && process.env.CHORDIFREE_UPDATE_CHECK === '1';
+  if (isSmokeTest || (!app.isPackaged && !devCheck) || process.env.CHORDIFREE_DISABLE_UPDATE_CHECK === '1') {
+    return { status: 'disabled' };
+  }
+  try {
+    const forcedVersion = !app.isPackaged ? process.env.CHORDIFREE_UPDATE_FAKE_VERSION : undefined;
+    const latest = forcedVersion
+      ? { version: forcedVersion, url: releaseUrlFor(`v${forcedVersion}`) }
+      : await fetchLatestRelease(globalThis.fetch, `Chordifree/${app.getVersion()}`);
+    if (!latest || !isNewerVersion(latest.version, app.getVersion())) {
+      return { status: 'current' };
+    }
+    if (window && !window.isDestroyed()) {
+      window.webContents.send('update-available', latest);
+    }
+    return { status: 'update', version: latest.version, url: latest.url };
+  } catch {
+    return { status: 'error' };
+  }
+}
+
 async function runSmokeTest(target) {
   const healthResponse = await fetch(`${target}/api/health`);
   const health = await healthResponse.json();
@@ -252,6 +275,11 @@ function createWindow(target) {
     window = null;
   });
 }
+
+ipcMain.handle('check-for-updates', () => checkForUpdates());
+ipcMain.handle('open-external', (_event, url) => {
+  if (typeof url === 'string') openExternal(url);
+});
 
 app.setName('Chordifree');
 if (process.platform === 'win32') app.setAppUserModelId('app.chordifree.desktop');

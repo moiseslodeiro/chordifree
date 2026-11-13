@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getHealth } from './lib/api';
 import { createYoutubeAnalysis } from './lib/api';
-import { isDesktopApp } from './lib/platform';
+import { isDesktopApp, type UpdateInfo } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT, setLanguage } from './i18n';
 import { Home } from './components/Home';
+import { NoticeBanner } from './components/ErrorBanner';
+import { UpdateBanner } from './components/UpdateBanner';
 import { LibraryList } from './components/LibraryList';
 import { SetlistList } from './components/SetlistList';
 import { SetlistView } from './components/SetlistView';
@@ -112,6 +114,47 @@ export default function App() {
     status: 'unknown',
     version: 'essentia-1.6',
   });
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [updateNotice, setUpdateNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!desktop) return;
+    const bridge = window.chordifreeDesktop;
+    if (!bridge) return;
+    const unsubscribe = bridge.onUpdateAvailable?.((info) => setUpdateInfo(info));
+    void bridge
+      .checkForUpdates?.()
+      .then((result) => {
+        if (result?.status === 'update' && result.version && result.url) {
+          setUpdateInfo({ version: result.version, url: result.url });
+        }
+      })
+      .catch(() => undefined);
+    return () => unsubscribe?.();
+  }, [desktop]);
+
+  const checkForUpdatesNow = async () => {
+    const bridge = window.chordifreeDesktop;
+    if (!bridge?.checkForUpdates) {
+      setUpdateNotice(t('update.disabled'));
+      return;
+    }
+    try {
+      const result = await bridge.checkForUpdates();
+      if (result.status === 'update' && result.version && result.url) {
+        setUpdateInfo({ version: result.version, url: result.url });
+        setUpdateNotice(null);
+      } else if (result.status === 'current') {
+        setUpdateNotice(t('update.current'));
+      } else if (result.status === 'disabled') {
+        setUpdateNotice(t('update.disabled'));
+      } else {
+        setUpdateNotice(t('update.failed'));
+      }
+    } catch {
+      setUpdateNotice(t('update.failed'));
+    }
+  };
 
   const forceFake =
     typeof window !== 'undefined' &&
@@ -575,6 +618,22 @@ export default function App() {
       </header>
 
       <main className="flex-1 py-7 sm:py-10">
+        {updateInfo ? (
+          <UpdateBanner
+            version={updateInfo.version}
+            onDownload={() => window.chordifreeDesktop?.openExternal?.(updateInfo.url)}
+            onDismiss={() => setUpdateInfo(null)}
+          />
+        ) : null}
+        {updateNotice ? (
+          <div className="mb-4">
+            <NoticeBanner
+              message={updateNotice}
+              tone="info"
+              onDismiss={() => setUpdateNotice(null)}
+            />
+          </div>
+        ) : null}
         {route.name === 'home' ? (
           <Home
             storage={storage}
@@ -677,6 +736,15 @@ export default function App() {
       >
         <span>{t(desktop ? 'footer.desktopTagline' : 'footer.tagline')}</span>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
+          {desktop ? (
+            <button
+              type="button"
+              className="transition hover:text-accent"
+              onClick={() => void checkForUpdatesNow()}
+            >
+              {t('update.check')}
+            </button>
+          ) : null}
           <a
             className="transition hover:text-accent"
             href="https://github.com/moiseslodeiro/chordifree"
