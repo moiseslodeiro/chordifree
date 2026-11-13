@@ -53,6 +53,9 @@ sudo systemctl reload caddy
 Caddy obtains and renews the TLS certificate automatically. Open only ports 80 and 443 in the
 VPS firewall; do not expose 3000, 3001 or 8000.
 
+When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for example
+`https://app.example.com`) so same-origin writes pass the CSRF guard.
+
 ## Features
 
 - **Chord detection** with Essentia `NNLSChroma`, key estimation and Viterbi smoothing.

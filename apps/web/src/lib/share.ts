@@ -31,11 +31,17 @@ interface SharePayload {
 }
 
 function shareableSong(song: Song): SharePayload['song'] {
-  const { id: _id, createdAt: _created, updatedAt: _updated, detectedSegments: _detected, ...rest } =
-    song;
+  const {
+    id: _id,
+    createdAt: _created,
+    updatedAt: _updated,
+    detectedSegments: _detected,
+    folderId: _folderId,
+    ...rest
+  } = song;
   return {
     ...rest,
-    // Do not leak an upload's original filename through a public link.
+    // Do not leak an upload's original filename or the sender's folder id.
     source:
       song.source.type === 'youtube'
         ? song.source

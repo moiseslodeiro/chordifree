@@ -26,6 +26,12 @@ describe('share tokens', () => {
     expect(decoded.source).toEqual({ type: 'upload', filename: 'shared audio' });
   });
 
+  it('does not leak the sender folder id in a share token', async () => {
+    const song = { ...createDemoSong(DEFAULT_PREFERENCES), folderId: 'private-folder' };
+    const decoded = await decodeSongFromToken(await encodeSongForShare(song));
+    expect(decoded.folderId).toBeUndefined();
+  });
+
   it('rejects a shared song whose payload expands beyond the limit', async () => {
     const large = {
       ...createDemoSong(DEFAULT_PREFERENCES),
