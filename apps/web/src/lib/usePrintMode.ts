@@ -13,6 +13,12 @@ export function usePrintMode(): boolean {
   const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
+    // Mounting the sheet happens right before the print snapshot; make sure
+    // the monochrome logo is already decoded so it never prints blank.
+    const logo = new Image();
+    logo.src = '/brand-print.png';
+    void logo.decode?.().catch(() => undefined);
+
     const query =
       typeof window.matchMedia === 'function' ? window.matchMedia('print') : null;
 
