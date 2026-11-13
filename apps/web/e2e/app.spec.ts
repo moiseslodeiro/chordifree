@@ -228,6 +228,16 @@ test.describe('flujo completo', () => {
     await expect(sheet).toContainText('00:08');
   });
 
+  test('exporta la partitura en MusicXML', async ({ page }) => {
+    await analyze(page);
+
+    await page.getByRole('button', { name: 'Más acciones' }).click();
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: 'Exportar partitura (MusicXML)' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
+  });
+
   test('guarda la letra, actualiza los acordes con el capo y recupera la vista', async ({ page }) => {
     await analyze(page);
 
