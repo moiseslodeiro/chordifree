@@ -12,9 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
-      "@chordifree/chords": ["packages/chords/src/index.ts"]
+      "@chordifree/chords": ["./packages/chords/src/index.ts"]
     }
   }
 }

@@ -90,7 +90,7 @@ empieza a tocar desde ahí.
 
 ## Requisitos
 
-- Node.js 20 o superior y pnpm 9.
+- Node.js 22.22 o superior (o 24.15+) y pnpm 9.
 - Python 3.11 o superior (solo para el analizador).
 - `ffmpeg` y `ffprobe` en el `PATH` del servidor.
 - `yt-dlp` en el `PATH` del servidor.

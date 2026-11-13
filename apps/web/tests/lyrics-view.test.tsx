@@ -113,12 +113,14 @@ describe('LyricsChordView', () => {
   it('aplica el desplazamiento guardado de cada acorde', () => {
     setup({ chordOffsets: { '0': 0.5 } });
 
-    expect(screen.getByRole('button', { name: 'C en 00:00' })).toHaveStyle({
-      transform: 'translateX(0.5em)',
-    });
-    expect(screen.getByRole('button', { name: 'G en 00:10' })).toHaveStyle({
-      transform: 'translateX(0em)',
-    });
+    // jsdom 31 resolves em units in the computed style, so assert the
+    // inline declaration that the component actually sets.
+    expect(screen.getByRole('button', { name: 'C en 00:00' }).style.transform).toBe(
+      'translateX(0.5em)',
+    );
+    expect(screen.getByRole('button', { name: 'G en 00:10' }).style.transform).toBe(
+      'translateX(0em)',
+    );
   });
 
   it('activa el ajuste y mueve el acorde con las flechas', () => {

@@ -76,7 +76,7 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
 
 ## Local development
 
-Requirements: Node.js 20+, pnpm 9+, Python 3.11+, ffmpeg and yt-dlp.
+Requirements: Node.js 22.22+ or 24.15+, pnpm 9+, Python 3.11+, ffmpeg and yt-dlp.
 
 ```bash
 pnpm install
