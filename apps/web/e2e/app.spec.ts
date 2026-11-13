@@ -114,7 +114,7 @@ test.describe('flujo completo', () => {
 
     await expect(page.getByText('Canción guardada en la biblioteca.')).toBeVisible();
     await page.getByRole('button', { name: 'Biblioteca' }).click();
-    await expect(page.getByText('Demo sincronizada')).toBeVisible();
+    await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Abrir' }).click();
     await expect(page.getByTestId('beat-cell-0')).toContainText('La7');
@@ -196,7 +196,7 @@ test.describe('flujo completo', () => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
     await page.getByRole('button', { name: 'Biblioteca' }).click();
-    await expect(page.getByText('Demo sincronizada')).toBeVisible();
+    await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Exportar JSON' }).click();
@@ -208,8 +208,8 @@ test.describe('flujo completo', () => {
     await page.getByRole('button', { name: 'Eliminar' }).click();
     await expect(page.getByText('Todavía no hay canciones')).toBeVisible();
 
-    await page.getByLabel('Archivo de copia de seguridad').setInputFiles(backupPath);
-    await expect(page.getByText('Demo sincronizada')).toBeVisible();
+    await page.getByLabel('Copia de seguridad u hoja de acordes').setInputFiles(backupPath);
+    await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
     await expect(page.getByText(/Copia importada: 1 canción nueva/)).toBeVisible();
   });
 

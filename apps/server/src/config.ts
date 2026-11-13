@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const EnvSchema = z.object({
-  HOST: z.string().default('0.0.0.0'),
+  HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(3001),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   ANALYZER_URL: z.string().url().default('http://localhost:8000'),
@@ -11,7 +11,7 @@ const EnvSchema = z.object({
   MAX_UPLOAD_BYTES: z.coerce.number().positive().default(25 * 1024 * 1024),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
-  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   TEMP_DIR: z.string().default('./.tmp'),
   YTDLP_PATH: z.string().default('yt-dlp'),
   FFMPEG_PATH: z.string().default('ffmpeg'),

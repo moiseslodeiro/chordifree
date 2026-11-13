@@ -11,7 +11,7 @@ import { SetlistView } from './components/SetlistView';
 import { SongView } from './components/SongView';
 import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
-import { BackupError, downloadBackup, parseBackup } from './storage/backup';
+import { BackupError, downloadBackupSnapshot, parseBackupSnapshot } from './storage/backup';
 import { decodeSongFromToken } from './lib/share';
 import { ChordProError, parseChordPro } from './lib/chordpro';
 import { Library, analysisCacheStats, clearAnalysisCache } from './storage/library';
@@ -27,7 +27,7 @@ import {
   saveSetlists,
 } from './storage/setlists';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
-import type { AppNotice, Preferences, Setlist, Song } from './types';
+import type { AppNotice, Folder, Preferences, Setlist, Song } from './types';
 
 type Route =
   | { name: 'home' }
@@ -99,6 +99,7 @@ export default function App() {
     initial.song ? audioUrlForSong(initial.song) : null,
   );
   const [songs, setSongs] = useState(() => library.list());
+  const [folders, setFolders] = useState(() => library.listFolders());
   const [notice, setNotice] = useState<AppNotice | null>(() =>
     hasQuarantinedData(storage)
       ? {
@@ -146,6 +147,11 @@ export default function App() {
       return next;
     });
   }, []);
+
+  const refreshLibrary = useCallback(() => {
+    setSongs(library.list());
+    setFolders(library.listFolders());
+  }, [library]);
 
   const recordOpen = useCallback(
     (songId: string) => {
@@ -201,7 +207,7 @@ export default function App() {
         if (window.location.hash !== '#/library') window.location.hash = '#/library';
         return;
       }
-      if (next.name === 'library') setSongs(library.list());
+      if (next.name === 'library') refreshLibrary();
       if (next.name === 'setlist') {
         const found = setlists.some((setlist) => setlist.id === next.id);
         if (!found) {
@@ -213,7 +219,7 @@ export default function App() {
       }
       setRoute(next);
     },
-    [library, recordOpen, replaceAudioUrl, setlists, t],
+    [library, recordOpen, refreshLibrary, replaceAudioUrl, setlists, t],
   );
 
   useEffect(() => {
@@ -235,9 +241,9 @@ export default function App() {
     void (async () => {
       try {
         const shared = await decodeSongFromToken(decodeURIComponent(match[1]!));
-        library.importSongs([shared]);
-        setSongs(library.list());
-        openSong(shared, null);
+        const imported = library.add(shared);
+        refreshLibrary();
+        openSong(imported, null);
         setNotice({ message: t('share.imported'), tone: 'success' });
       } catch {
         setNotice({ message: t('share.invalid'), tone: 'warning' });
@@ -245,7 +251,7 @@ export default function App() {
       }
     })();
     // The token is consumed once, on first load; later renders must not re-import it.
-  }, []);
+  }, [refreshLibrary]);
 
   const updateSetlists = (updater: (current: Setlist[]) => Setlist[]) => {
     setSetlists((current) => {
@@ -327,7 +333,7 @@ export default function App() {
       library.save(target);
       songRef.current = target;
       setSong(target);
-      setSongs(library.list());
+      refreshLibrary();
       setNotice({ message: t('app.songSaved'), tone: 'success' });
     } catch (error) {
       setNotice({
@@ -343,7 +349,7 @@ export default function App() {
   const deleteSong = (id: string) => {
     library.remove(id);
     removePractice(storage, id);
-    setSongs(library.list());
+    refreshLibrary();
     if (songRef.current?.id === id) {
       songRef.current = null;
       setSong(null);
@@ -383,7 +389,7 @@ export default function App() {
     }
     try {
       library.save(updated);
-      setSongs(library.list());
+      refreshLibrary();
       setNotice({ message: t('app.reanalyzed'), tone: 'success' });
     } catch {
       setNotice({
@@ -394,16 +400,16 @@ export default function App() {
   };
 
   const exportLibrary = () => {
-    const all = library.exportSongs();
-    if (all.length === 0) {
+    const snapshot = library.exportSnapshot();
+    if (snapshot.songs.length === 0) {
       setNotice({ message: t('app.exportEmpty'), tone: 'warning' });
       return;
     }
-    downloadBackup(all);
+    downloadBackupSnapshot(snapshot.songs, snapshot.folders);
     setNotice({
       message: t('app.exported', {
-        count: all.length,
-        label: all.length === 1 ? t('common.song') : t('common.songs'),
+        count: snapshot.songs.length,
+        label: snapshot.songs.length === 1 ? t('common.song') : t('common.songs'),
       }),
       tone: 'success',
     });
@@ -423,7 +429,7 @@ export default function App() {
       if (!isJson) {
         const sheet = parseChordPro(text, file.name, preferences);
         library.importSongs([sheet]);
-        setSongs(library.list());
+        refreshLibrary();
         setNotice({
           message: t('app.importedSheet', { title: sheet.title }),
           tone: 'success',
@@ -431,9 +437,9 @@ export default function App() {
         return;
       }
 
-      const imported = parseBackup(text);
-      const result = library.importSongs(imported);
-      setSongs(library.list());
+      const imported = parseBackupSnapshot(text);
+      const result = library.importSnapshot(imported);
+      refreshLibrary();
       setNotice({
         message: t('app.imported', {
           added: result.added,
@@ -451,6 +457,49 @@ export default function App() {
             : t('app.backupImportFailed'),
         tone: 'warning',
       });
+    }
+  };
+
+  const createFolder = (name: string) => {
+    if (!name.trim()) return;
+    try {
+      library.createFolder(name);
+      refreshLibrary();
+      setNotice({ message: t('library.folderCreated'), tone: 'success' });
+    } catch {
+      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
+    }
+  };
+
+  const renameFolder = (folder: Folder, name: string) => {
+    if (!name.trim() || name.trim() === folder.name) return;
+    try {
+      if (library.renameFolder(folder.id, name.trim())) {
+        refreshLibrary();
+        setNotice({ message: t('library.folderRenamed'), tone: 'success' });
+      }
+    } catch {
+      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
+    }
+  };
+
+  const deleteFolder = (folder: Folder) => {
+    if (!window.confirm(t('library.folderDeleteConfirm', { name: folder.name }))) return;
+    try {
+      if (library.deleteFolder(folder.id)) {
+        refreshLibrary();
+        setNotice({ message: t('library.folderDeleted'), tone: 'info' });
+      }
+    } catch {
+      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
+    }
+  };
+
+  const moveSongToFolder = (id: string, folderId: string | null) => {
+    try {
+      if (library.moveSong(id, folderId)) refreshLibrary();
+    } catch {
+      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
     }
   };
 
@@ -541,6 +590,7 @@ export default function App() {
         {route.name === 'library' ? (
           <LibraryList
             songs={songs}
+            folders={folders}
             history={history}
             notice={notice}
             onDismissNotice={() => setNotice(null)}
@@ -550,6 +600,10 @@ export default function App() {
             onClearCache={clearAnalysisCacheAndNotify}
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
+            onCreateFolder={createFolder}
+            onRenameFolder={renameFolder}
+            onDeleteFolder={deleteFolder}
+            onMoveSong={moveSongToFolder}
             onBack={() => navigate({ name: 'home' })}
             onHome={() => navigate({ name: 'home' })}
           />

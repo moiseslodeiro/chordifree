@@ -71,6 +71,18 @@ describe('exportación e importación de la biblioteca', () => {
     expect(library.list().some((item) => item.title === 'Importada')).toBe(true);
   });
 
+  it('adds shared songs as new entries instead of overwriting by source', () => {
+    const library = new Library(createMemoryStorage());
+    library.save(song('original', 'video-a', 'Original'));
+
+    const added = library.add(song('shared', 'video-a', 'Compartida'));
+
+    expect(added.id).not.toBe('original');
+    expect(library.get('original')?.title).toBe('Original');
+    expect(library.get(added.id)?.title).toBe('Compartida');
+    expect(library.list()).toHaveLength(2);
+  });
+
   it('deduplica por origen dentro de la misma copia', () => {
     const library = new Library(createMemoryStorage());
 
