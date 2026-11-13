@@ -172,19 +172,29 @@ in `packaging/analyzer` and `packaging/electron` for build steps and limitations
 
 ### Windows installer
 
-Pushing a tag `vX.Y.Z` builds the installer, writes `SHA256SUMS.txt` and publishes
-both on the GitHub release for that tag. The executable is unsigned, so SmartScreen
-warns on first launch. See [`docs/WINDOWS_INSTALL.md`](docs/WINDOWS_INSTALL.md) for
-checksum verification, the **More info → Run anyway** flow and uninstall steps.
+The **Desktop builds** workflow runs manually, so it does not consume CI minutes on
+every push. It builds the installer and writes `SHA256SUMS.txt`:
+
+```bash
+gh workflow run desktop-builds.yml --ref main
+```
+
+To publish a GitHub release, dispatch the same workflow on a version tag; the
+release job only runs for `refs/tags/v*`:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
+gh workflow run desktop-builds.yml --ref v0.1.0
 ```
+
+The executable is unsigned, so SmartScreen warns on first launch. See
+[`docs/WINDOWS_INSTALL.md`](docs/WINDOWS_INSTALL.md) for checksum verification, the
+**More info → Run anyway** flow and uninstall steps.
 
 ### macOS installer
 
-The same tag also publishes two macOS builds:
+The same manual run also builds two macOS installers:
 
 - `chordifree-<version>-arm64.dmg` (Apple Silicon, macOS 15+)
 - `chordifree-<version>-x64.dmg` (Intel, macOS 13+; pending for the first preview)
@@ -196,7 +206,7 @@ Gatekeeper flow and uninstall steps.
 
 ### Linux installer
 
-The same tag also publishes an x86_64 Linux build:
+The same manual run also builds an x86_64 Linux build:
 
 - `chordifree-<version>-x86_64.AppImage`
 - `chordifree-<version>-amd64.deb`
