@@ -164,8 +164,9 @@ describe('App', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByText('Primera línea')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
+    const reopened = within(screen.getByTestId('song-grid-column'));
+    expect(reopened.getByText('Primera línea')).toBeInTheDocument();
+    expect(reopened.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
   });
 
   it('normaliza una letra vacía a sin letra', async () => {

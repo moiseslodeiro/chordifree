@@ -753,6 +753,7 @@ export default function App() {
           >
             {t('footer.github')}
           </a>
+          <span>{`v${__APP_VERSION__}`}</span>
           <a
             className="transition hover:text-accent"
             href="https://www.gnu.org/licenses/agpl-3.0.html"

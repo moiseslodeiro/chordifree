@@ -216,16 +216,30 @@ test.describe('flujo completo', () => {
   test('prepara una hoja de acordes para imprimir o guardar en PDF', async ({ page }) => {
     await analyze(page);
 
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
+    await page.getByRole('button', { name: 'Añadir letra' }).click();
+    await page.getByLabel('Letra de la canción').fill('Primera línea\nSegunda línea');
+    await page.getByRole('button', { name: 'Guardar letra' }).click();
+    await expect(page.getByText('Primera línea')).toBeVisible();
+
     await page.getByRole('button', { name: 'Más acciones' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Imprimir / PDF' })).toBeVisible();
+    await expect(
+      page.getByRole('menuitem', { name: 'Imprimir partitura y letra' }),
+    ).toBeVisible();
     await page.emulateMedia({ media: 'print' });
 
     const sheet = page.getByTestId('print-sheet');
     await expect(sheet).toBeVisible();
+    await expect(sheet.getByAltText('chordifree').first()).toBeVisible();
     await expect(sheet).toContainText('Demo sincronizada');
     await expect(sheet).toContainText('G mayor');
-    await expect(sheet).toContainText('IV');
-    await expect(sheet).toContainText('00:08');
+    await expect(sheet).toContainText('Letra y acordes');
+    await expect(sheet).toContainText('Primera línea');
+    await expect(sheet).toContainText('Progresión de acordes');
+    await expect(sheet).toContainText(/v\d+\.\d+\.\d+/);
+    const diagram = sheet.locator('figure svg[role="img"]').first();
+    await expect(diagram).toBeVisible();
+    await expect(diagram).toHaveAttribute('aria-label', /^Guitarra:/);
   });
 
   test('exporta la partitura en MusicXML', async ({ page }) => {
