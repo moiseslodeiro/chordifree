@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
+  chordDegree,
+  chordEquals,
   estimateKey,
+  formatChord,
   formatChordOrSilence,
   formatTime,
   noteName,
@@ -35,7 +38,6 @@ import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
-import { usePrintMode } from '../lib/usePrintMode';
 import { PlaybackClock } from '../sync/clock';
 import {
   supportsCapo,
@@ -55,7 +57,6 @@ import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
-import { PrintSheet } from './PrintSheet';
 import { PracticeBar } from './PracticeBar';
 import { SongDetails } from './SongDetails';
 import { Transport } from './Transport';
@@ -107,7 +108,6 @@ export function SongView({
   const [adapter, setAdapter] = useState<PlayerAdapter | null>(null);
   const [clock, setClock] = useState<PlaybackClock | null>(null);
   const [editing, setEditing] = useState(false);
-  const printing = usePrintMode();
   const [editingLyrics, setEditingLyrics] = useState(false);
   const [lyricsDraft, setLyricsDraft] = useState('');
   const [editingDetails, setEditingDetails] = useState(false);
@@ -316,6 +316,26 @@ export function SongView({
     }
     return chords;
   }, [displaySegments, song.notation, accidental]);
+
+  /** Chord changes for the printable sheet, with time and degree. */
+  const printRows = useMemo(() => {
+    const rows: Array<{ time: string; chord: string; degree: string | null }> = [];
+    let previous: ChordSegment['chord'] = null;
+    for (const segment of displaySegments) {
+      if (!segment.chord) {
+        previous = null;
+        continue;
+      }
+      if (previous && chordEquals(previous, segment.chord)) continue;
+      previous = segment.chord;
+      rows.push({
+        time: formatTime(segment.start),
+        chord: formatChord(segment.chord, song.notation, accidental),
+        degree: estimatedKey ? chordDegree(segment.chord, estimatedKey) : null,
+      });
+    }
+    return rows;
+  }, [displaySegments, song.notation, accidental, estimatedKey]);
 
   const artist = useMemo(() => {
     if (song.artist?.trim()) return song.artist.trim();
@@ -654,7 +674,7 @@ export function SongView({
         : t('song.sourceUpload', { name: song.source.filename });
 
   return (
-    <div className="space-y-5">
+    <div className="song-view space-y-5">
       {performance ? <h1 className="sr-only">{song.title}</h1> : null}
       {notice ? (
         <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
@@ -721,7 +741,7 @@ export function SongView({
                       },
                     ] satisfies ActionMenuItem[])
                   : []),
-                ...(!editing && !editingLyrics && displaySegments.some((segment) => segment.chord)
+                ...(!editing && !editingLyrics && printRows.length > 0
                   ? ([
                       { label: t('song.print'), onSelect: () => window.print() },
                       { label: t('song.score'), onSelect: exportScoreFile },
@@ -964,23 +984,41 @@ export function SongView({
         </aside>
       </div>
 
-      {printing ? (
-        <PrintSheet
-          song={song}
-          artist={artist}
-          instrument={instrument}
-          keyLabel={keyLabel}
-          capo={effectiveCapo}
-          bpm={bpm}
-          segments={displaySegments}
-          lyricsSegments={lyricsSegments}
-          beats={beats}
-          beatsPerBar={beatsPerBar}
-          duration={song.duration}
-          accidental={accidental}
-          notation={song.notation}
-        />
-      ) : null}
+      <section className="print-sheet" data-testid="print-sheet" aria-hidden="true">
+        <header className="print-sheet-header">
+          <img className="print-brand-logo" src="/brand-print.png" alt="chordifree" />
+          <h1>{song.title}</h1>
+          <p className="print-meta">
+            {[
+              keyLabel ?? t('song.unknownKey'),
+              capoAvailable && capo > 0 ? t('song.capoValue', { value: capo }) : null,
+              bpm ? `${bpm} BPM` : null,
+              formatTime(song.duration),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        </header>
+
+        <ol className="print-chords" aria-label="Cambios de acorde">
+          {printRows.map((row, index) => (
+            <li key={`${row.time}-${row.chord}-${index}`}>
+              <span className="print-time">{row.time}</span>
+              <span className="print-chord">{row.chord}</span>
+              {row.degree ? <span className="print-degree">{row.degree}</span> : null}
+            </li>
+          ))}
+        </ol>
+
+        <footer className="print-footer">
+          {song.source.type === 'youtube'
+            ? t('song.printYoutube', { id: song.source.videoId })
+            : song.source.type === 'sheet'
+              ? t('song.printSheet', { name: song.source.filename })
+              : t('song.printAudio', { name: song.source.filename })}{' '}
+          · {t('song.generatedOn', { date: new Date().toLocaleDateString() })} · v{__APP_VERSION__}
+        </footer>
+      </section>
 
       {performance ? (
         <button
