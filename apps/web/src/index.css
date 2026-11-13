@@ -920,241 +920,109 @@ body.performance-mode .song-view {
 
 @media print {
   @page {
-    size: A4;
-    margin: 14mm 14mm 16mm;
+    margin: 16mm;
   }
 
   body {
     background: #fff !important;
   }
 
-  body > :not(.print-sheet) {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-sheet,
+  .print-sheet * {
+    visibility: visible;
+  }
+
+  /* Collapse the screen layout so hidden content cannot create blank pages. */
+  .shell > header,
+  .shell > main > *:not(.song-view),
+  [data-testid='site-footer'],
+  .song-view > *:not(.print-sheet) {
     display: none !important;
   }
 
   .print-sheet {
     display: block;
+    position: absolute;
+    inset: 0 auto auto 0;
     width: 100%;
     color: #111;
     background: #fff;
-    font-family: var(--font-sans);
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-    --color-panel: 255 255 255;
-    --color-panel-2: 245 246 248;
-    --color-line: 214 219 226;
-    --color-line-strong: 160 168 180;
-    --color-ink: 17 19 24;
-    --color-ink-2: 66 73 84;
-    --color-ink-3: 108 116 128;
-    --color-accent: 0 82 214;
-    --color-accent-strong: 0 64 174;
+    font-family: var(--font-display);
   }
 
   .print-sheet-header {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 4mm;
-    border-bottom: 1.5px solid #111;
-    padding-bottom: 3mm;
+    border-bottom: 2px solid #111;
+    padding-bottom: 8mm;
   }
 
-  .print-logo {
+  .print-brand-logo {
+    display: block;
     width: auto;
-    height: 5.5mm;
+    height: 8mm;
   }
 
-  .print-heading h1 {
-    font-size: 13.5pt;
+  .print-sheet h1 {
+    margin-top: 4mm;
+    font-size: 24pt;
     font-weight: 800;
-    line-height: 1.15;
-  }
-
-  .print-artist {
-    margin-top: 0.8mm;
-    color: #333;
-    font-size: 8pt;
+    line-height: 1.1;
   }
 
   .print-meta {
-    margin-top: 0.8mm;
-    color: #666;
-    font-family: var(--font-mono);
-    font-size: 7pt;
-  }
-
-  .print-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 46mm;
-    align-items: start;
-    gap: 10mm;
-    margin-top: 6mm;
-  }
-
-  .print-sheet-piano .print-body {
-    grid-template-columns: minmax(0, 1fr) 58mm;
-  }
-
-  .print-section {
-    margin-bottom: 8mm;
-  }
-
-  .print-section-title {
-    margin-bottom: 4mm;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 1.5mm;
+    margin-top: 3mm;
     color: #555;
     font-family: var(--font-mono);
-    font-size: 8pt;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-
-  .print-lyric-line {
-    margin-bottom: 4mm;
-    break-inside: avoid;
-  }
-
-  .print-lyric-chords {
-    display: flex;
-    min-height: 5mm;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.3rem;
-  }
-
-  .print-lyric-chords span {
-    display: inline-block;
-    color: #0040ae;
-    font-size: 10pt;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .print-lyric-text {
-    font-size: 11pt;
-    line-height: 1.5;
-  }
-
-  .print-lyric-gap {
-    height: 3mm;
-  }
-
-  .print-progression-separate {
-    break-before: page;
-  }
-
-  .print-continuation {
-    display: flex;
-    align-items: center;
-    gap: 3mm;
-    margin-bottom: 6mm;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 2mm;
-  }
-
-  .print-continuation .print-logo {
-    height: 4.5mm;
-  }
-
-  .print-continuation span {
     font-size: 9pt;
-    font-weight: 700;
   }
 
-  .print-bars {
+  .print-chords {
     display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    margin: 0;
-    border-top: 1px solid #bbb;
-    border-left: 1px solid #bbb;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4mm 10mm;
+    margin: 8mm 0 0;
     padding: 0;
     list-style: none;
   }
 
-  .print-bar {
-    display: flex;
-    min-height: 11mm;
-    flex-direction: column;
-    gap: 1mm;
-    border-right: 1px solid #bbb;
-    border-bottom: 1px solid #bbb;
-    padding: 1.5mm;
-  }
-
-  .print-bar-index {
-    color: #888;
-    font-family: var(--font-mono);
-    font-size: 7pt;
-  }
-
-  .print-bar-chord {
-    font-size: 10pt;
-  }
-
-  .print-side {
-    break-inside: avoid;
-  }
-
-  .print-diagrams {
+  .print-chords li {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4mm;
-  }
-
-  .print-sheet-piano .print-diagrams {
-    grid-template-columns: 1fr;
-  }
-
-  .print-diagram {
-    border: 1px solid #ddd;
-    border-radius: 2mm;
-    padding: 2mm;
-    text-align: center;
+    grid-template-columns: 15mm minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 3mm;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 2mm;
     break-inside: avoid;
   }
 
-  .print-diagram [role='img'] {
-    width: 100%;
-    min-height: 0;
-    border: 0;
-    padding: 0;
+  .print-time {
+    color: #666;
+    font-family: var(--font-mono);
+    font-size: 8pt;
+    font-variant-numeric: tabular-nums;
   }
 
-  .print-diagram svg {
-    display: block;
-    width: 100%;
-    max-height: 26mm;
-    height: auto;
-    margin: 0 auto;
-  }
-
-  .print-sheet-piano .print-diagram svg {
-    max-height: 20mm;
-  }
-
-  .print-diagram figcaption {
-    margin-top: 1.5mm;
-    font-size: 9pt;
+  .print-chord {
+    font-size: 14pt;
     font-weight: 700;
   }
 
+  .print-degree {
+    color: #666;
+    font-family: var(--font-mono);
+    font-size: 8pt;
+  }
+
   .print-footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 6mm;
     margin-top: 10mm;
     border-top: 1px solid #ddd;
     padding-top: 3mm;
-    color: #777;
+    color: #888;
     font-family: var(--font-mono);
     font-size: 7.5pt;
-  }
-
-  .print-footer span:last-child {
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
   }
 }
 
