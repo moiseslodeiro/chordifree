@@ -7,7 +7,7 @@ function segment(start: number, end: number, label: string): ChordSegment {
 }
 
 describe('chooseBarAlignment', () => {
-  it('prefiere mitad de tempo en canciones detectadas al doble', () => {
+  it('prefers half tempo for songs detected at double speed', () => {
     const beats = Array.from({ length: 32 }, (_, index) => index * 0.5);
     const segments = [
       segment(0, 4, 'A'),
@@ -23,7 +23,7 @@ describe('chooseBarAlignment', () => {
     expect(alignment.bars.map((bar) => bar.chord?.root)).toEqual([9, 4, 6, 2]);
   });
 
-  it('mantiene el tempo normal cuando ya está en un rango lento', () => {
+  it('keeps the normal tempo when it is already in a slow range', () => {
     const beats = Array.from({ length: 16 }, (_, index) => index);
     const segments = [
       segment(0, 4, 'A'),
@@ -38,7 +38,7 @@ describe('chooseBarAlignment', () => {
     expect(alignment.bars.map((bar) => bar.chord?.root)).toEqual([9, 4, 6, 2]);
   });
 
-  it('elige la fase que alinea los cambios con los inicios de compás', () => {
+  it('chooses the phase that aligns changes with bar starts', () => {
     const beats = Array.from({ length: 32 }, (_, index) => index * 0.5);
     const segments = [
       segment(1, 5, 'C'),
@@ -54,7 +54,7 @@ describe('chooseBarAlignment', () => {
     expect(alignment.bars.map((bar) => bar.chord?.root)).toEqual([0, 7, 9, 5]);
   });
 
-  it('permite forzar tempo normal o mitad', () => {
+  it('allows forcing normal or half tempo', () => {
     const beats = Array.from({ length: 32 }, (_, index) => index * 0.5);
     const segments = [segment(0, 8, 'C'), segment(8, 16, 'G')];
 

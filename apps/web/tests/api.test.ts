@@ -32,8 +32,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('cliente HTTP', () => {
-  it('crea un análisis de YouTube con JSON', async () => {
+describe('HTTP client', () => {
+  it('creates a YouTube analysis with JSON', async () => {
     const fetchMock = vi.fn(async () =>
       response({ id: 'job-1', status: 'queued', progress: 0 }),
     );
@@ -53,7 +53,7 @@ describe('cliente HTTP', () => {
     );
   });
 
-  it('crea un análisis de subida con FormData', async () => {
+  it('creates an upload analysis with FormData', async () => {
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       response({ id: 'job-2', status: 'queued', progress: 0 }),
     );
@@ -67,7 +67,7 @@ describe('cliente HTTP', () => {
     expect((options.body as FormData).get('file')).toBe(file);
   });
 
-  it('solicita letras con título, artista y duración', async () => {
+  it('requests lyrics with title, artist, and duration', async () => {
     const fetchMock = vi.fn(async (_url: string) =>
       response({
         lyrics: 'Uno\nDos',
@@ -86,7 +86,7 @@ describe('cliente HTTP', () => {
     );
   });
 
-  it('convierte respuestas de error en ApiClientError con código estable', async () => {
+  it('converts error responses into ApiClientError with a stable code', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
@@ -102,7 +102,7 @@ describe('cliente HTTP', () => {
     });
   });
 
-  it('tolera respuestas sin cuerpo JSON', async () => {
+  it('tolerates responses without a JSON body', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({ ok: false, status: 500, json: async () => Promise.reject() }) as never),
@@ -110,7 +110,7 @@ describe('cliente HTTP', () => {
     await expect(getAnalysis('job-1')).rejects.toBeInstanceOf(ApiClientError);
   });
 
-  it('informa del estado del analizador y degrada si la red falla', async () => {
+  it('reports the analyzer status and degrades if the network fails', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => response({ status: 'ok', analyzer: 'ok', analyzerVersion: 'v1' })),
@@ -123,7 +123,7 @@ describe('cliente HTTP', () => {
 });
 
 describe('pollAnalysis', () => {
-  it('hace polling hasta done y publica las actualizaciones', async () => {
+  it('polls until done and publishes the updates', async () => {
     const views = [
       { id: 'job-1', status: 'queued', progress: 0 },
       { id: 'job-1', status: 'processing', progress: 60 },
@@ -139,7 +139,7 @@ describe('pollAnalysis', () => {
     expect(onUpdate).toHaveBeenCalledTimes(3);
   });
 
-  it('lanza el error del trabajo cuando el estado es error', async () => {
+  it('throws the job error when the status is error', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
@@ -158,7 +158,7 @@ describe('pollAnalysis', () => {
     });
   });
 
-  it('se cancela con AbortSignal', async () => {
+  it('is canceled with AbortSignal', async () => {
     const controller = new AbortController();
     vi.stubGlobal(
       'fetch',

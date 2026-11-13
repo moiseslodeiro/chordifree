@@ -21,7 +21,7 @@ function song(source: Song['source']): Song {
 }
 
 describe('PlayerHost', () => {
-  it('limita el ancho del video en la variante compacta sin deformar el aspecto', () => {
+  it('limits video width in the compact variant without distorting the aspect ratio', () => {
     render(
       <PlayerHost
         song={song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })}
@@ -39,7 +39,7 @@ describe('PlayerHost', () => {
     expect(video.className).toContain('aspect-video');
   });
 
-  it('mantiene el reproductor de audio operativo en la variante compacta', () => {
+  it('keeps the audio player working in the compact variant', () => {
     render(
       <PlayerHost
         song={song({ type: 'upload', filename: 'demo.mp3' })}

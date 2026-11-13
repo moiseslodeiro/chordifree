@@ -3,7 +3,7 @@ import { extractVideoId, isVideoId } from '../src/youtube';
 import { ApiError } from '../src/errors';
 
 describe('extractVideoId', () => {
-  it('acepta los formatos habituales de YouTube', () => {
+  it('accepts the usual YouTube formats', () => {
     expect(extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
     expect(extractVideoId('https://youtube.com/watch?v=dQw4w9WgXcQ&t=30')).toBe('dQw4w9WgXcQ');
     expect(extractVideoId('https://youtu.be/dQw4w9WgXcQ?t=10')).toBe('dQw4w9WgXcQ');
@@ -12,7 +12,7 @@ describe('extractVideoId', () => {
     expect(extractVideoId('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
   });
 
-  it('rechaza hosts que no son YouTube', () => {
+  it('rejects hosts that are not YouTube', () => {
     expect(() => extractVideoId('https://example.com/watch?v=dQw4w9WgXcQ')).toThrowError(
       expect.objectContaining({ code: 'UNSUPPORTED_HOST' }),
     );
@@ -21,7 +21,7 @@ describe('extractVideoId', () => {
     );
   });
 
-  it('rechaza enlaces sin identificador', () => {
+  it('rejects links without an identifier', () => {
     expect(() => extractVideoId('https://www.youtube.com/watch')).toThrowError(
       expect.objectContaining({ code: 'MISSING_VIDEO_ID' }),
     );
@@ -30,7 +30,7 @@ describe('extractVideoId', () => {
     );
   });
 
-  it('rechaza identificadores con formato inválido', () => {
+  it('rejects identifiers with an invalid format', () => {
     expect(() => extractVideoId('https://youtu.be/abc')).toThrowError(
       expect.objectContaining({ code: 'INVALID_URL' }),
     );
@@ -39,14 +39,14 @@ describe('extractVideoId', () => {
     );
   });
 
-  it('rechaza esquemas y URLs malformadas', () => {
+  it('rejects malformed schemes and URLs', () => {
     expect(() => extractVideoId('ftp://youtube.com/watch?v=dQw4w9WgXcQ')).toThrowError(ApiError);
     expect(() => extractVideoId('no es una url')).toThrowError(
       expect.objectContaining({ code: 'INVALID_URL' }),
     );
   });
 
-  it('valida identificadores sueltos', () => {
+  it('validates standalone identifiers', () => {
     expect(isVideoId('dQw4w9WgXcQ')).toBe(true);
     expect(isVideoId('corto')).toBe(false);
   });

@@ -4,7 +4,7 @@ import { parseChord } from '@chordifree/chords';
 import { ChordDiagram } from '../src/components/ChordDiagram';
 
 describe('ChordDiagram', () => {
-  it('describe el mástil de guitarra y sus posiciones', () => {
+  it('describes the guitar fretboard and its positions', () => {
     render(
       <ChordDiagram
         chord={parseChord('C')}
@@ -18,7 +18,7 @@ describe('ChordDiagram', () => {
     expect(diagram).toHaveAccessibleName(/cuerda 6 traste 8/);
   });
 
-  it('describe el teclado de piano con las notas del acorde', () => {
+  it('describes the piano keyboard with the notes of the chord', () => {
     render(
       <ChordDiagram
         chord={parseChord('C')}
@@ -32,7 +32,7 @@ describe('ChordDiagram', () => {
     ).toBeInTheDocument();
   });
 
-  it('describe el mástil de ukelele', () => {
+  it('describes the ukulele fretboard', () => {
     render(
       <ChordDiagram
         chord={parseChord('C')}
@@ -46,7 +46,7 @@ describe('ChordDiagram', () => {
     ).toHaveAccessibleName(/cuerda 1 traste 3/);
   });
 
-  it('usa la notación española en la etiqueta accesible', () => {
+  it('uses Spanish notation in the accessible label', () => {
     render(
       <ChordDiagram
         chord={parseChord('C')}
@@ -60,7 +60,7 @@ describe('ChordDiagram', () => {
     ).toBeInTheDocument();
   });
 
-  it('avisa cuando no hay digitación disponible', () => {
+  it('warns when no fingering is available', () => {
     render(
       <ChordDiagram
         chord={parseChord('Cmaj7')}
@@ -74,7 +74,7 @@ describe('ChordDiagram', () => {
     expect(screen.getByText('Cmaj7')).toBeInTheDocument();
   });
 
-  it('muestra un estado vacío sin acorde activo', () => {
+  it('shows an empty state with no active chord', () => {
     render(
       <ChordDiagram
         chord={null}

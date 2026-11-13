@@ -29,7 +29,7 @@ function setup() {
 }
 
 describe('ChordGrid', () => {
-  it('muestra tiempo mm:ss, acorde y silencio', () => {
+  it('shows mm:ss time, chord, and silence', () => {
     setup();
     expect(screen.getByText('01:24')).toBeInTheDocument();
     expect(screen.getByText('Am')).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('ChordGrid', () => {
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
-  it('marca la fila activa y la actualiza al buscar', () => {
+  it('marks the active row and updates it when seeking', () => {
     const { adapter, clock } = setup();
     const first = screen.getByTestId('chord-row-0');
     const second = screen.getByTestId('chord-row-1');
@@ -54,13 +54,13 @@ describe('ChordGrid', () => {
     expect(screen.getByText(/Acorde activo: — en 01:24/)).toBeInTheDocument();
   });
 
-  it('salta al inicio del segmento al hacer clic', () => {
+  it('seeks to the start of the segment on click', () => {
     const { onSeek } = setup();
     fireEvent.click(screen.getByTestId('chord-row-2'));
     expect(onSeek).toHaveBeenCalledWith(90);
   });
 
-  it('navega con flechas y salta con Intro', () => {
+  it('navigates with the arrow keys and seeks with Enter', () => {
     const { onSeek } = setup();
     const first = screen.getByTestId('chord-row-0');
     const second = screen.getByTestId('chord-row-1');
@@ -82,7 +82,7 @@ describe('ChordGrid', () => {
     expect(onSeek).toHaveBeenCalledWith(0);
   });
 
-  it('respeta la notación y las alteraciones', () => {
+  it('respects the notation and accidentals', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -99,7 +99,7 @@ describe('ChordGrid', () => {
     expect(screen.getByText('Sol♭')).toBeInTheDocument();
   });
 
-  it('muestra un mensaje cuando no hay segmentos', () => {
+  it('shows a message when there are no segments', () => {
     render(
       <ChordGrid
         segments={[]}

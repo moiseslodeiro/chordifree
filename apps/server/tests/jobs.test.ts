@@ -3,7 +3,7 @@ import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
 
 describe('JobQueue', () => {
-  it('respeta la concurrencia y encola el resto', async () => {
+  it('respects concurrency and queues the rest', async () => {
     const queue = new JobQueue(2);
     let active = 0;
     let maxActive = 0;
@@ -34,7 +34,7 @@ describe('JobQueue', () => {
     expect(queue.pendingCount).toBe(0);
   });
 
-  it('propaga errores y libera el hueco', async () => {
+  it('propagates errors and frees the slot', async () => {
     const queue = new JobQueue(1);
     await expect(
       queue.add(async () => {
@@ -46,7 +46,7 @@ describe('JobQueue', () => {
 });
 
 describe('JobStore', () => {
-  it('crea y actualiza trabajos', () => {
+  it('creates and updates jobs', () => {
     const store = new JobStore();
     const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
     expect(job.status).toBe('queued');
@@ -55,7 +55,7 @@ describe('JobStore', () => {
     expect(store.toView(store.get(job.id)!)).not.toHaveProperty('result');
   });
 
-  it('elimina un trabajo y su índice de vídeo', () => {
+  it('removes a job and its video index', () => {
     const store = new JobStore();
     const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
     store.update(job.id, {
@@ -77,7 +77,7 @@ describe('JobStore', () => {
     expect(store.remove('missing')).toBe(false);
   });
 
-  it('cachea el resultado por video y respeta el TTL', () => {
+  it('caches the result per video and respects the TTL', () => {
     let now = 1_000;
     const store = new JobStore(1_000, () => now);
     const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
@@ -98,14 +98,14 @@ describe('JobStore', () => {
     expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
   });
 
-  it('no devuelve trabajos que aún no han terminado', () => {
+  it('does not return jobs that have not finished yet', () => {
     const store = new JobStore();
     const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
     store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
     expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
   });
 
-  it('invalida la caché cuando cambia la versión del analizador', () => {
+  it('invalidates the cache when the analyzer version changes', () => {
     const store = new JobStore();
     const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
     store.update(job.id, {
@@ -124,7 +124,7 @@ describe('JobStore', () => {
     expect(store.findByVideo('dQw4w9WgXcQ', 'essentia-1.2')).toBeUndefined();
   });
 
-  it('barre trabajos antiguos', () => {
+  it('sweeps old jobs', () => {
     let now = 0;
     const store = new JobStore(100, () => now);
     const job = store.create({ type: 'upload', filename: 'a.wav' });

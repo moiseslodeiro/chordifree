@@ -50,7 +50,7 @@ afterEach(() => {
 });
 
 describe('Home', () => {
-  it('valida el enlace antes de llamar al servidor', async () => {
+  it('validates the link before calling the server', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const { onAnalyzed } = renderHome();
@@ -65,7 +65,7 @@ describe('Home', () => {
     expect(onAnalyzed).not.toHaveBeenCalled();
   });
 
-  it('analiza un enlace y entrega la canción', async () => {
+  it('analyzes a link and returns the song', async () => {
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === 'POST') {
         return response({
@@ -101,7 +101,7 @@ describe('Home', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('reutiliza la caché sin llamar al servidor', async () => {
+  it('reuses the cache without calling the server', async () => {
     const storage = createMemoryStorage();
     const cache = new AnalysisCache(storage);
     cache.set('yt:dQw4w9WgXcQ', 'essentia-1.0', analysisResult());
@@ -118,7 +118,7 @@ describe('Home', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('muestra el error del servidor y permite reintentar', async () => {
+  it('shows the server error and allows retrying', async () => {
     const fetchMock = vi.fn(async () =>
       response(
         { error: { code: 'DURATION_EXCEEDED', message: 'El video supera los 15 minutos' } },
@@ -140,7 +140,7 @@ describe('Home', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 
-  it('valida el formato del archivo subido', async () => {
+  it('validates the format of the uploaded file', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     renderHome();
@@ -154,7 +154,7 @@ describe('Home', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('sube un audio válido y entrega la URL local', async () => {
+  it('uploads a valid audio file and returns the local URL', async () => {
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === 'POST') {
         return response({
@@ -190,7 +190,7 @@ describe('Home', () => {
     });
   });
 
-  it('en escritorio oculta el estado del analizador y empieza por la subida', () => {
+  it('hides the analyzer status on desktop and starts with upload', () => {
     window.chordifreeDesktop = { isDesktop: true };
     try {
       renderHome();

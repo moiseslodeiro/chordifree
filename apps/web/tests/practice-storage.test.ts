@@ -9,12 +9,12 @@ import {
   savePractice,
 } from '../src/storage/practice';
 
-describe('práctica persistida', () => {
-  it('devuelve los valores por defecto cuando no hay datos', () => {
+describe('persisted practice', () => {
+  it('returns the defaults when there is no data', () => {
     expect(loadPractice(createMemoryStorage(), 'song-1')).toEqual(DEFAULT_PRACTICE);
   });
 
-  it('guarda y carga el estado de cada canción por separado', () => {
+  it('saves and loads the state of each song separately', () => {
     const storage = createMemoryStorage();
     savePractice(storage, 'song-1', {
       loopA: 8,
@@ -47,7 +47,7 @@ describe('práctica persistida', () => {
     });
   });
 
-  it('corrige rangos invertidos, velocidades y BPM fuera de rango', () => {
+  it('fixes inverted ranges and out-of-range rates and BPM', () => {
     expect(
       normalizePractice({
         loopA: 8,
@@ -81,7 +81,7 @@ describe('práctica persistida', () => {
     });
   });
 
-  it('descarta datos ilegibles y los pone en cuarentena', () => {
+  it('discards unreadable data and quarantines it', () => {
     const storage = createMemoryStorage();
     storage.setItem(KEYS.practice('song-1'), '{no es json');
 
@@ -89,7 +89,7 @@ describe('práctica persistida', () => {
     expect(storage.getItem(KEYS.practice('song-1'))).toBeNull();
   });
 
-  it('elimina la práctica al borrar una canción', () => {
+  it('removes practice state when deleting a song', () => {
     const storage = createMemoryStorage();
     savePractice(storage, 'song-1', { ...DEFAULT_PRACTICE, loopA: 0, loopB: 8 });
     removePractice(storage, 'song-1');

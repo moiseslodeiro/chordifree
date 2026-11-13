@@ -13,7 +13,7 @@ const segments: ChordSegment[] = [
 ];
 
 describe('HarmonicAnalysis', () => {
-  it('muestra la progresión y el grado de cada acorde', () => {
+  it('shows the progression and the degree of each chord', () => {
     render(
       <HarmonicAnalysis
         segments={segments}
@@ -37,7 +37,7 @@ describe('HarmonicAnalysis', () => {
     expect(within(degrees).getByText('F')).toBeInTheDocument();
   });
 
-  it('resume la confianza y avisa de los acordes dudosos', () => {
+  it('summarizes confidence and warns about doubtful chords', () => {
     render(
       <HarmonicAnalysis
         segments={segments}
@@ -53,7 +53,7 @@ describe('HarmonicAnalysis', () => {
     expect(screen.getByText(/Los acordes marcados con «\?»/)).toBeInTheDocument();
   });
 
-  it('omite la confianza cuando el analizador no la proporciona', () => {
+  it('omits confidence when the analyzer does not provide it', () => {
     render(
       <HarmonicAnalysis
         segments={segments.map(({ confidence: _confidence, ...segment }) => segment)}
@@ -65,7 +65,7 @@ describe('HarmonicAnalysis', () => {
     expect(screen.queryByText(/Confianza media/)).not.toBeInTheDocument();
   });
 
-  it('explica que no hay grados si no se pudo estimar la tonalidad', () => {
+  it('explains that there are no degrees when the key could not be estimated', () => {
     render(
       <HarmonicAnalysis
         segments={segments}
@@ -80,7 +80,7 @@ describe('HarmonicAnalysis', () => {
     expect(screen.queryByRole('list', { name: 'Progresión por grados' })).not.toBeInTheDocument();
   });
 
-  it('indica que la parrilla usa formas con capo', () => {
+  it('indicates that the grid uses capo shapes', () => {
     render(
       <HarmonicAnalysis
         segments={segments}

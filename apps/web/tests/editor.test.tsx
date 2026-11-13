@@ -28,44 +28,44 @@ const timeline = (): ChordSegment[] => [
   seg(8, 12, Am),
 ];
 
-describe('operaciones del editor', () => {
-  it('cambia el acorde de un único segmento', () => {
+describe('editor operations', () => {
+  it('changes the chord of a single segment', () => {
     const result = changeChord(timeline(), 1, parseChord('D'));
     expect(result[0]?.chord).toMatchObject({ root: 0 });
     expect(result[1]?.chord).toMatchObject({ root: 2 });
     expect(result[2]?.chord).toMatchObject({ root: 9 });
   });
 
-  it('marca un segmento como silencio', () => {
+  it('marks a segment as a rest', () => {
     const result = changeChord(timeline(), 1, null);
     expect(result[1]?.chord).toBeNull();
   });
 
-  it('rechaza índices inexistentes', () => {
+  it('rejects nonexistent indices', () => {
     expect(() => changeChord(timeline(), 9, C)).toThrow(EditorError);
   });
 
-  it('ajusta el inicio recortando el segmento anterior', () => {
+  it('adjusts the start by trimming the previous segment', () => {
     const result = setBoundary(timeline(), 1, 'start', 5, 12);
     expect(result[0]).toMatchObject({ start: 0, end: 5 });
     expect(result[1]).toMatchObject({ start: 5, end: 8 });
     expect(result.every((item) => item.start < item.end)).toBe(true);
   });
 
-  it('ajusta el fin recortando el segmento siguiente', () => {
+  it('adjusts the end by trimming the next segment', () => {
     const result = setBoundary(timeline(), 1, 'end', 7, 12);
     expect(result[1]).toMatchObject({ start: 4, end: 7 });
     expect(result[2]).toMatchObject({ start: 7, end: 12 });
   });
 
-  it('rechaza ajustes que crearían solapamientos o segmentos cortos', () => {
+  it('rejects adjustments that would create overlaps or short segments', () => {
     expect(() => setBoundary(timeline(), 1, 'start', 0.1, 12)).toThrow(EditorError);
     expect(() => setBoundary(timeline(), 1, 'start', 7.9, 12)).toThrow(EditorError);
     expect(() => setBoundary(timeline(), 1, 'end', 4.1, 12)).toThrow(EditorError);
     expect(() => setBoundary(timeline(), 2, 'end', 13, 12)).toThrow(EditorError);
   });
 
-  it('divide un segmento en dos con el mismo acorde', () => {
+  it('splits a segment in two keeping the same chord', () => {
     const result = splitSegment(timeline(), 1, 6, 12);
     expect(result).toHaveLength(4);
     expect(result[1]).toMatchObject({ start: 4, end: 6 });
@@ -73,12 +73,12 @@ describe('operaciones del editor', () => {
     expect(result[2]?.chord).toMatchObject({ root: 7 });
   });
 
-  it('rechaza divisiones demasiado cerca de los bordes', () => {
+  it('rejects splits too close to the edges', () => {
     expect(() => splitSegment(timeline(), 1, 4.1, 12)).toThrow(EditorError);
     expect(() => splitSegment(timeline(), 1, 7.95, 12)).toThrow(EditorError);
   });
 
-  it('fusiona solo segmentos adyacentes y conserva el primer acorde', () => {
+  it('merges only adjacent segments and keeps the first chord', () => {
     const merged = mergeSegments(timeline(), 0, 12);
     expect(merged[0]).toMatchObject({ start: 0, end: 8 });
     expect(merged[0]?.chord).toMatchObject({ root: 0 });
@@ -87,7 +87,7 @@ describe('operaciones del editor', () => {
     expect(canMerge([seg(0, 4, C), seg(5, 8, G)], 0)).toBe(false);
   });
 
-  it('restaura la detección sin compartir referencias', () => {
+  it('restores detection without sharing references', () => {
     const detected = timeline();
     const restored = restoreDetected(detected);
     expect(restored).toEqual(detected);
@@ -96,7 +96,7 @@ describe('operaciones del editor', () => {
 });
 
 describe('useEditor', () => {
-  it('aplica cambios y permite deshacer y rehacer en orden inverso', () => {
+  it('applies changes and allows undoing and redoing in reverse order', () => {
     const initial = timeline();
     const { result } = renderHook(() => useEditor(initial, 12));
 
@@ -117,7 +117,7 @@ describe('useEditor', () => {
     expect(result.current.canRedo).toBe(false);
   });
 
-  it('expone el error de una operación inválida y conserva el estado', () => {
+  it('exposes the error from an invalid operation and keeps the state', () => {
     const { result } = renderHook(() => useEditor(timeline(), 12));
     act(() => result.current.updateBoundary(0, 'start', 5));
     expect(result.current.error).toBeTruthy();
@@ -126,7 +126,7 @@ describe('useEditor', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('limita el historial a 50 entradas', () => {
+  it('limits history to 50 entries', () => {
     const { result } = renderHook(() => useEditor(timeline(), 12));
     for (let index = 0; index < 55; index += 1) {
       act(() => result.current.updateChord(0, parseChord(index % 2 === 0 ? 'D' : 'C')));
@@ -137,7 +137,7 @@ describe('useEditor', () => {
     expect(result.current.canUndo).toBe(false);
   });
 
-  it('restaura la detección original y permite guardar el resultado', () => {
+  it('restores the original detection and allows saving the result', () => {
     const initial = timeline();
     const { result } = renderHook(() => useEditor(initial, 12));
     act(() => result.current.updateChord(0, parseChord('F')));
@@ -146,7 +146,7 @@ describe('useEditor', () => {
     expect(result.current.canUndo).toBe(true);
   });
 
-  it('se reinicia cuando cambia el estado inicial', () => {
+  it('resets when the initial state changes', () => {
     const first = timeline();
     const { result, rerender } = renderHook(
       ({ segments }: { segments: ChordSegment[] }) => useEditor(segments, 12),

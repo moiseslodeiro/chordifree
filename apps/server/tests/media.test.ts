@@ -18,8 +18,8 @@ async function makeScript(directory: string, name: string, body: string): Promis
   return path;
 }
 
-describe('MediaTools con binarios falsos', () => {
-  it('obtiene metadatos, descarga y convierte', async () => {
+describe('MediaTools with fake binaries', () => {
+  it('gets metadata, downloads and converts', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'chordifree-bin-'));
     const ytdlp = await makeScript(
       directory,
@@ -70,7 +70,7 @@ describe('MediaTools con binarios falsos', () => {
     });
   });
 
-  it('mapea errores de binarios a códigos estables', async () => {
+  it('maps binary errors to stable codes', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'chordifree-bin-'));
     const failing = await makeScript(directory, 'failing', 'exit 1');
     const tools = createMediaTools(
@@ -87,7 +87,7 @@ describe('MediaTools con binarios falsos', () => {
     await expect(tools.probeAudio('a')).rejects.toMatchObject({ code: 'INVALID_AUDIO' });
   });
 
-  it('aplica timeouts a los binarios', async () => {
+  it('applies timeouts to the binaries', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'chordifree-bin-'));
     const slow = await makeScript(directory, 'slow', 'sleep 1');
     const tools = createMediaTools(
@@ -100,8 +100,8 @@ describe('MediaTools con binarios falsos', () => {
   });
 });
 
-describe('conversión real con ffmpeg', () => {
-  it('convierte un audio estéreo a WAV mono 22050 Hz', async () => {
+describe('real conversion with ffmpeg', () => {
+  it('converts stereo audio to mono 22050 Hz WAV', async () => {
     if (!ffmpegStatic) throw new Error('ffmpeg-static no está disponible');
     const directory = await mkdtemp(join(tmpdir(), 'chordifree-audio-'));
     const stereo = join(directory, 'estereo.wav');

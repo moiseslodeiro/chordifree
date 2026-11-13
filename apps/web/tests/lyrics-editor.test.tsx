@@ -41,7 +41,7 @@ function Harness({
 }
 
 describe('LyricsEditor', () => {
-  it('muestra el texto, el contador de líneas y el aviso de cambios', () => {
+  it('shows the text, the line count and the unsaved-changes notice', () => {
     render(<Harness initial={'Uno\n\nDos'} />);
 
     expect(screen.getByLabelText('Letra de la canción')).toHaveValue('Uno\n\nDos');
@@ -49,7 +49,7 @@ describe('LyricsEditor', () => {
     expect(screen.getByRole('button', { name: 'Guardar letra' })).toBeDisabled();
   });
 
-  it('permite editar y guardar solo cuando hay cambios', () => {
+  it('allows editing and saving only when there are changes', () => {
     const onSave = vi.fn();
     render(<Harness initial="Uno" onSave={onSave} />);
 
@@ -63,7 +63,7 @@ describe('LyricsEditor', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
-  it('cancela sin guardar y permite eliminar cuando hay letra guardada', () => {
+  it('cancels without saving and allows deleting when lyrics are saved', () => {
     const onCancel = vi.fn();
     const onDelete = vi.fn();
     render(<Harness initial="Uno" onCancel={onCancel} onDelete={onDelete} />);
@@ -75,12 +75,12 @@ describe('LyricsEditor', () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
-  it('oculta eliminar cuando no hay letra previa', () => {
+  it('hides delete when there are no previous lyrics', () => {
     render(<Harness initial="" canDelete={false} />);
     expect(screen.queryByRole('button', { name: 'Eliminar letra' })).not.toBeInTheDocument();
   });
 
-  it('ancla la línea del cursor al tiempo actual', () => {
+  it('anchors the cursor line to the current time', () => {
     render(<Harness initial={'Uno\nDos'} />);
 
     const field = screen.getByLabelText('Letra de la canción') as HTMLTextAreaElement;
@@ -90,7 +90,7 @@ describe('LyricsEditor', () => {
     expect(field).toHaveValue('Uno\n[01:15] Dos');
   });
 
-  it('sustituye un ancla existente en lugar de duplicarla', () => {
+  it('replaces an existing anchor instead of duplicating it', () => {
     render(<Harness initial={'[00:10] Uno\nDos'} />);
 
     const field = screen.getByLabelText('Letra de la canción') as HTMLTextAreaElement;
@@ -100,14 +100,14 @@ describe('LyricsEditor', () => {
     expect(field).toHaveValue('[01:15] Uno\nDos');
   });
 
-  it('ancla la primera línea con texto al tiempo actual', () => {
+  it('anchors the first line with text to the current time', () => {
     render(<Harness initial={'\nUno\nDos'} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Anclar inicio' }));
     expect(screen.getByLabelText('Letra de la canción')).toHaveValue('\n[01:15] Uno\nDos');
   });
 
-  it('rellena el borrador con la letra encontrada sin guardarla', async () => {
+  it('fills the draft with the found lyrics without saving it', async () => {
     const onFindLyrics = vi.fn().mockResolvedValue('Nueva letra');
     const onSave = vi.fn();
     render(<Harness canDelete={false} onSave={onSave} onFindLyrics={onFindLyrics} />);
@@ -121,7 +121,7 @@ describe('LyricsEditor', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('muestra un aviso si no hay letra o falla el proveedor', async () => {
+  it('shows a notice when there are no lyrics or the provider fails', async () => {
     const notFound = vi
       .fn()
       .mockRejectedValue(new ApiClientError('LYRICS_NOT_FOUND', 'No lyrics', 404));
@@ -138,7 +138,7 @@ describe('LyricsEditor', () => {
     expect(await screen.findByText('No se pudo obtener la letra. Inténtalo más tarde.')).toBeInTheDocument();
   });
 
-  it('deshabilita el anclaje sin reproductor', () => {
+  it('disables anchoring without a player', () => {
     render(<Harness canAnchor={false} />);
     expect(screen.getByRole('button', { name: 'Anclar línea' })).toBeDisabled();
   });

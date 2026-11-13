@@ -1,11 +1,11 @@
 import type { Chord, Quality } from './types';
 
 /**
- * Cualidad de referencia para el modo de simplificación visual.
- * Las tensiones, novenas, oncenas, trecenas y suspensiones se reducen a su
- * tríada. La séptima de dominante se conserva porque define la función del
- * acorde (por ejemplo, `G7` → `G7`, no `G`) y es habitual en las progresiones
- * que el analizador reconoce.
+ * Reference quality for the visual simplification mode.
+ * Tensions, ninths, elevenths, thirteenths and suspensions are reduced to their
+ * triad. The dominant seventh is kept because it defines the function of the
+ * chord (for example, `G7` → `G7`, not `G`) and is common in the progressions
+ * that the analyzer recognizes.
  */
 const SIMPLIFIED_QUALITY: Record<Quality, Quality> = {
   major: 'major',
@@ -35,8 +35,8 @@ const SIMPLIFIED_QUALITY: Record<Quality, Quality> = {
 };
 
 /**
- * Devuelve el acorde simplificado para mostrarlo. No modifica el original y
- * elimina el bajo invertido, de modo que `C/G` se convierte en `C`.
+ * Returns the simplified chord for display. Does not modify the original and
+ * removes the inverted bass, so `C/G` becomes `C`.
  */
 export function simplifyChord(chord: Chord): Chord {
   const simplified: Chord = {

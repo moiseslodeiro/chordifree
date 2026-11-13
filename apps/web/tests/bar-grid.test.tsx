@@ -15,7 +15,7 @@ const bars: BarCell[] = [
 ];
 
 describe('BarGrid', () => {
-  it('muestra un acorde por compás y permite seleccionarlo', () => {
+  it('shows one chord per bar and allows selecting it', () => {
     const onSelectBar = vi.fn();
     render(
       <BarGrid
@@ -33,7 +33,7 @@ describe('BarGrid', () => {
     expect(onSelectBar).toHaveBeenCalledWith(4);
   });
 
-  it('resalta el compás activo', () => {
+  it('highlights the active bar', () => {
     const adapter = new FakePlayerAdapter(4, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments([
@@ -54,7 +54,7 @@ describe('BarGrid', () => {
     expect(screen.getByTestId('bar-cell-0')).not.toHaveAttribute('aria-current');
   });
 
-  it('previsualiza el compás al pasar el ratón cuando se arma A o B', () => {
+  it('previews the bar on hover when A or B is armed', () => {
     const { rerender } = render(
       <BarGrid
         bars={bars}
@@ -84,7 +84,7 @@ describe('BarGrid', () => {
     expect(screen.getByTestId('bar-cell-2')).toHaveAttribute('data-mark-preview', 'b');
   });
 
-  it('colorea los compases A, B y el rango intermedio', () => {
+  it('colors bars A, B, and the in-between range', () => {
     render(
       <BarGrid
         bars={bars}
@@ -103,7 +103,7 @@ describe('BarGrid', () => {
     expect(screen.getByTestId('bar-cell-3')).not.toHaveAttribute('data-loop');
   });
 
-  it('se integra en ChordGrid como vista Compases', () => {
+  it('integrates into ChordGrid as the Bars view', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     const segments: ChordSegment[] = [

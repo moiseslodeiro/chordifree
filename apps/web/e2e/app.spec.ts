@@ -58,7 +58,7 @@ async function analyze(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
 }
 
-test.describe('flujo completo', () => {
+test.describe('full flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       if (!window.localStorage.getItem('chordifree:v1:preferences')) {
@@ -71,7 +71,7 @@ test.describe('flujo completo', () => {
     await stubApi(page);
   });
 
-  test('arranca en inglés y permite cambiar a español', async ({ page }) => {
+  test('starts in English and allows switching to Spanish', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem(
         'chordifree:v1:preferences',
@@ -88,7 +88,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByRole('button', { name: 'Detectar acordes' })).toBeVisible();
   });
 
-  test('analiza, traslada a notación española, traspone, edita, guarda y recarga', async ({
+  test('analyzes, switches to Spanish notation, transposes, edits, saves and reloads', async ({
     page,
   }) => {
     await analyze(page);
@@ -125,7 +125,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByTestId('beat-cell-8')).toContainText('Sol♯');
   });
 
-  test('muestra grados, capo y confianza baja sin salir de la canción', async ({ page }) => {
+  test('shows degrees, capo and low confidence without leaving the song', async ({ page }) => {
     await stubApi(page, {
       ...RESULT,
       segments: [
@@ -164,7 +164,7 @@ test.describe('flujo completo', () => {
     await expect(firstCell).toContainText('C');
   });
 
-  test('conserva el rango A-B y la velocidad al recargar', async ({ page }) => {
+  test('preserves the A-B range and the playback speed on reload', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
@@ -192,7 +192,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1.25');
   });
 
-  test('exporta la biblioteca y la restaura desde una copia JSON', async ({ page }, testInfo) => {
+  test('exports the library and restores it from a JSON backup', async ({ page }, testInfo) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
     await page.getByRole('button', { name: 'Biblioteca' }).click();
@@ -213,7 +213,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByText(/Copia importada: 1 canción nueva/)).toBeVisible();
   });
 
-  test('prepara una hoja de acordes para imprimir o guardar en PDF', async ({ page }) => {
+  test('prepares a chord sheet to print or save as PDF', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Letra', exact: true }).click();
@@ -237,7 +237,7 @@ test.describe('flujo completo', () => {
     await expect(sheet).toContainText('00:08');
     await expect(sheet).toContainText(/v\d+\.\d+\.\d+/);
   });
-  test('exporta la partitura en MusicXML', async ({ page }) => {
+  test('exports the score as MusicXML', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Más acciones' }).click();
@@ -247,7 +247,9 @@ test.describe('flujo completo', () => {
     expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
   });
 
-  test('guarda la letra, actualiza los acordes con el capo y recupera la vista', async ({ page }) => {
+  test('saves the lyrics, updates the chords with the capo and restores the view', async ({
+    page,
+  }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Letra', exact: true }).click();
@@ -285,7 +287,9 @@ test.describe('flujo completo', () => {
     ).toBeVisible();
   });
 
-  test('omite intro e interludio y permite anclar una línea al tiempo actual', async ({ page }) => {
+  test('skips intro and interlude and allows anchoring a line to the current time', async ({
+    page,
+  }) => {
     const labels = ['C', 'Dm', 'C', 'G', 'Am', 'F', 'C', 'C', 'C', 'C', 'C', 'G', 'Am', 'F'];
     const qualities: Record<string, { root: number; quality: string }> = {
       C: { root: 0, quality: 'major' },
@@ -342,7 +346,7 @@ test.describe('flujo completo', () => {
     );
   });
 
-  test('mantiene el tiempo real del acorde dominante con la reducción máxima', async ({ page }) => {
+  test('keeps the real timing of the dominant chord with maximum reduction', async ({ page }) => {
     await stubApi(page, {
       ...RESULT,
       duration: 4,
@@ -363,7 +367,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByTestId('beat-cell-2')).toContainText('G');
   });
 
-  test('sin modo A o B, el clic reproduce desde el compás elegido', async ({ page }) => {
+  test('without A or B mode, clicking plays from the selected bar', async ({ page }) => {
     await analyze(page);
 
     await page.getByTestId('beat-cell-8').click();
@@ -376,7 +380,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
   });
 
-  test('arma A o B, previsualiza el compás y marca sin reproducir', async ({ page }) => {
+  test('sets A or B, previews the bar and marks without playing', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
@@ -418,9 +422,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
   });
 
-  test('Reproducir empieza en A y para en B si el bucle está apagado', async ({
-    page,
-  }) => {
+  test('playback starts at A and stops at B when looping is off', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
@@ -435,7 +437,7 @@ test.describe('flujo completo', () => {
     });
   });
 
-  test('la vista Compases agrupa un acorde por compás y corrige el tempo', async ({ page }) => {
+  test('the Bars view groups one chord per bar and fixes the tempo', async ({ page }) => {
     await stubApi(page, {
       ...RESULT,
       duration: 16,
@@ -459,7 +461,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByTestId('bar-cell-3')).toContainText('D');
   });
 
-  test('reanaliza una canción guardada y conserva la letra', async ({ page }) => {
+  test('reanalyzes a saved song and preserves the lyrics', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Letra', exact: true }).click();
@@ -485,7 +487,7 @@ test.describe('flujo completo', () => {
     );
   });
 
-  test('resalta el acorde activo en menos de 250 ms al buscar', async ({ page }) => {
+  test('highlights the active chord in under 250 ms when seeking', async ({ page }) => {
     await analyze(page);
     const slider = page.getByLabel('Posición de reproducción');
 
@@ -497,7 +499,7 @@ test.describe('flujo completo', () => {
     expect(Date.now() - started).toBeLessThan(500);
   });
 
-  test('navega por la fila y entre filas con el teclado', async ({ page }) => {
+  test('navigates along and between rows with the keyboard', async ({ page }) => {
     await analyze(page);
     const first = page.getByTestId('beat-cell-0');
     const secondRowStart = page.getByTestId('beat-cell-8');
@@ -520,7 +522,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByTestId('beat-cell-23')).toBeFocused();
   });
 
-  test('reduce los acordes de paso y conserva la línea original en el editor', async ({ page }) => {
+  test('reduces passing chords and preserves the original line in the editor', async ({ page }) => {
     await stubApi(page, {
       ...RESULT,
       duration: 8,
@@ -545,7 +547,7 @@ test.describe('flujo completo', () => {
     await expect(page.getByLabel('Acorde del segmento')).toHaveCount(3);
   });
 
-  test('empieza en tema claro, alterna a oscuro y conserva la elección', async ({ page }) => {
+  test('starts in light theme, switches to dark and preserves the choice', async ({ page }) => {
     await page.goto('/?fakePlayer=1');
 
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -558,9 +560,7 @@ test.describe('flujo completo', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
-  test('cambia de instrumento, alterna vistas y mantiene el layout de dos columnas', async ({
-    page,
-  }) => {
+  test('changes instrument, switches views and keeps the two-column layout', async ({ page }) => {
     await analyze(page);
 
     const gridColumn = page.getByTestId('song-grid-column');
@@ -587,7 +587,7 @@ test.describe('flujo completo', () => {
   });
 });
 
-test.describe('accesibilidad', () => {
+test.describe('accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       if (!window.localStorage.getItem('chordifree:v1:preferences')) {
@@ -600,7 +600,7 @@ test.describe('accesibilidad', () => {
     await stubApi(page);
   });
 
-  test('la pantalla de inicio no tiene violaciones críticas', async ({ page }) => {
+  test('the home screen has no critical violations', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Analiza una canción' })).toBeVisible();
 
@@ -611,7 +611,7 @@ test.describe('accesibilidad', () => {
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
   });
 
-  test('la vista de canción con dos columnas no tiene violaciones críticas', async ({ page }) => {
+  test('the two-column song view has no critical violations', async ({ page }) => {
     await analyze(page);
 
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
@@ -621,7 +621,7 @@ test.describe('accesibilidad', () => {
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
   });
 
-  test('la vista de letra no tiene violaciones críticas', async ({ page }) => {
+  test('the lyrics view has no critical violations', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Letra', exact: true }).click();

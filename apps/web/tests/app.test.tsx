@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 describe('App', () => {
-  it('muestra el aviso de actualización en escritorio', async () => {
+  it('shows the update notice on desktop', async () => {
     stubApi();
     const openExternal = vi.fn();
     window.chordifreeDesktop = {
@@ -96,7 +96,7 @@ describe('App', () => {
     );
   });
 
-  it('analiza, cambia notación y trasposición, guarda y recarga desde la biblioteca', async () => {
+  it('analyzes, changes notation and transposition, saves, and reloads from the library', async () => {
     stubApi();
     const view = await analyze();
 
@@ -107,7 +107,7 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do');
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol');
 
-    // La alteración automática elige bemoles para la tonalidad resultante.
+    // Automatic accidentals choose flats for the resulting key.
     fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
     fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
     expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
@@ -130,7 +130,7 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
   });
 
-  it('guarda la letra con acordes y la recupera al reabrir', async () => {
+  it('saves the lyrics with chords and restores them on reopen', async () => {
     stubApi();
     const view = await analyze();
 
@@ -169,7 +169,7 @@ describe('App', () => {
     expect(reopened.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
   });
 
-  it('normaliza una letra vacía a sin letra', async () => {
+  it('normalizes empty lyrics to no lyrics', async () => {
     stubApi();
     await analyze();
 
@@ -184,7 +184,7 @@ describe('App', () => {
     expect(screen.getByText('Todavía no hay letra')).toBeInTheDocument();
   });
 
-  it('actualiza los acordes de la letra con la presentación y no toca el texto', async () => {
+  it('updates the lyrics chords with the presentation and leaves the text untouched', async () => {
     stubApi({
       ...result,
       segments: [
@@ -231,7 +231,7 @@ describe('App', () => {
     expect(grid.getByText('Línea dos')).toBeInTheDocument();
   });
 
-  it('mantiene los tiempos de la letra con la reducción máxima', async () => {
+  it('keeps the lyrics timings with maximum reduction', async () => {
     stubApi({
       ...result,
       duration: 8,
@@ -266,7 +266,7 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
   });
 
-  it('coloca el acorde dominante en su tiempo real al reducir al máximo', async () => {
+  it('places the dominant chord at its actual time when reducing to the maximum', async () => {
     stubApi({
       ...result,
       duration: 4,
@@ -287,7 +287,7 @@ describe('App', () => {
     expect(screen.getByTestId('beat-cell-2')).toHaveTextContent('G');
   });
 
-  it('edita un acorde, guarda y conserva la corrección al reabrir', async () => {
+  it('edits a chord, saves, and keeps the correction on reopen', async () => {
     stubApi();
     await analyze();
 
@@ -298,7 +298,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(screen.getByTestId('chord-row-0')).toHaveTextContent('A7');
-    // Guardar en el editor ya persiste la corrección en la biblioteca.
+    // Saving in the editor already persists the correction to the library.
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
@@ -306,7 +306,7 @@ describe('App', () => {
     expect(await screen.findByTestId('chord-row-0')).toHaveTextContent('A7');
   });
 
-  it('muestra el estado de error y permite reintentar', async () => {
+  it('shows the error state and allows retrying', async () => {
     let attempts = 0;
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === '/api/health') {
@@ -331,7 +331,7 @@ describe('App', () => {
     await waitFor(() => expect(attempts).toBe(2));
   });
 
-  it('simplifica solo la visualización y recupera el cifrado original al desactivar', async () => {
+  it('simplifies only the display and restores the original chord notation when disabled', async () => {
     stubApi({
       ...result,
       segments: [
@@ -348,7 +348,7 @@ describe('App', () => {
     expect(within(screen.getByTestId('chord-row-0')).getByText('C')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am')).toBeInTheDocument();
 
-    // El editor sigue viendo los acordes originales.
+    // The editor still sees the original chords.
     fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Cmaj7');
     fireEvent.click(screen.getByRole('button', { name: 'Salir de edición' }));
@@ -358,7 +358,7 @@ describe('App', () => {
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
   });
 
-  it('reduce los acordes de paso solo en la visualización', async () => {
+  it('reduces passing chords only in the display', async () => {
     stubApi({
       ...result,
       beats: [0, 1, 2, 3, 4, 5, 6, 7],
@@ -385,7 +385,7 @@ describe('App', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[1]).toHaveValue('G');
   });
 
-  it('reduce al máximo a un acorde por compás solo en la visualización', async () => {
+  it('reduces to the maximum of one chord per bar only in the display', async () => {
     stubApi({
       ...result,
       beats: [0, 1, 2, 3, 4, 5, 6, 7],
@@ -411,12 +411,12 @@ describe('App', () => {
     expect(grid.getByText('C')).toBeInTheDocument();
     expect(grid.getByText('Am')).toBeInTheDocument();
 
-    // La edición sigue trabajando sobre la línea original.
+    // Editing still works on the original line.
     fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
     expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(4);
   });
 
-  it('organiza la rejilla a la izquierda y el video con las herramientas a la derecha', async () => {
+  it('lays out the grid on the left and the video with the tools on the right', async () => {
     stubApi({
       ...result,
       beats: [0, 1, 2, 3, 4, 5, 6, 7],
@@ -431,12 +431,12 @@ describe('App', () => {
     const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
     expect(details).toBeInTheDocument();
     const activeChord = within(toolsColumn).getByText('Acorde activo');
-    // El bloque de información va debajo de los acordes gráficos.
+    // The info block goes below the chord diagrams.
     expect(
       activeChord.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
-    // Presentación e instrumento viven en la barra superior, no en la columna.
+    // Presentation and instrument live in the top bar, not in the column.
     expect(screen.getByLabelText('Instrumento')).toBeInTheDocument();
     expect(within(toolsColumn).queryByLabelText('Instrumento')).not.toBeInTheDocument();
 
@@ -447,7 +447,7 @@ describe('App', () => {
     expect(screen.getByLabelText('Instrumento')).toBeInTheDocument();
   });
 
-  it('muestra los detalles de la canción y el tempo estimado bajo el video', async () => {
+  it('shows the song details and the estimated tempo below the video', async () => {
     stubApi({
       ...result,
       beats: [0, 1, 2, 3, 4, 5, 6, 7],
@@ -466,7 +466,7 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('persiste la vista de lista y la usa al reabrir la canción', async () => {
+  it('persists the list view and uses it when reopening the song', async () => {
     stubApi();
     await analyze();
 
@@ -483,7 +483,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('abre una canción antigua sin pulsos en la vista de lista con aviso', async () => {
+  it('opens an old song without beats in list view with a notice', async () => {
     stubApi({ ...result, beats: undefined, beatsPerBar: undefined });
     await analyze();
 
@@ -495,7 +495,7 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
   });
 
-  it('empieza en tema claro y permite cambiar a oscuro', async () => {
+  it('starts in light theme and allows switching to dark', async () => {
     stubApi();
     await analyze();
 
@@ -506,7 +506,7 @@ describe('App', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
   });
 
-  it('arranca en inglés y permite cambiar a español', async () => {
+  it('starts in English and allows switching to Spanish', async () => {
     stubApi();
     setLanguage('en');
     window.localStorage.setItem(
@@ -529,7 +529,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Detectar acordes' })).toBeInTheDocument();
   });
 
-  it('muestra el pie de página con enlaces al proyecto', () => {
+  it('shows the footer with links to the project', () => {
     stubApi();
     render(<App />);
 
@@ -542,7 +542,7 @@ describe('App', () => {
     );
   });
 
-  it('abre la demo integrada sin subir archivos', async () => {
+  it('opens the built-in demo without uploading files', async () => {
     stubApi();
     render(<App />);
 
@@ -555,7 +555,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Guardar en biblioteca' })).toBeInTheDocument();
   });
 
-  it('crea una lista, añade una canción y la abre', async () => {
+  it('creates a setlist, adds a song, and opens it', async () => {
     stubApi();
     await analyze();
     fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
@@ -575,14 +575,14 @@ describe('App', () => {
     expect((await screen.findAllByText('Demo sincronizada')).length).toBeGreaterThan(0);
   });
 
-  it('abre la biblioteca vacía desde la pantalla de inicio', async () => {
+  it('opens the empty library from the home screen', async () => {
     stubApi();
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Biblioteca \(0\)/ }));
     expect(await screen.findByText('Todavía no hay canciones')).toBeInTheDocument();
   });
 
-  it('importa una canción compartida desde el hash', async () => {
+  it('imports a shared song from the hash', async () => {
     stubApi();
     const song = createDemoSong(DEFAULT_PREFERENCES);
     const token = await encodeSongForShare(song);

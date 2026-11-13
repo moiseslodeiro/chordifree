@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 describe('LibraryList', () => {
-  it('lista las canciones con origen y duración', () => {
+  it('lists songs with source and duration', () => {
     renderLibrary();
     expect(screen.getByText('Primera canción')).toBeInTheDocument();
     expect(screen.getByText('Audio local')).toBeInTheDocument();
@@ -65,13 +65,13 @@ describe('LibraryList', () => {
     expect(screen.getByText('02:05')).toBeInTheDocument();
   });
 
-  it('abre una canción al pulsar Abrir', () => {
+  it('opens a song when clicking Open', () => {
     const { onOpen } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Abrir' })[0]!);
     expect(onOpen).toHaveBeenCalledWith('a');
   });
 
-  it('elimina solo tras confirmar', () => {
+  it('deletes only after confirmation', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { onDelete } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
@@ -79,19 +79,19 @@ describe('LibraryList', () => {
     expect(onDelete).toHaveBeenCalledWith('a');
   });
 
-  it('no elimina si se cancela la confirmación', () => {
+  it('does not delete when confirmation is cancelled', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { onDelete } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it('muestra un estado vacío', () => {
+  it('shows an empty state', () => {
     renderLibrary({ songs: [] });
     expect(screen.getByText('Todavía no hay canciones')).toBeInTheDocument();
   });
 
-  it('exporta la biblioteca y delega la importación del archivo', () => {
+  it('exports the library and delegates file import', () => {
     const { onExport, onImport } = renderLibrary();
 
     fireEvent.click(screen.getByRole('button', { name: 'Exportar JSON' }));
@@ -104,12 +104,12 @@ describe('LibraryList', () => {
     expect(onImport).toHaveBeenCalledWith(file);
   });
 
-  it('deshabilita la exportación cuando no hay canciones', () => {
+  it('disables export when there are no songs', () => {
     renderLibrary({ songs: [] });
     expect(screen.getByRole('button', { name: 'Exportar JSON' })).toBeDisabled();
   });
 
-  it('muestra el aviso de la copia de seguridad', () => {
+  it('shows the backup notice', () => {
     renderLibrary({
       notice: { message: 'Copia importada: 2 canciones nuevas y 0 actualizadas.', tone: 'success' },
     });
@@ -118,7 +118,7 @@ describe('LibraryList', () => {
     ).toBeInTheDocument();
   });
 
-  it('navega de vuelta y a analizar otra', () => {
+  it('navigates back and to analyze another one', () => {
     const { onBack, onHome } = renderLibrary();
     fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
     fireEvent.click(screen.getByRole('button', { name: 'Analizar otra' }));
@@ -126,7 +126,7 @@ describe('LibraryList', () => {
     expect(onHome).toHaveBeenCalled();
   });
 
-  it('busca por título sin distinguir mayúsculas ni acentos', () => {
+  it('searches by title ignoring case and accents', () => {
     renderLibrary();
     const search = screen.getByRole('searchbox', { name: 'Buscar canciones' });
 
@@ -140,7 +140,7 @@ describe('LibraryList', () => {
     expect(screen.queryByText('Audio local')).not.toBeInTheDocument();
   });
 
-  it('filtra por origen sin duplicar las etiquetas de las canciones', () => {
+  it('filters by source without duplicating song labels', () => {
     renderLibrary();
     fireEvent.click(screen.getByRole('button', { name: 'Vídeos' }));
 
@@ -155,7 +155,7 @@ describe('LibraryList', () => {
     expect(screen.getAllByText('Audio subido')).toHaveLength(1);
   });
 
-  it('muestra un estado sin resultados y permite limpiar los filtros', () => {
+  it('shows a no-results state and allows clearing the filters', () => {
     renderLibrary();
     const search = screen.getByRole('searchbox', { name: 'Buscar canciones' });
 
@@ -169,7 +169,7 @@ describe('LibraryList', () => {
     expect(search).toHaveValue('');
   });
 
-  it('filtra por carpeta, mueve canciones y gestiona carpetas', () => {
+  it('filters by folder, moves songs and manages folders', () => {
     const folder = {
       id: 'f1',
       name: 'Favoritas',
@@ -212,7 +212,7 @@ describe('LibraryList', () => {
     expect(onCreateFolder).toHaveBeenCalledWith('Directos');
   });
 
-  it('combina búsqueda y origen y los limpia con un solo botón', () => {
+  it('combines search and source and clears them with a single button', () => {
     renderLibrary();
     const search = screen.getByRole('searchbox', { name: 'Buscar canciones' });
     fireEvent.change(search, { target: { value: 'audio' } });

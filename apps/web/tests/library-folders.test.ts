@@ -31,8 +31,8 @@ function folder(id: string, name: string): Folder {
   };
 }
 
-describe('carpetas de la biblioteca', () => {
-  it('crea, renombra y elimina carpetas', () => {
+describe('library folders', () => {
+  it('creates, renames and deletes folders', () => {
     const library = new Library(createMemoryStorage());
     const created = library.createFolder('  Favoritas  ');
     expect(created.name).toBe('Favoritas');
@@ -46,7 +46,7 @@ describe('carpetas de la biblioteca', () => {
     expect(library.listFolders()).toEqual([]);
   });
 
-  it('mueve canciones entre carpetas y conserva el id', () => {
+  it('moves songs between folders and keeps the id', () => {
     const library = new Library(createMemoryStorage());
     const favorites = library.createFolder('Favoritas');
     library.save(song('a', 'Primera'));
@@ -60,7 +60,7 @@ describe('carpetas de la biblioteca', () => {
     expect(library.list()[0]?.folderId).toBeUndefined();
   });
 
-  it('al eliminar una carpeta mueve sus canciones a sin carpeta', () => {
+  it('deleting a folder moves its songs to no folder', () => {
     const library = new Library(createMemoryStorage());
     const folderA = library.createFolder('Favoritas');
     library.save(song('a', 'Primera', folderA.id));
@@ -73,7 +73,7 @@ describe('carpetas de la biblioteca', () => {
     expect(library.list()).toHaveLength(2);
   });
 
-  it('restaura carpetas y sus canciones desde un snapshot', () => {
+  it('restores folders and their songs from a snapshot', () => {
     const target = new Library(createMemoryStorage());
     const folderA = folder('folder-a', 'Favoritas');
 
@@ -88,7 +88,7 @@ describe('carpetas de la biblioteca', () => {
     expect(target.get('b')?.folderId).toBeUndefined();
   });
 
-  it('ignora folderId si la carpeta no existe', () => {
+  it('ignores folderId when the folder does not exist', () => {
     const library = new Library(createMemoryStorage());
     library.importSongs([song('a', 'Huérfana', 'missing-folder')]);
     expect(library.get('a')?.folderId).toBeUndefined();

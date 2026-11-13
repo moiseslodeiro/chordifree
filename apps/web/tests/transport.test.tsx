@@ -31,7 +31,7 @@ function setup({
 }
 
 describe('Transport', () => {
-  it('empieza en A al reproducir si el cursor está fuera del rango', () => {
+  it('starts at A on play if the cursor is outside the range', () => {
     const { adapter } = setup({ time: 20, loopA: 4, loopB: 8 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Reproducir' }));
@@ -40,7 +40,7 @@ describe('Transport', () => {
     expect(adapter.isPlaying()).toBe(true);
   });
 
-  it('mantiene la posición actual si ya está dentro del rango', () => {
+  it('keeps the current position if it is already inside the range', () => {
     const { adapter } = setup({ time: 6, loopA: 4, loopB: 8 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Reproducir' }));
@@ -49,7 +49,7 @@ describe('Transport', () => {
     expect(adapter.isPlaying()).toBe(true);
   });
 
-  it('para en B cuando el bucle está apagado', () => {
+  it('stops at B when looping is off', () => {
     vi.useFakeTimers();
     try {
       const { adapter } = setup({ time: 0, loopA: 0, loopB: 4 });
@@ -70,7 +70,7 @@ describe('Transport', () => {
     }
   });
 
-  it('no para en B cuando el bucle está encendido', () => {
+  it('does not stop at B when looping is on', () => {
     vi.useFakeTimers();
     try {
       const { adapter } = setup({ time: 0, loopA: 0, loopB: 4, loopEnabled: true });

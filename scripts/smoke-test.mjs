@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Smoke test de extremo a extremo: sube un audio de fixture, espera al
- * análisis y valida las invariantes de la línea de tiempo.
+ * End-to-end smoke test: uploads a fixture audio file, waits for the
+ * analysis and validates the timeline invariants.
  *
- * Uso:
+ * Usage:
  *   API_URL=http://localhost:3001 node scripts/smoke-test.mjs
- *   FIXTURE=/ruta/audio.wav node scripts/smoke-test.mjs
+ *   FIXTURE=/path/audio.wav node scripts/smoke-test.mjs
  */
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

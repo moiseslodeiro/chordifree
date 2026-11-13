@@ -61,7 +61,7 @@ function setup({
 }
 
 describe('LyricsChordView', () => {
-  it('muestra las líneas y los acordes alineados con su tiempo', () => {
+  it('shows lines and chords aligned with their time', () => {
     setup();
 
     expect(screen.getByText('Primera línea')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('LyricsChordView', () => {
     expect(screen.getByRole('button', { name: 'G en 00:10' })).toBeInTheDocument();
   });
 
-  it('resalta la línea y el acorde activos', () => {
+  it('highlights the active line and chord', () => {
     setup({ at: 10 });
 
     const activeLine = screen.getByText('Segunda línea').closest('li');
@@ -84,14 +84,14 @@ describe('LyricsChordView', () => {
     );
   });
 
-  it('no activa la letra durante la intro cuando hay regiones vocales', () => {
+  it('does not activate lyrics during the intro when there are vocal regions', () => {
     setup({ at: 4, vocalRegions: [{ start: 10, end: 20 }] });
 
     expect(screen.getByText('Primera línea').closest('li')).not.toHaveAttribute('aria-current');
     expect(screen.getByText('Segunda línea').closest('li')).not.toHaveAttribute('aria-current');
   });
 
-  it('empieza la primera línea al entrar la voz', () => {
+  it('starts the first line when the vocals come in', () => {
     setup({ at: 10, vocalRegions: [{ start: 10, end: 20 }] });
 
     expect(screen.getByText('Primera línea').closest('li')).toHaveAttribute(
@@ -100,7 +100,7 @@ describe('LyricsChordView', () => {
     );
   });
 
-  it('salta al tiempo del acorde o de la línea al pulsar', () => {
+  it('seeks to the chord or line time when clicked', () => {
     const { onSeek } = setup();
 
     fireEvent.click(screen.getByRole('button', { name: 'G en 00:10' }));
@@ -110,7 +110,7 @@ describe('LyricsChordView', () => {
     expect(onSeek).toHaveBeenCalledWith(0);
   });
 
-  it('aplica el desplazamiento guardado de cada acorde', () => {
+  it('applies the saved offset of each chord', () => {
     setup({ chordOffsets: { '0': 0.5 } });
 
     // jsdom 31 resolves em units in the computed style, so assert the
@@ -123,7 +123,7 @@ describe('LyricsChordView', () => {
     );
   });
 
-  it('activa el ajuste y mueve el acorde con las flechas', () => {
+  it('enables adjustment and moves the chord with the arrow keys', () => {
     const onChordOffsetChange = vi.fn();
     setup({ onChordOffsetChange });
 
@@ -137,7 +137,7 @@ describe('LyricsChordView', () => {
     expect(onChordOffsetChange).toHaveBeenLastCalledWith(0, -0.25);
   });
 
-  it('mueve un acorde a la línea siguiente y lo renderiza allí', () => {
+  it('moves a chord to the next line and renders it there', () => {
     const onChordLineChange = vi.fn();
     setup({ onChordOffsetChange: vi.fn(), onChordLineChange });
 
@@ -148,7 +148,7 @@ describe('LyricsChordView', () => {
     expect(onChordLineChange).toHaveBeenCalledWith(0, 1);
   });
 
-  it('mueve un acorde a la línea anterior', () => {
+  it('moves a chord to the previous line', () => {
     const onChordLineChange = vi.fn();
     setup({
       chordLines: { '0': 1 },
@@ -163,7 +163,7 @@ describe('LyricsChordView', () => {
     expect(onChordLineChange).toHaveBeenCalledWith(0, 0);
   });
 
-  it('coloca visualmente el acorde en la línea indicada', () => {
+  it('visually places the chord on the indicated line', () => {
     setup({ chordLines: { '0': 1 } });
 
     const firstLine = screen.getByText('Primera línea').closest('li');
@@ -174,7 +174,7 @@ describe('LyricsChordView', () => {
     expect(within(secondLine!).getByRole('button', { name: 'C en 00:00' })).toBeInTheDocument();
   });
 
-  it('restablece la línea y la posición horizontal con Home', () => {
+  it('resets the line and horizontal position with Home', () => {
     const onChordOffsetChange = vi.fn();
     const onChordLineChange = vi.fn();
     setup({
@@ -191,7 +191,7 @@ describe('LyricsChordView', () => {
     expect(onChordOffsetChange).toHaveBeenCalledWith(0, 0);
   });
 
-  it('permite restablecer todas las posiciones', () => {
+  it('allows resetting all positions', () => {
     const onResetChordOffsets = vi.fn();
     setup({ onChordOffsetChange: vi.fn(), onResetChordOffsets });
 
@@ -200,7 +200,7 @@ describe('LyricsChordView', () => {
     expect(onResetChordOffsets).toHaveBeenCalledTimes(1);
   });
 
-  it('no resalta nada sin reloj de reproducción', () => {
+  it('highlights nothing without a playback clock', () => {
     render(
       <LyricsChordView
         lyrics={'Primera línea\nSegunda línea'}
@@ -219,7 +219,7 @@ describe('LyricsChordView', () => {
     expect(screen.getByText('Segunda línea').closest('li')).not.toHaveAttribute('aria-current');
   });
 
-  it('muestra el estado vacío y permite añadir letra', () => {
+  it('shows the empty state and allows adding lyrics', () => {
     const { onEdit } = setup({ lyrics: '' });
 
     expect(screen.getByText('Todavía no hay letra')).toBeInTheDocument();
@@ -227,14 +227,14 @@ describe('LyricsChordView', () => {
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
 
-  it('renderiza HTML literal como texto', () => {
+  it('renders literal HTML as text', () => {
     const { view } = setup({ lyrics: '<b>Hola</b>\nSegunda', chords: [] });
 
     expect(screen.getByText('<b>Hola</b>')).toBeInTheDocument();
     expect(view.container.querySelector('b')).toBeNull();
   });
 
-  it('muestra la letra sin acordes cuando no hay segmentos', () => {
+  it('shows lyrics without chords when there are no segments', () => {
     setup({ lyrics: 'Primera línea\nSegunda línea', chords: [] });
 
     expect(screen.getByText('Primera línea')).toBeInTheDocument();
@@ -242,7 +242,7 @@ describe('LyricsChordView', () => {
     expect(screen.getByText(/la letra se muestra sin capa de acordes/)).toBeInTheDocument();
   });
 
-  it('omite intro e interludio detectados y no les asigna acordes', () => {
+  it('skips detected intro and interlude and assigns no chords to them', () => {
     const labels = ['C', 'Dm', 'C', 'G', 'Am', 'F', 'C', 'C', 'C', 'C', 'C', 'G', 'Am', 'F'];
     const chords = labels.map((label, index) => ({
       start: index * 4,
@@ -277,8 +277,8 @@ describe('LyricsChordView', () => {
   });
 });
 
-describe('ChordGrid con vista Letra', () => {
-  it('activa la vista Letra y mantiene Parrilla deshabilitada sin pulsos', () => {
+describe('ChordGrid with the lyrics view', () => {
+  it('enables the Lyrics view and keeps Grid disabled without beats', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);
@@ -307,7 +307,7 @@ describe('ChordGrid con vista Letra', () => {
     expect(screen.getByRole('button', { name: 'C en 00:00' })).toBeInTheDocument();
   });
 
-  it('notifica el cambio de vista al pulsar Letra', () => {
+  it('notifies the view change when clicking Lyrics', () => {
     const adapter = new FakePlayerAdapter(0, false);
     const clock = new PlaybackClock(adapter);
     clock.setSegments(segments);

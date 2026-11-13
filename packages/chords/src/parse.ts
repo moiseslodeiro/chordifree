@@ -169,8 +169,8 @@ function parseWithRoot(trimmed: string, match: RegExpExecArray): Chord | null {
 }
 
 /**
- * Interpreta una etiqueta de acorde en notación inglesa o española.
- * Devuelve `null` para silencio (`N`, `-`, cadena vacía) o para entradas no reconocidas.
+ * Parses a chord label in English or Spanish notation.
+ * Returns `null` for silence (`N`, `-`, empty string) or for unrecognized entries.
  */
 export function parseChord(label: string): Chord | null {
   const trimmed = label.trim();
@@ -180,7 +180,7 @@ export function parseChord(label: string): Chord | null {
   const first = trimmed[0] ?? '';
   const candidates: RegExpExecArray[] = [];
 
-  // Candidatos en español primero (sol, do, re, mi, fa, la, si) y luego la letra inglesa.
+  // Spanish candidates first (sol, do, re, mi, fa, la, si) and then the English letter.
   const spanishMatch = ROOT_PATTERN.exec(trimmed);
   if (spanishMatch) candidates.push(spanishMatch);
 
@@ -203,7 +203,7 @@ export type ParseChordInputResult =
   | { ok: false; error: string };
 
 /**
- * Variante para formularios: distingue silencio válido de una etiqueta inválida.
+ * Variant for forms: distinguishes valid silence from an invalid label.
  */
 export function parseChordInput(input: string): ParseChordInputResult {
   const trimmed = input.trim();
@@ -217,7 +217,7 @@ export function parseChordInput(input: string): ParseChordInputResult {
   return { ok: true, chord };
 }
 
-/** Interpreta solo la parte de fundamental de una etiqueta, sin cualidad. */
+/** Parses only the root part of a label, without quality. */
 export function parsePitchClass(input: string): PitchClass | null {
   const match = BASS_PATTERN.exec(input.trim());
   if (!match) return null;

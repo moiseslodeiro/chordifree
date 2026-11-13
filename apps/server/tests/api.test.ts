@@ -41,7 +41,7 @@ async function buildApp(overrides: Parameters<typeof createApp>[0] = {}) {
 }
 
 describe('POST /api/analyses', () => {
-  it('crea un análisis de YouTube y devuelve el resultado normalizado', async () => {
+  it('creates a YouTube analysis and returns the normalized result', async () => {
     const app = await buildApp();
 
     const created = await request(app)
@@ -67,7 +67,7 @@ describe('POST /api/analyses', () => {
     expect(body.progress).toBe(100);
   });
 
-  it('reutiliza el resultado del mismo video dentro del TTL', async () => {
+  it('reuses the result for the same video within the TTL', async () => {
     let probes = 0;
     const app = await buildApp({
       tools: makeTools({
@@ -92,7 +92,7 @@ describe('POST /api/analyses', () => {
     expect(probes).toBe(1);
   });
 
-  it('no reutiliza un resultado cacheado de otra versión del analizador', async () => {
+  it('does not reuse a cached result from another analyzer version', async () => {
     let probes = 0;
     const app = await buildApp({
       tools: makeTools({
@@ -121,7 +121,7 @@ describe('POST /api/analyses', () => {
     expect(probes).toBe(2);
   });
 
-  it('rechaza hosts no permitidos sin llamar a las herramientas', async () => {
+  it('rejects disallowed hosts without calling the tools', async () => {
     let probes = 0;
     const app = await buildApp({
       tools: makeTools({
@@ -141,7 +141,7 @@ describe('POST /api/analyses', () => {
     expect(probes).toBe(0);
   });
 
-  it('rechaza enlaces sin identificador', async () => {
+  it('rejects links without an identifier', async () => {
     const app = await buildApp();
     const response = await request(app)
       .post('/api/analyses')
@@ -150,7 +150,7 @@ describe('POST /api/analyses', () => {
     expect(response.body.error.code).toBe('MISSING_VIDEO_ID');
   });
 
-  it('rechaza cuerpos inválidos o con campos extra', async () => {
+  it('rejects invalid bodies or bodies with extra fields', async () => {
     const app = await buildApp();
     const empty = await request(app).post('/api/analyses').send({});
     expect(empty.status).toBe(400);
@@ -163,7 +163,7 @@ describe('POST /api/analyses', () => {
     expect(extra.body.error.code).toBe('INVALID_REQUEST');
   });
 
-  it('devuelve la letra encontrada por el proveedor', async () => {
+  it('returns the lyrics found by the provider', async () => {
     const app = await buildApp({
       lyrics: {
         find: async () => ({
@@ -186,7 +186,7 @@ describe('POST /api/analyses', () => {
     });
   });
 
-  it('valida la petición de letras y devuelve 404 si no hay coincidencia', async () => {
+  it('validates the lyrics request and returns 404 when there is no match', async () => {
     const app = await buildApp({
       lyrics: {
         find: async () => {
@@ -204,7 +204,7 @@ describe('POST /api/analyses', () => {
     expect(missing.body.error.code).toBe('LYRICS_NOT_FOUND');
   });
 
-  it('rechaza escrituras cross-origin sin ejecutar el análisis', async () => {
+  it('rejects cross-origin writes without running the analysis', async () => {
     let probes = 0;
     const app = await buildApp({
       tools: makeTools({
@@ -225,7 +225,7 @@ describe('POST /api/analyses', () => {
     expect(probes).toBe(0);
   });
 
-  it('acepta escrituras desde el origen configurado', async () => {
+  it('accepts writes from the configured origin', async () => {
     const app = await buildApp();
     const response = await request(app)
       .post('/api/analyses')
@@ -234,7 +234,7 @@ describe('POST /api/analyses', () => {
     expect(response.status).toBe(202);
   });
 
-  it('rechaza tipos de contenido no soportados', async () => {
+  it('rejects unsupported content types', async () => {
     const app = await buildApp();
     const response = await request(app)
       .post('/api/analyses')
@@ -244,7 +244,7 @@ describe('POST /api/analyses', () => {
     expect(response.body.error.code).toBe('UNSUPPORTED_MEDIA');
   });
 
-  it('acepta una subida de audio válida', async () => {
+  it('accepts a valid audio upload', async () => {
     const app = await buildApp();
     const response = await request(app)
       .post('/api/analyses')
@@ -255,7 +255,7 @@ describe('POST /api/analyses', () => {
     expect(body.result.source).toEqual({ type: 'upload', filename: 'cancion.wav' });
   });
 
-  it('rechaza un archivo que no es audio', async () => {
+  it('rejects a file that is not audio', async () => {
     const app = await buildApp();
     const response = await request(app)
       .post('/api/analyses')
@@ -268,7 +268,7 @@ describe('POST /api/analyses', () => {
     expect(response.body.error.code).toBe('INVALID_AUDIO');
   });
 
-  it('rechaza extensiones no admitidas', async () => {
+  it('rejects unsupported extensions', async () => {
     const app = await buildApp();
     const response = await request(app)
       .post('/api/analyses')
@@ -277,7 +277,7 @@ describe('POST /api/analyses', () => {
     expect(response.body.error.code).toBe('INVALID_AUDIO');
   });
 
-  it('rechaza archivos que superan el tamaño máximo', async () => {
+  it('rejects files that exceed the maximum size', async () => {
     const app = await buildApp({ config: makeConfig({ maxUploadBytes: 16, tempDir: await makeTempDir() }) });
     const response = await request(app)
       .post('/api/analyses')
@@ -286,7 +286,7 @@ describe('POST /api/analyses', () => {
     expect(response.body.error.code).toBe('FILE_TOO_LARGE');
   });
 
-  it('rechaza videos demasiado largos antes de descargar', async () => {
+  it('rejects videos that are too long before downloading', async () => {
     let downloads = 0;
     const app = await buildApp({
       tools: makeTools({
@@ -306,7 +306,7 @@ describe('POST /api/analyses', () => {
     expect(downloads).toBe(0);
   });
 
-  it('marca error cuando el video no está disponible', async () => {
+  it('marks an error when the video is unavailable', async () => {
     const app = await buildApp({
       tools: makeTools({
         probeYoutube: async () => {
@@ -321,7 +321,7 @@ describe('POST /api/analyses', () => {
     expect(body.error).toEqual({ code: 'VIDEO_UNAVAILABLE', message: 'Video privado' });
   });
 
-  it('marca error cuando el analizador falla', async () => {
+  it('marks an error when the analyzer fails', async () => {
     const app = await buildApp({
       analyzer: makeAnalyzer({
         analyze: async () => {
@@ -338,14 +338,14 @@ describe('POST /api/analyses', () => {
 });
 
 describe('GET /api/analyses/:id', () => {
-  it('devuelve 404 para un análisis desconocido', async () => {
+  it('returns 404 for an unknown analysis', async () => {
     const app = await buildApp();
     const response = await request(app).get('/api/analyses/no-existe');
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('NOT_FOUND');
   });
 
-  it('devuelve el estado queued inmediatamente', async () => {
+  it('returns the queued status immediately', async () => {
     const app = await buildApp({
       queue: new JobQueue(0),
       tools: makeTools(),
@@ -361,7 +361,7 @@ describe('GET /api/analyses/:id', () => {
 });
 
 describe('rate limiting', () => {
-  it('devuelve 429 con Retry-After al exceder el límite', async () => {
+  it('returns 429 with Retry-After when the limit is exceeded', async () => {
     const app = await buildApp({
       config: makeConfig({ rateLimitMax: 1, rateLimitWindowMs: 60_000, tempDir: await makeTempDir() }),
     });
@@ -380,7 +380,7 @@ describe('rate limiting', () => {
 });
 
 describe('GET /api/health', () => {
-  it('informa del estado del analizador', async () => {
+  it('reports the analyzer status', async () => {
     const app = await buildApp();
     const response = await request(app).get('/api/health');
     expect(response.status).toBe(200);
@@ -391,7 +391,7 @@ describe('GET /api/health', () => {
     });
   });
 
-  it('sigue respondiendo si el analizador está caído', async () => {
+  it('keeps responding if the analyzer is down', async () => {
     const app = await buildApp({ analyzer: makeAnalyzer({ health: async () => ({ ok: false }) }) });
     const response = await request(app).get('/api/health');
     expect(response.status).toBe(200);
@@ -399,8 +399,8 @@ describe('GET /api/health', () => {
   });
 });
 
-describe('normalización de la respuesta del analizador', () => {
-  it('convierte etiquetas desconocidas en silencio y cubre la duración', async () => {
+describe('analyzer response normalization', () => {
+  it('converts unknown labels into silence and covers the duration', async () => {
     const app = await buildApp({
       analyzer: makeAnalyzer({
         analyze: async () => ({
@@ -421,7 +421,7 @@ describe('normalización de la respuesta del analizador', () => {
     expect(body.result.segments.at(-1).end).toBe(100);
   });
 
-  it('descarta pulsos inválidos y normaliza el compás', async () => {
+  it('discards invalid beats and normalizes the time signature', async () => {
     const app = await buildApp({
       analyzer: makeAnalyzer({
         analyze: async () => ({
@@ -440,7 +440,7 @@ describe('normalización de la respuesta del analizador', () => {
     expect(body.result.beatsPerBar).toBe(4);
   });
 
-  it('devuelve pulsos vacíos si el analizador no los envía', async () => {
+  it('returns empty beats when the analyzer does not send them', async () => {
     const app = await buildApp({
       analyzer: makeAnalyzer({
         analyze: async () => ({
@@ -461,7 +461,7 @@ describe('normalización de la respuesta del analizador', () => {
 
 
 describe('DELETE /api/analyses/:id', () => {
-  it('elimina el trabajo y deja de estar disponible', async () => {
+  it('deletes the job and makes it unavailable', async () => {
     const app = await buildApp();
     const created = await request(app)
       .post('/api/analyses')

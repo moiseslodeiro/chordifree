@@ -13,8 +13,8 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * Repara las invariantes de una línea de tiempo: orden, no solapamiento,
- * duración mínima, fusión de acordes iguales y cobertura completa del audio.
+ * Repairs the invariants of a timeline: order, no overlap,
+ * minimum duration, merging of equal chords and full coverage of the audio.
  */
 export function normalizeSegments(
   input: ChordSegment[],
@@ -121,7 +121,7 @@ export function normalizeSegments(
 }
 
 /**
- * Índice del segmento activo en `time`, o -1 si el tiempo cae fuera de la línea.
+ * Index of the active segment at `time`, or -1 if the time falls outside the timeline.
  */
 export function findActiveSegmentIndex(segments: ChordSegment[], time: number): number {
   if (segments.length === 0 || !Number.isFinite(time)) return -1;

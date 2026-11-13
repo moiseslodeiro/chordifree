@@ -82,8 +82,8 @@ function passthrough(_value: unknown): _value is unknown {
   return true;
 }
 
-describe('envelope versionado', () => {
-  it('escribe y lee datos válidos', () => {
+describe('versioned envelope', () => {
+  it('writes and reads valid data', () => {
     const storage = createMemoryStorage();
     writeEnvelope(storage, 'clave', { hola: 'mundo' });
     const raw = JSON.parse(storage.getItem('clave') ?? '{}') as { schemaVersion: number };
@@ -91,12 +91,12 @@ describe('envelope versionado', () => {
     expect(readEnvelope(storage, 'clave', passthrough)).toEqual({ hola: 'mundo' });
   });
 
-  it('devuelve null cuando no hay datos', () => {
+  it('returns null when there is no data', () => {
     const storage = createMemoryStorage();
     expect(readEnvelope(storage, 'nada', passthrough)).toBeNull();
   });
 
-  it('pone en cuarentena el JSON corrupto y no rompe la lectura', () => {
+  it('quarantines corrupt JSON and does not break reading', () => {
     const storage = createMemoryStorage();
     storage.setItem('roto', '{no es json');
     expect(readEnvelope(storage, 'roto', passthrough)).toBeNull();
@@ -104,14 +104,14 @@ describe('envelope versionado', () => {
     expect(listKeys(storage, 'chordifree:v1:corrupt:')).toHaveLength(1);
   });
 
-  it('descarta versiones no compatibles con cuarentena', () => {
+  it('discards unsupported versions into quarantine', () => {
     const storage = createMemoryStorage();
     storage.setItem('futuro', JSON.stringify({ schemaVersion: 99, data: { songs: [] } }));
     expect(readEnvelope(storage, 'futuro', passthrough)).toBeNull();
     expect(listKeys(storage, 'chordifree:v1:corrupt:')).toHaveLength(1);
   });
 
-  it('migra datos sin sobre de la versión 0', () => {
+  it('migrates version 0 data without an envelope', () => {
     const storage = createMemoryStorage();
     const summary = {
       id: 'a',
@@ -125,18 +125,18 @@ describe('envelope versionado', () => {
     expect(library.list()).toEqual([summary]);
   });
 
-  it('convierte el error de cuota en StorageQuotaError', () => {
+  it('turns the quota error into StorageQuotaError', () => {
     const storage = new FlakyStorage('clave');
     expect(() => writeEnvelope(storage, 'clave', { a: 1 })).toThrow(StorageQuotaError);
   });
 });
 
-describe('preferencias', () => {
-  it('usa los valores por defecto sin datos', () => {
+describe('preferences', () => {
+  it('uses the defaults when there is no data', () => {
     expect(loadPreferences(createMemoryStorage())).toEqual(DEFAULT_PREFERENCES);
   });
 
-  it('persiste y restaura notación, alteraciones y trasposición', () => {
+  it('persists and restores notation, accidentals and transposition', () => {
     const storage = createMemoryStorage();
     savePreferences(storage, {
       ...DEFAULT_PREFERENCES,
@@ -152,7 +152,7 @@ describe('preferencias', () => {
     });
   });
 
-  it('persiste y restaura simplificación, reducción, instrumento, vista y tema', () => {
+  it('persists and restores simplification, reduction, instrument, view and theme', () => {
     const storage = createMemoryStorage();
     savePreferences(storage, {
       ...DEFAULT_PREFERENCES,
@@ -174,7 +174,7 @@ describe('preferencias', () => {
     expect(loaded.transpose).toBe(0);
   });
 
-  it('desactiva la reducción por defecto en preferencias antiguas', () => {
+  it('disables reduction by default in old preferences', () => {
     const storage = createMemoryStorage();
     writeEnvelope(storage, KEYS.preferences, {
       notation: 'spanish',
@@ -188,13 +188,13 @@ describe('preferencias', () => {
     expect(loaded.simplifyChords).toBe(true);
   });
 
-  it('persiste y restaura la vista Letra', () => {
+  it('persists and restores the Lyrics view', () => {
     const storage = createMemoryStorage();
     savePreferences(storage, { ...DEFAULT_PREFERENCES, gridView: 'lyrics' });
     expect(loadPreferences(storage).gridView).toBe('lyrics');
   });
 
-  it('tolera preferencias antiguas sin los campos nuevos', () => {
+  it('tolerates old preferences without the new fields', () => {
     const storage = createMemoryStorage();
     writeEnvelope(storage, KEYS.preferences, {
       notation: 'spanish',
@@ -209,7 +209,7 @@ describe('preferencias', () => {
     });
   });
 
-  it('tolera preferencias parciales y corruptas', () => {
+  it('tolerates partial and corrupt preferences', () => {
     const partial = createMemoryStorage();
     writeEnvelope(partial, KEYS.preferences, { instrument: 'ukelele' });
     expect(loadPreferences(partial)).toEqual({
@@ -223,7 +223,7 @@ describe('preferencias', () => {
     expect(listKeys(corrupt, 'chordifree:v1:corrupt:')).toHaveLength(1);
   });
 
-  it('migra las claves de la marca anterior sin pisar las nuevas', () => {
+  it('migrates keys from the previous brand without overwriting the new ones', () => {
     const storage = createMemoryStorage();
     storage.setItem(`${LEGACY_PREFIX}:preferences`, '{"schemaVersion":1,"data":{}}');
     storage.setItem(`${LEGACY_PREFIX}:song:abc`, '{"schemaVersion":1,"data":{}}');
@@ -237,7 +237,7 @@ describe('preferencias', () => {
     expect(storage.getItem(KEYS.song('abc'))).toContain('nuevo');
   });
 
-  it('recorta la trasposición fuera de rango', () => {
+  it('clamps out-of-range transposition', () => {
     const storage = createMemoryStorage();
     savePreferences(storage, {
       ...DEFAULT_PREFERENCES,
@@ -248,7 +248,7 @@ describe('preferencias', () => {
 });
 
 describe('Library', () => {
-  it('guarda, lista por última modificación, abre y elimina', () => {
+  it('saves, lists by last modified, opens and deletes', () => {
     const storage = createMemoryStorage();
     const library = new Library(storage);
     library.save(song('a', 'Primera'));
@@ -265,7 +265,7 @@ describe('Library', () => {
     expect(library.get('b')).toBeNull();
   });
 
-  it('guarda, recupera y elimina la letra junto con la canción', () => {
+  it('saves, retrieves and deletes lyrics along with the song', () => {
     const storage = createMemoryStorage();
     const library = new Library(storage);
     library.save({ ...song('a', 'Primera'), lyrics: 'Primera línea\nSegunda línea' });
@@ -279,14 +279,14 @@ describe('Library', () => {
     expect(library.get('a')).toBeNull();
   });
 
-  it('carga canciones antiguas sin letra', () => {
+  it('loads old songs without lyrics', () => {
     const storage = createMemoryStorage();
     const library = new Library(storage);
     library.save(song('a', 'Sin letra'));
     expect(library.get('a')?.lyrics).toBeUndefined();
   });
 
-  it('actualiza updatedAt al guardar y reordena', async () => {
+  it('updates updatedAt on save and reorders', async () => {
     const storage = createMemoryStorage();
     const library = new Library(storage);
     library.save(song('a', 'Primera'));
@@ -299,14 +299,14 @@ describe('Library', () => {
     expect(library.list()[0]?.title).toBe('Primera editada');
   });
 
-  it('reintenta tras purgar la caché cuando la cuota falla', () => {
+  it('retries after purging the cache when quota fails', () => {
     const storage = new FlakyStorage(':song:');
     const library = new Library(storage);
     expect(() => library.save(song())).not.toThrow();
     expect(library.get('song-1')?.title).toBe('Demo');
   });
 
-  it('propaga StorageQuotaError si la cuota sigue llena', () => {
+  it('propagates StorageQuotaError if quota is still full', () => {
     const storage = createMemoryStorage();
     storage.setItem = () => {
       throw quotaError();
@@ -317,7 +317,7 @@ describe('Library', () => {
 });
 
 describe('AnalysisCache', () => {
-  it('guarda y recupera por origen y versión', () => {
+  it('saves and retrieves by source and version', () => {
     const storage = createMemoryStorage();
     const cache = new AnalysisCache(storage, () => 1000);
     cache.set('yt:dQw4w9WgXcQ', 'essentia-1.0', result());
@@ -327,7 +327,7 @@ describe('AnalysisCache', () => {
     expect(cache.get('yt:otro', 'essentia-1.0')).toBeNull();
   });
 
-  it('purga primero las entradas menos usadas', () => {
+  it('purges the least recently used entries first', () => {
     const storage = createMemoryStorage();
     let now = 1000;
     const cache = new AnalysisCache(storage, () => now);
@@ -344,15 +344,15 @@ describe('AnalysisCache', () => {
     expect(cache.get('yt:c', 'v1')).not.toBeNull();
   });
 
-  it('cuenta solo las claves de caché al purgar', () => {
+  it('counts only cache keys when purging', () => {
     const storage = createMemoryStorage();
     storage.setItem('otra:clave', 'x');
     expect(purgeAnalysisCache(storage, 5)).toBe(0);
   });
 });
 
-describe('cuarentena', () => {
-  it('arranca con biblioteca vacía si los datos son ilegibles', () => {
+describe('quarantine', () => {
+  it('starts with an empty library if the data is unreadable', () => {
     const storage = createMemoryStorage();
     storage.setItem(KEYS.library, 'basura');
     const library = new Library(storage);
@@ -360,7 +360,7 @@ describe('cuarentena', () => {
     expect(listKeys(storage, 'chordifree:v1:corrupt:')).toHaveLength(1);
   });
 
-  it('no propaga errores al leer un almacén roto', () => {
+  it('does not propagate errors when reading a broken store', () => {
     const storage = createMemoryStorage();
     storage.getItem = () => {
       throw new Error('bloqueado');
@@ -371,8 +371,8 @@ describe('cuarentena', () => {
   });
 });
 
-describe('integración con localStorage', () => {
-  it('persiste una canción entre instancias', () => {
+describe('integration with localStorage', () => {
+  it('persists a song across instances', () => {
     const storage = window.localStorage;
     const first = new Library(storage);
     first.save(song('persistente', 'Persistente'));

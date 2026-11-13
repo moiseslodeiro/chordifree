@@ -27,23 +27,23 @@ export type Quality =
   | '6/9';
 
 export interface Chord {
-  /** Fundamental como clase de altura, 0 = C. */
+  /** Root as a pitch class, 0 = C. */
   root: PitchClass;
   quality: Quality;
-  /** Bajo invertido, solo presente cuando difiere de la fundamental. */
+  /** Inverted bass, only present when it differs from the root. */
   bass?: PitchClass;
-  /** Etiqueta original, únicamente para depuración. */
+  /** Original label, for debugging only. */
   raw?: string;
 }
 
 export interface ChordSegment {
-  /** Inicio en segundos. */
+  /** Start in seconds. */
   start: number;
-  /** Fin en segundos. */
+  /** End in seconds. */
   end: number;
-  /** null representa silencio o ausencia de acorde detectable. */
+  /** null represents silence or no detectable chord. */
   chord: Chord | null;
-  /** Confianza opcional entre 0 y 1. */
+  /** Optional confidence between 0 and 1. */
   confidence?: number;
 }
 

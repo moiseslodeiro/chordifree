@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { UpdateBanner } from '../src/components/UpdateBanner';
 
 describe('UpdateBanner', () => {
-  it('muestra la versión y permite descargar o descartar', () => {
+  it('shows the version and allows downloading or dismissing', () => {
     const onDownload = vi.fn();
     const onDismiss = vi.fn();
     render(<UpdateBanner version="0.2.0" onDownload={onDownload} onDismiss={onDismiss} />);
