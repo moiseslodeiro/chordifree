@@ -6,7 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=20"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "scripts": {
     "dev": "concurrently -n web,server -c cyan,magenta \"pnpm --filter @chordifree/web dev\" \"pnpm --filter @chordifree/server dev\"",
