@@ -1,18 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import {
-  formatChord,
   formatTime,
   type Accidental,
   type ChordSegment,
   type Notation,
 } from '@chordifree/chords';
-import {
-  alignLyrics,
-  buildChordChanges,
-  type AlignedChord,
-} from '../lyrics/align';
+import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
 import { useT } from '../i18n';
-import { detectInstrumentalSpans, harmonyBars } from '../lyrics/sections';
 import type { PlaybackClock } from '../sync/clock';
 import { usePlaybackTime } from '../sync/hooks';
 
@@ -35,12 +29,6 @@ interface LyricsChordViewProps {
   onEdit: () => void;
 }
 
-function chordMargin(lineChords: AlignedChord[]): string | undefined {
-  const first = lineChords[0];
-  if (!first || first.offset <= 0) return undefined;
-  return `${Math.min(22, first.offset * 22)}%`;
-}
-
 export function LyricsChordView({
   lyrics,
   segments,
@@ -60,58 +48,31 @@ export function LyricsChordView({
   onEdit,
 }: LyricsChordViewProps) {
   const t = useT();
-  const changes = useMemo(
+  const lines = useMemo(
     () =>
-      buildChordChanges(segments, (chord) => formatChord(chord, notation, accidental)),
-    [segments, notation, accidental],
-  );
-  const instrumental = useMemo(
-    () =>
-      detectInstrumentalSpans(
-        harmonyBars(segments, beats, beatsPerBar, duration),
+      buildLyricLines({
+        lyrics,
+        segments,
+        beats,
+        beatsPerBar,
         duration,
-      ),
-    [segments, beats, beatsPerBar, duration],
+        notation,
+        accidental,
+        vocalRegions,
+        chordLines,
+      }),
+    [
+      lyrics,
+      segments,
+      beats,
+      beatsPerBar,
+      duration,
+      notation,
+      accidental,
+      vocalRegions,
+      chordLines,
+    ],
   );
-  const lines = useMemo(() => {
-    const aligned = alignLyrics(lyrics, changes, duration, { instrumental, vocalRegions });
-    if (!chordLines || Object.keys(chordLines).length === 0) return aligned;
-
-    const copy = aligned.map((line) => ({ ...line, chords: [...line.chords] }));
-    const byIndex = new Map(copy.map((line) => [line.index, line] as const));
-    const overrides = new Map<string, number>();
-    for (const [key, target] of Object.entries(chordLines)) {
-      const line = byIndex.get(target);
-      if (line && line.text.trim().length > 0) overrides.set(key, target);
-    }
-    if (overrides.size === 0) return aligned;
-
-    const moved = new Map<number, AlignedChord[]>();
-    for (const line of copy) {
-      line.chords = line.chords.filter((chord) => {
-        const target = overrides.get(String(chord.segmentIndex));
-        if (target === undefined || target === line.index) return true;
-        const list = moved.get(target) ?? [];
-        list.push(chord);
-        moved.set(target, list);
-        return false;
-      });
-    }
-
-    for (const [target, chords] of moved) {
-      const line = byIndex.get(target);
-      if (!line) continue;
-      const start = line.spans[0]?.start ?? line.start;
-      const end = line.spans[line.spans.length - 1]?.end ?? line.end;
-      for (const chord of chords) {
-        const offset =
-          end > start ? Math.max(0, Math.min(1, (chord.time - start) / (end - start))) : 0;
-        line.chords.push({ ...chord, offset });
-      }
-      line.chords.sort((a, b) => a.time - b.time || a.segmentIndex - b.segmentIndex);
-    }
-    return copy;
-  }, [lyrics, changes, duration, instrumental, vocalRegions, chordLines]);
 
   const activeTime = usePlaybackTime(clock);
   const activeLine = useMemo(() => {
@@ -287,7 +248,7 @@ export function LyricsChordView({
                   className="lyrics-chords"
                   role="group"
                   aria-label={t('lyrics.chordsOfLine', { line: line.index + 1 })}
-                  style={{ paddingLeft: chordMargin(line.chords) }}
+                  style={{ paddingLeft: chordRowMargin(line.chords) }}
                 >
                   {line.chords.map((chord) => {
                     const chordIsActive = chord === activeChord;

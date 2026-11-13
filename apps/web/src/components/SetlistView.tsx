@@ -99,9 +99,6 @@ export function SetlistView({
           <button type="button" className="btn" onClick={() => setSharing((open) => !open)}>
             {t('setlists.share')}
           </button>
-          <button type="button" className="btn" onClick={() => window.print()}>
-            {t('setlists.print')}
-          </button>
           <button type="button" className="btn" onClick={rename}>
             {t('setlists.rename')}
           </button>
@@ -247,28 +244,6 @@ export function SetlistView({
           ))}
         </ol>
       )}
-
-      <section className="print-setlist" aria-hidden="true">
-        <header>
-          <p className="print-brand">chordifree</p>
-          <h1>{setlist.name}</h1>
-          <p className="print-meta">
-            {t('setlists.songCount', {
-              count: ordered.length,
-              label: ordered.length === 1 ? t('common.song') : t('common.songs'),
-            })}
-          </p>
-        </header>
-        <ol>
-          {ordered.map((song, index) => (
-            <li key={song.id}>
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              <span>{song.title}</span>
-              <span>{formatTime(song.duration)}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
     </section>
   );
 }
