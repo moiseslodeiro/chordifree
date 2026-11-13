@@ -28,6 +28,39 @@ export interface CreateAppOptions extends Partial<AppDependencies> {
   config?: AppConfig;
 }
 
+/**
+ * Rejects browser writes from another origin. CORS only controls whether the
+ * response can be read; a cross-site form or multipart POST is still executed
+ * unless the server refuses it explicitly.
+ */
+function sameOriginWriteGuard(config: AppConfig) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+      next();
+      return;
+    }
+
+    const origin = req.get('origin');
+    const fetchSite = req.get('sec-fetch-site');
+    if (!origin) {
+      if (fetchSite === 'cross-site' || fetchSite === 'same-site') {
+        res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
+        return;
+      }
+      next();
+      return;
+    }
+
+    const host = req.get('host');
+    const requestOrigin = host ? `${req.protocol}://${host}` : null;
+    if (origin !== config.corsOrigin && origin !== requestOrigin) {
+      res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
+      return;
+    }
+    next();
+  };
+}
+
 export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
   const deps: AppDependencies = {
@@ -68,6 +101,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   );
   app.use(cors({ origin: config.corsOrigin }));
   app.use(express.json({ limit: '1mb' }));
+  app.use('/api', sameOriginWriteGuard(config));
 
   app.get('/api/health', async (_req, res) => {
     const health = await deps.analyzer.health();

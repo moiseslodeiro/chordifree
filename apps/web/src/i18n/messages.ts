@@ -135,6 +135,21 @@ const en = {
   'library.noResults': 'Try another title or change the source filter.',
   'library.deleteConfirm':
     'Delete “{title}” from the library? This action cannot be undone.',
+  'library.foldersAria': 'Filter by folder',
+  'library.allFolders': 'All folders',
+  'library.unfiled': 'Unfiled',
+  'library.newFolder': 'New folder',
+  'library.renameFolder': 'Rename folder',
+  'library.deleteFolder': 'Delete folder',
+  'library.folderPrompt': 'Folder name',
+  'library.folderRenamePrompt': 'New name for “{name}”',
+  'library.folderDeleteConfirm':
+    'Delete the folder “{name}”? Its songs will be moved to Unfiled.',
+  'library.folderCreated': 'Folder created.',
+  'library.folderRenamed': 'Folder renamed.',
+  'library.folderDeleted': 'Folder deleted. Its songs are now unfiled.',
+  'library.moveToFolder': 'Move “{title}” to a folder',
+  'library.noFolder': 'Unfiled',
   'library.savedAt': 'Saved {date}',
 
   'song.back': '← Home',
@@ -645,6 +660,21 @@ const es: Record<MessageKey, string> = {
   'library.noResults': 'Prueba con otro título o cambia el filtro de origen.',
   'library.deleteConfirm':
     '¿Eliminar «{title}» de la biblioteca? Esta acción no se puede deshacer.',
+  'library.foldersAria': 'Filtrar por carpeta',
+  'library.allFolders': 'Todas las carpetas',
+  'library.unfiled': 'Sin carpeta',
+  'library.newFolder': 'Nueva carpeta',
+  'library.renameFolder': 'Renombrar carpeta',
+  'library.deleteFolder': 'Eliminar carpeta',
+  'library.folderPrompt': 'Nombre de la carpeta',
+  'library.folderRenamePrompt': 'Nuevo nombre para «{name}»',
+  'library.folderDeleteConfirm':
+    '¿Eliminar la carpeta «{name}»? Sus canciones pasarán a Sin carpeta.',
+  'library.folderCreated': 'Carpeta creada.',
+  'library.folderRenamed': 'Carpeta renombrada.',
+  'library.folderDeleted': 'Carpeta eliminada. Sus canciones están ahora sin carpeta.',
+  'library.moveToFolder': 'Mover «{title}» a una carpeta',
+  'library.noFolder': 'Sin carpeta',
   'library.savedAt': 'Guardada {date}',
 
   'song.back': '← Inicio',

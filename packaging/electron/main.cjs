@@ -236,7 +236,13 @@ function createWindow(target) {
     return { action: 'deny' };
   });
   window.webContents.on('will-navigate', (event, url) => {
-    if (url.startsWith(origin)) return;
+    let sameOrigin = false;
+    try {
+      sameOrigin = new URL(url).origin === origin;
+    } catch {
+      // Invalid URLs are treated as external and blocked below.
+    }
+    if (sameOrigin) return;
     event.preventDefault();
     openExternal(url);
   });

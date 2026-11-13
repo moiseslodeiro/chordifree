@@ -4,10 +4,13 @@ import {
   BackupError,
   backupFilename,
   createBackup,
+  createBackupSnapshot,
   parseBackup,
+  parseBackupSnapshot,
   serializeBackup,
+  serializeBackupSnapshot,
 } from '../src/storage/backup';
-import type { Song } from '../src/types';
+import type { Folder, Song } from '../src/types';
 
 function song(id = 'song-1', videoId = 'dQw4w9WgXcQ', title = 'Demo'): Song {
   return {
@@ -82,6 +85,22 @@ describe('copia de seguridad', () => {
         }),
       ),
     ).toThrow('La canción 1');
+  });
+
+  it('incluye y restaura carpetas en un snapshot', () => {
+    const folder: Folder = {
+      id: 'folder-1',
+      name: 'Favoritas',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    const withFolder = { ...song('a', 'video-a', 'Con carpeta'), folderId: folder.id };
+    const backup = createBackupSnapshot([withFolder], [folder], now);
+    expect(backup.folders).toEqual([folder]);
+
+    const restored = parseBackupSnapshot(serializeBackupSnapshot([withFolder], [folder], now));
+    expect(restored.folders).toEqual([folder]);
+    expect(restored.songs[0]?.folderId).toBe(folder.id);
   });
 
   it('genera un nombre de archivo con la fecha', () => {

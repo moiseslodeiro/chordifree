@@ -26,6 +26,15 @@ describe('share tokens', () => {
     expect(decoded.source).toEqual({ type: 'upload', filename: 'shared audio' });
   });
 
+  it('rejects a shared song whose payload expands beyond the limit', async () => {
+    const large = {
+      ...createDemoSong(DEFAULT_PREFERENCES),
+      lyrics: 'A'.repeat(5 * 1024 * 1024),
+    };
+    const token = await encodeSongForShare(large);
+    await expect(decodeSongFromToken(token)).rejects.toThrow('too large');
+  });
+
   it('rejects malformed tokens', async () => {
     await expect(decodeSongFromToken('nope')).rejects.toThrow();
     await expect(decodeSongFromToken('g.bm90LWd6aXA')).rejects.toThrow();

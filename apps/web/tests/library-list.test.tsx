@@ -27,11 +27,19 @@ function renderLibrary(overrides: Partial<Parameters<typeof LibraryList>[0]> = {
   const onHome = vi.fn();
   const onExport = vi.fn();
   const onImport = vi.fn();
+  const onCreateFolder = vi.fn();
+  const onRenameFolder = vi.fn();
+  const onDeleteFolder = vi.fn();
+  const onMoveSong = vi.fn();
   render(
     <LibraryList
       songs={songs}
       onOpen={onOpen}
       onDelete={onDelete}
+      onCreateFolder={onCreateFolder}
+      onRenameFolder={onRenameFolder}
+      onDeleteFolder={onDeleteFolder}
+      onMoveSong={onMoveSong}
       onBack={onBack}
       onHome={onHome}
       onExport={onExport}
@@ -39,7 +47,7 @@ function renderLibrary(overrides: Partial<Parameters<typeof LibraryList>[0]> = {
       {...overrides}
     />,
   );
-  return { onOpen, onDelete, onBack, onHome, onExport, onImport };
+  return { onOpen, onDelete, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveSong, onBack, onHome, onExport, onImport };
 }
 
 afterEach(() => {
@@ -159,6 +167,40 @@ describe('LibraryList', () => {
     expect(screen.getByText('Primera canción')).toBeInTheDocument();
     expect(screen.getByText('Audio local')).toBeInTheDocument();
     expect(search).toHaveValue('');
+  });
+
+  it('filtra por carpeta, mueve canciones y gestiona carpetas', () => {
+    const folder = {
+      id: 'f1',
+      name: 'Favoritas',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const { onCreateFolder, onRenameFolder, onDeleteFolder, onMoveSong } = renderLibrary({
+      folders: [folder],
+      songs: [{ ...songs[0]!, folderId: folder.id }, songs[1]!],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Favoritas' }));
+    expect(screen.getByText('Primera canción')).toBeInTheDocument();
+    expect(screen.queryByText('Audio local')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las carpetas' }));
+    expect(screen.getByText('Audio local')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Mover «Audio local» a una carpeta'), {
+      target: { value: folder.id },
+    });
+    expect(onMoveSong).toHaveBeenCalledWith('b', folder.id);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Favoritas' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Renombrar carpeta' }));
+    expect(onRenameFolder).toHaveBeenCalledWith(folder);
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar carpeta' }));
+    expect(onDeleteFolder).toHaveBeenCalledWith(folder);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva carpeta' }));
+    expect(onCreateFolder).toHaveBeenCalledTimes(1);
   });
 
   it('combina búsqueda y origen y los limpia con un solo botón', () => {
