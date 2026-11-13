@@ -27,8 +27,8 @@ ARM64 Linux is not supported yet because Essentia does not publish an arm64 Linu
 ## Verify the download
 
 ```bash
-sha256sum chordifree-0.1.0-x86_64.AppImage
-grep chordifree-0.1.0-x86_64.AppImage SHA256SUMS.txt
+sha256sum chordifree-0.2.0-x86_64.AppImage
+grep chordifree-0.2.0-x86_64.AppImage SHA256SUMS.txt
 ```
 
 The hashes must match. If they do not, delete the file, download it again and do not run it.
@@ -39,8 +39,8 @@ build is trustworthy by itself.
 ## AppImage
 
 ```bash
-chmod +x chordifree-0.1.0-x86_64.AppImage
-./chordifree-0.1.0-x86_64.AppImage
+chmod +x chordifree-0.2.0-x86_64.AppImage
+./chordifree-0.2.0-x86_64.AppImage
 ```
 
 If the AppImage fails because FUSE is not available, install it and try again:
@@ -55,13 +55,13 @@ sudo apt install libfuse2t64
 Alternatively, extract and run it without FUSE:
 
 ```bash
-./chordifree-0.1.0-x86_64.AppImage --appimage-extract-and-run
+./chordifree-0.2.0-x86_64.AppImage --appimage-extract-and-run
 ```
 
 ## Debian package
 
 ```bash
-sudo apt install ./chordifree-0.1.0-amd64.deb
+sudo apt install ./chordifree-0.2.0-amd64.deb
 ```
 
 Then launch **Chordifree** from your application menu, or run:

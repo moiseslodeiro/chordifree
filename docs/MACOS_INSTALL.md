@@ -1,6 +1,6 @@
 # Install Chordifree on macOS
 
-The v0.1.0 preview currently ships the Apple Silicon build only; the Intel build will be
+The v0.2.0 preview currently ships the Apple Silicon build only; the Intel build will be
 added when available.
 
 Chordifree for macOS is a preview build. It is **ad-hoc signed and not notarized**, so macOS
@@ -38,7 +38,7 @@ The `.zip` files contain the same app if you prefer not to use a DMG.
 ## Verify the download
 
 ```bash
-shasum -a 256 chordifree-0.1.0-arm64.dmg
+shasum -a 256 chordifree-0.2.0-arm64.dmg
 cat SHA256SUMS.txt
 ```
 
