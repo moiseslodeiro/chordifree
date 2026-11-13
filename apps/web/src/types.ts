@@ -34,11 +34,30 @@ export interface AnalysisView {
   error?: { code: string; message: string };
 }
 
+export interface LyricsResult {
+  lyrics: string;
+  syncedLyrics?: string;
+  trackName: string;
+  artistName: string;
+  albumName?: string;
+  duration?: number;
+  source: 'lrclib';
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Song {
   id: string;
   title: string;
   /** Optional artist, separate from the title once the user edits details. */
   artist?: string;
+  /** Optional library folder. Songs without a folder are unfiled. */
+  folderId?: string;
   source: AnalysisSource;
   duration: number;
   segments: ChordSegment[];
@@ -51,6 +70,10 @@ export interface Song {
   capo?: number;
   /** Optional plain-text lyrics, with significant line breaks. */
   lyrics?: string;
+  /** Visual horizontal offsets for lyric chord labels, in em, keyed by segment index. */
+  lyricChordOffsets?: Record<string, number>;
+  /** Visual lyric line overrides, keyed by segment index. */
+  lyricChordLines?: Record<string, number>;
   analyzerVersion: string;
   transpose: number;
   notation: Notation;
@@ -79,6 +102,7 @@ export interface SongSummary {
   title: string;
   source: AnalysisSource;
   duration: number;
+  folderId?: string;
   updatedAt: string;
 }
 

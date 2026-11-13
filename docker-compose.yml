@@ -29,6 +29,7 @@ services:
         YTDLP_VERSION: '2026.10.26'
         FFMPEG_IMAGE: mwader/static-ffmpeg:7.1
     environment:
+      HOST: 0.0.0.0
       PORT: 3001
       CORS_ORIGIN: http://localhost:3000
       ANALYZER_URL: http://analyzer:8000

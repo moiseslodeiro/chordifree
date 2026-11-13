@@ -21,6 +21,7 @@ import {
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
 import { useT } from '../i18n';
+import { fetchLyrics } from '../lib/api';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
 import {
   MAX_SHARE_URL,
@@ -45,6 +46,7 @@ import {
   type Preferences,
   type Song,
 } from '../types';
+import { ActionMenu, type ActionMenuItem } from './ActionMenu';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
 import { DisplayControls } from './DisplayControls';
@@ -341,6 +343,21 @@ export function SongView({
     return song.title.slice(0, separator).trim() || null;
   }, [song.artist, song.title]);
 
+  const lyricsQueryTitle = useMemo(() => {
+    if (song.artist?.trim()) return song.title;
+    const separator = song.title.indexOf(' - ');
+    return separator > 0 ? song.title.slice(separator + 3).trim() || song.title : song.title;
+  }, [song.artist, song.title]);
+
+  const findLyrics = async () => {
+    const result = await fetchLyrics({
+      title: lyricsQueryTitle,
+      ...(artist ? { artist } : {}),
+      duration: song.duration,
+    });
+    return result.lyrics;
+  };
+
   const openDetails = () => {
     setDetailsDraft({ title: song.title, artist: artist ?? '' });
     setEditingDetails(true);
@@ -511,6 +528,49 @@ export function SongView({
     setLyricsDraft('');
   };
 
+  const updateLyricChordOffset = (segmentIndex: number, offset: number) => {
+    const offsets = { ...(song.lyricChordOffsets ?? {}) };
+    const key = String(segmentIndex);
+    if (Math.abs(offset) < 0.05) delete offsets[key];
+    else offsets[key] = offset;
+    const updated: Song = {
+      ...song,
+      ...(Object.keys(offsets).length > 0
+        ? { lyricChordOffsets: offsets }
+        : { lyricChordOffsets: undefined }),
+      updatedAt: new Date().toISOString(),
+    };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
+  const updateLyricChordLine = (segmentIndex: number, lineIndex: number | null) => {
+    const lines = { ...(song.lyricChordLines ?? {}) };
+    const key = String(segmentIndex);
+    if (lineIndex === null) delete lines[key];
+    else lines[key] = lineIndex;
+    const updated: Song = {
+      ...song,
+      ...(Object.keys(lines).length > 0
+        ? { lyricChordLines: lines }
+        : { lyricChordLines: undefined }),
+      updatedAt: new Date().toISOString(),
+    };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
+  const resetLyricChordOffsets = () => {
+    const {
+      lyricChordOffsets: _offsets,
+      lyricChordLines: _lines,
+      ...rest
+    } = song;
+    const updated: Song = { ...rest, updatedAt: new Date().toISOString() };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
   const chordProContent = () =>
     buildChordPro({
       title: song.title,
@@ -632,63 +692,55 @@ export function SongView({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!editingLyrics ? (
               <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
                 {editing ? t('song.exitEdit') : t('song.editChords')}
               </button>
             ) : null}
-            {!editing && !editingLyrics ? (
-              <button type="button" className="btn" onClick={openDetails}>
-                {t('song.editDetails')}
-              </button>
-            ) : null}
-            {!editing && !editingLyrics ? (
-              <button type="button" className="btn" onClick={togglePerformance}>
-                {performance ? t('song.exitPerformance') : t('song.performance')}
-              </button>
-            ) : null}
-            {!editing && !editingLyrics ? (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  setShareNotice(null);
-                  setShareLink(null);
-                  setShareOpen(true);
-                }}
-              >
-                {t('song.share')}
-              </button>
-            ) : null}
-            {!editing && !editingLyrics && printRows.length > 0 ? (
-              <>
-                <button type="button" className="btn" onClick={() => window.print()}>
-                  {t('song.print')}
-                </button>
-                <button type="button" className="btn" onClick={exportChordProFile}>
-                  {t('song.chordpro')}
-                </button>
-              </>
-            ) : null}
-            {!editing && !editingLyrics && song.source.type === 'youtube' ? (
-              <button
-                type="button"
-                className="btn"
-                disabled={reanalyzing}
-                onClick={() => {
-                  if (window.confirm(t('song.reanalyzeConfirm'))) {
-                    onReanalyze();
-                  }
-                }}
-              >
-                {reanalyzing
-                  ? `${t('song.reanalyzing')}${
-                      reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                    }`
-                  : t('song.reanalyze')}
-              </button>
-            ) : null}
+            <ActionMenu
+              label={t('song.moreActions')}
+              items={[
+                ...(!editing && !editingLyrics
+                  ? ([
+                      { label: t('song.editDetails'), onSelect: openDetails },
+                      {
+                        label: performance ? t('song.exitPerformance') : t('song.performance'),
+                        onSelect: togglePerformance,
+                      },
+                      {
+                        label: t('song.share'),
+                        onSelect: () => {
+                          setShareNotice(null);
+                          setShareLink(null);
+                          setShareOpen(true);
+                        },
+                      },
+                    ] satisfies ActionMenuItem[])
+                  : []),
+                ...(!editing && !editingLyrics && printRows.length > 0
+                  ? ([
+                      { label: t('song.print'), onSelect: () => window.print() },
+                      { label: t('song.chordpro'), onSelect: exportChordProFile },
+                    ] satisfies ActionMenuItem[])
+                  : []),
+                ...(!editing && !editingLyrics && song.source.type === 'youtube'
+                  ? ([
+                      {
+                        label: reanalyzing
+                          ? `${t('song.reanalyzing')}${
+                              reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
+                            }`
+                          : t('song.reanalyze'),
+                        onSelect: () => {
+                          if (window.confirm(t('song.reanalyzeConfirm'))) onReanalyze();
+                        },
+                        disabled: reanalyzing,
+                      },
+                    ] satisfies ActionMenuItem[])
+                  : []),
+              ]}
+            />
             {!editingLyrics ? (
               <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
                 {saved ? t('song.save') : t('song.saveToLibrary')}
@@ -819,6 +871,7 @@ export function SongView({
               onSave={saveLyrics}
               onCancel={closeLyricsEditor}
               onDelete={deleteLyrics}
+              onFindLyrics={findLyrics}
             />
           ) : editing ? (
             <EditorPanel
@@ -832,6 +885,11 @@ export function SongView({
             <ChordGrid
               segments={displaySegments}
               lyricsSegments={lyricsSegments}
+              lyricChordOffsets={song.lyricChordOffsets}
+              lyricChordLines={song.lyricChordLines}
+              onLyricChordOffsetChange={updateLyricChordOffset}
+              onLyricChordLineChange={updateLyricChordLine}
+              onResetLyricChordOffsets={resetLyricChordOffsets}
               notation={song.notation}
               accidental={accidental}
               clock={clock}
@@ -981,13 +1039,11 @@ export function SongView({
             </div>
 
             {shareNotice ? (
-              <div className="mt-4">
-                <NoticeBanner
-                  message={shareNotice.message}
-                  tone={shareNotice.tone}
-                  onDismiss={() => setShareNotice(null)}
-                />
-              </div>
+              <NoticeBanner
+                message={shareNotice.message}
+                tone={shareNotice.tone}
+                onDismiss={() => setShareNotice(null)}
+              />
             ) : null}
 
             <div className="mt-6 space-y-5">

@@ -33,8 +33,9 @@ On Windows the analyzer binary is `analyzer.exe` inside the
 
 ## Build the Windows installer
 
-The `Desktop builds` workflow builds the analyzer and then the NSIS installer in
-the same run:
+The `Desktop builds` workflow is manual only. Run it from the Actions tab or with
+`gh workflow run desktop-builds.yml`; it builds the analyzer and then the NSIS
+installer in the same run:
 
 1. `desktop-builds` builds the Essentia wheel and freezes the analyzer.
 2. `windows-installer` downloads that artifact, builds the web app and the
