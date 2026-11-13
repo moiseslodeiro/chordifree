@@ -208,7 +208,7 @@ test.describe('flujo completo', () => {
     await page.getByRole('button', { name: 'Eliminar' }).click();
     await expect(page.getByText('Todavía no hay canciones')).toBeVisible();
 
-    await page.getByLabel('Archivo de copia de seguridad').setInputFiles(backupPath);
+    await page.getByLabel('Copia de seguridad u hoja de acordes').setInputFiles(backupPath);
     await expect(page.getByText('Demo sincronizada')).toBeVisible();
     await expect(page.getByText(/Copia importada: 1 canción nueva/)).toBeVisible();
   });
