@@ -51,6 +51,10 @@ export interface Song {
   capo?: number;
   /** Optional plain-text lyrics, with significant line breaks. */
   lyrics?: string;
+  /** Visual horizontal offsets for lyric chord labels, in em, keyed by segment index. */
+  lyricChordOffsets?: Record<string, number>;
+  /** Visual lyric line overrides, keyed by segment index. */
+  lyricChordLines?: Record<string, number>;
   analyzerVersion: string;
   transpose: number;
   notation: Notation;

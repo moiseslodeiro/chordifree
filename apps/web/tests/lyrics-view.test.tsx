@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { parseChord, type ChordSegment } from '@chordifree/chords';
 import { ChordGrid } from '../src/components/ChordGrid';
@@ -16,11 +16,21 @@ function setup({
   at = 0,
   chords = segments,
   vocalRegions = [],
+  chordOffsets,
+  chordLines,
+  onChordOffsetChange,
+  onChordLineChange,
+  onResetChordOffsets,
 }: {
   lyrics?: string;
   at?: number;
   chords?: ChordSegment[];
   vocalRegions?: Array<{ start: number; end: number }>;
+  chordOffsets?: Record<string, number>;
+  chordLines?: Record<string, number>;
+  onChordOffsetChange?: (segmentIndex: number, offset: number) => void;
+  onChordLineChange?: (segmentIndex: number, lineIndex: number | null) => void;
+  onResetChordOffsets?: () => void;
 } = {}) {
   const adapter = new FakePlayerAdapter(at, false);
   const clock = new PlaybackClock(adapter);
@@ -38,6 +48,11 @@ function setup({
       accidental="sharp"
       clock={clock}
       vocalRegions={vocalRegions}
+      chordOffsets={chordOffsets}
+      chordLines={chordLines}
+      onChordOffsetChange={onChordOffsetChange}
+      onChordLineChange={onChordLineChange}
+      onResetChordOffsets={onResetChordOffsets}
       onSeek={onSeek}
       onEdit={onEdit}
     />,
@@ -93,6 +108,94 @@ describe('LyricsChordView', () => {
 
     fireEvent.click(screen.getByText('Primera línea'));
     expect(onSeek).toHaveBeenCalledWith(0);
+  });
+
+  it('aplica el desplazamiento guardado de cada acorde', () => {
+    setup({ chordOffsets: { '0': 0.5 } });
+
+    expect(screen.getByRole('button', { name: 'C en 00:00' })).toHaveStyle({
+      transform: 'translateX(0.5em)',
+    });
+    expect(screen.getByRole('button', { name: 'G en 00:10' })).toHaveStyle({
+      transform: 'translateX(0em)',
+    });
+  });
+
+  it('activa el ajuste y mueve el acorde con las flechas', () => {
+    const onChordOffsetChange = vi.fn();
+    setup({ onChordOffsetChange });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
+    const chord = screen.getByRole('button', { name: 'C en 00:00' });
+    chord.focus();
+    fireEvent.keyDown(chord, { key: 'ArrowRight' });
+    expect(onChordOffsetChange).toHaveBeenCalledWith(0, 0.25);
+
+    fireEvent.keyDown(chord, { key: 'ArrowLeft' });
+    expect(onChordOffsetChange).toHaveBeenLastCalledWith(0, -0.25);
+  });
+
+  it('mueve un acorde a la línea siguiente y lo renderiza allí', () => {
+    const onChordLineChange = vi.fn();
+    setup({ onChordOffsetChange: vi.fn(), onChordLineChange });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
+    const chord = screen.getByRole('button', { name: 'C en 00:00' });
+    chord.focus();
+    fireEvent.keyDown(chord, { key: 'ArrowDown' });
+    expect(onChordLineChange).toHaveBeenCalledWith(0, 1);
+  });
+
+  it('mueve un acorde a la línea anterior', () => {
+    const onChordLineChange = vi.fn();
+    setup({
+      chordLines: { '0': 1 },
+      onChordOffsetChange: vi.fn(),
+      onChordLineChange,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
+    const chord = screen.getByRole('button', { name: 'C en 00:00' });
+    chord.focus();
+    fireEvent.keyDown(chord, { key: 'ArrowUp' });
+    expect(onChordLineChange).toHaveBeenCalledWith(0, 0);
+  });
+
+  it('coloca visualmente el acorde en la línea indicada', () => {
+    setup({ chordLines: { '0': 1 } });
+
+    const firstLine = screen.getByText('Primera línea').closest('li');
+    const secondLine = screen.getByText('Segunda línea').closest('li');
+    expect(firstLine).not.toBeNull();
+    expect(secondLine).not.toBeNull();
+    expect(within(firstLine!).queryByRole('button', { name: 'C en 00:00' })).not.toBeInTheDocument();
+    expect(within(secondLine!).getByRole('button', { name: 'C en 00:00' })).toBeInTheDocument();
+  });
+
+  it('restablece la línea y la posición horizontal con Home', () => {
+    const onChordOffsetChange = vi.fn();
+    const onChordLineChange = vi.fn();
+    setup({
+      chordLines: { '0': 1 },
+      onChordOffsetChange,
+      onChordLineChange,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
+    const chord = screen.getByRole('button', { name: 'C en 00:00' });
+    chord.focus();
+    fireEvent.keyDown(chord, { key: 'Home' });
+    expect(onChordLineChange).toHaveBeenCalledWith(0, null);
+    expect(onChordOffsetChange).toHaveBeenCalledWith(0, 0);
+  });
+
+  it('permite restablecer todas las posiciones', () => {
+    const onResetChordOffsets = vi.fn();
+    setup({ onChordOffsetChange: vi.fn(), onResetChordOffsets });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ajustar acordes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Restablecer posiciones' }));
+    expect(onResetChordOffsets).toHaveBeenCalledTimes(1);
   });
 
   it('no resalta nada sin reloj de reproducción', () => {

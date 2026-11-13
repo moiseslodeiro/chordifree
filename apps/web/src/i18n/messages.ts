@@ -309,6 +309,11 @@ const en = {
   'lyrics.anchorLine': 'Anchor line',
   'lyrics.anchorLineTitle': 'Insert the current time at the start of the cursor line',
   'lyrics.delete': 'Delete lyrics',
+  'lyrics.adjust': 'Adjust chords',
+  'lyrics.adjustDone': 'Done adjusting',
+  'lyrics.resetChords': 'Reset positions',
+  'lyrics.adjustHint':
+    'Drag a chord sideways or use ←/→ to move it. Use ↑/↓ to move it to the previous or next line. The position is saved with the song.',
   'lyrics.anchorPlaceholder': 'Insert an anchor like [01:23] at the start of a line.',
 
   'editor.eyebrow': 'Editing',
@@ -824,6 +829,11 @@ const es: Record<MessageKey, string> = {
   'lyrics.anchorLineTitle':
     'Insertar el tiempo actual al inicio de la línea del cursor',
   'lyrics.delete': 'Eliminar letra',
+  'lyrics.adjust': 'Ajustar acordes',
+  'lyrics.adjustDone': 'Terminar ajuste',
+  'lyrics.resetChords': 'Restablecer posiciones',
+  'lyrics.adjustHint':
+    'Arrastra un acorde o usa ←/→ para moverlo. Usa ↑/↓ para pasarlo a la línea anterior o siguiente. La posición se guarda con la canción.',
   'lyrics.anchorPlaceholder': 'Inserta un ancla como [01:23] al inicio de una línea.',
 
   'editor.eyebrow': 'Edición',

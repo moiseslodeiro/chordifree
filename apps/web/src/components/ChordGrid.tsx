@@ -121,6 +121,11 @@ interface ChordGridProps {
   view?: GridView;
   onViewChange?: (view: GridView) => void;
   lyrics?: string;
+  lyricChordOffsets?: Record<string, number>;
+  lyricChordLines?: Record<string, number>;
+  onLyricChordOffsetChange?: (segmentIndex: number, offset: number) => void;
+  onLyricChordLineChange?: (segmentIndex: number, lineIndex: number | null) => void;
+  onResetLyricChordOffsets?: () => void;
   lyricsSegments?: ChordSegment[];
   onEditLyrics?: () => void;
   loopA?: number | null;
@@ -142,6 +147,11 @@ export function ChordGrid({
   view = 'list',
   onViewChange = () => undefined,
   lyrics = '',
+  lyricChordOffsets,
+  lyricChordLines,
+  onLyricChordOffsetChange,
+  onLyricChordLineChange,
+  onResetLyricChordOffsets,
   lyricsSegments,
   onEditLyrics = () => undefined,
   loopA = null,
@@ -357,6 +367,11 @@ export function ChordGrid({
           accidental={accidental}
           clock={clock}
           vocalRegions={vocalRegions}
+          chordOffsets={lyricChordOffsets}
+          chordLines={lyricChordLines}
+          onChordOffsetChange={onLyricChordOffsetChange}
+          onChordLineChange={onLyricChordLineChange}
+          onResetChordOffsets={onResetLyricChordOffsets}
           onSeek={onSeek}
           onEdit={onEditLyrics}
         />

@@ -802,6 +802,25 @@ p {
   color: rgb(var(--color-on-accent));
 }
 
+.lyrics-chord-adjust {
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.lyrics-chord-adjust::after {
+  content: ' ↔↕';
+  font-size: 0.62em;
+  opacity: 0.55;
+}
+
+.lyrics-adjust-hint {
+  margin: 0.35rem 0 0;
+  color: rgb(var(--color-ink-3));
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .lyrics-text {
   display: block;
   width: 100%;

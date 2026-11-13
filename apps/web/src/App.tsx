@@ -374,6 +374,8 @@ export default function App() {
       vocalRegions: result.vocalRegions ?? [],
       duration: result.duration,
       analyzerVersion: result.analyzerVersion,
+      lyricChordOffsets: undefined,
+      lyricChordLines: undefined,
       updatedAt: new Date().toISOString(),
     };
 

@@ -62,6 +62,16 @@ export function isSong(value: unknown): value is Song {
       (Array.isArray(value.vocalRegions) && value.vocalRegions.every(isVocalRegion))) &&
     (value.capo === undefined || typeof value.capo === 'number') &&
     (value.lyrics === undefined || typeof value.lyrics === 'string') &&
+    (value.lyricChordOffsets === undefined ||
+      (isRecord(value.lyricChordOffsets) &&
+        Object.values(value.lyricChordOffsets).every(
+          (offset) => typeof offset === 'number' && Number.isFinite(offset),
+        ))) &&
+    (value.lyricChordLines === undefined ||
+      (isRecord(value.lyricChordLines) &&
+        Object.values(value.lyricChordLines).every(
+          (line) => typeof line === 'number' && Number.isInteger(line) && line >= 0,
+        ))) &&
     typeof value.analyzerVersion === 'string' &&
     typeof value.transpose === 'number' &&
     (value.notation === 'english' || value.notation === 'spanish') &&

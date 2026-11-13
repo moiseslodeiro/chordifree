@@ -511,6 +511,49 @@ export function SongView({
     setLyricsDraft('');
   };
 
+  const updateLyricChordOffset = (segmentIndex: number, offset: number) => {
+    const offsets = { ...(song.lyricChordOffsets ?? {}) };
+    const key = String(segmentIndex);
+    if (Math.abs(offset) < 0.05) delete offsets[key];
+    else offsets[key] = offset;
+    const updated: Song = {
+      ...song,
+      ...(Object.keys(offsets).length > 0
+        ? { lyricChordOffsets: offsets }
+        : { lyricChordOffsets: undefined }),
+      updatedAt: new Date().toISOString(),
+    };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
+  const updateLyricChordLine = (segmentIndex: number, lineIndex: number | null) => {
+    const lines = { ...(song.lyricChordLines ?? {}) };
+    const key = String(segmentIndex);
+    if (lineIndex === null) delete lines[key];
+    else lines[key] = lineIndex;
+    const updated: Song = {
+      ...song,
+      ...(Object.keys(lines).length > 0
+        ? { lyricChordLines: lines }
+        : { lyricChordLines: undefined }),
+      updatedAt: new Date().toISOString(),
+    };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
+  const resetLyricChordOffsets = () => {
+    const {
+      lyricChordOffsets: _offsets,
+      lyricChordLines: _lines,
+      ...rest
+    } = song;
+    const updated: Song = { ...rest, updatedAt: new Date().toISOString() };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
   const chordProContent = () =>
     buildChordPro({
       title: song.title,
@@ -832,6 +875,11 @@ export function SongView({
             <ChordGrid
               segments={displaySegments}
               lyricsSegments={lyricsSegments}
+              lyricChordOffsets={song.lyricChordOffsets}
+              lyricChordLines={song.lyricChordLines}
+              onLyricChordOffsetChange={updateLyricChordOffset}
+              onLyricChordLineChange={updateLyricChordLine}
+              onResetLyricChordOffsets={resetLyricChordOffsets}
               notation={song.notation}
               accidental={accidental}
               clock={clock}
