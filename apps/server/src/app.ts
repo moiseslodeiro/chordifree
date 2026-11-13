@@ -10,7 +10,9 @@ import { ApiError, errorBody } from './errors';
 import { JobQueue } from './jobs/queue';
 import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
+import { createLyricsRouter } from './routes/lyrics';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
+import { createLyricsClient, type LyricsClient } from './services/lyrics';
 import { createMediaTools, type MediaTools } from './services/media';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +23,7 @@ export interface AppDependencies {
   queue: JobQueue;
   tools: MediaTools;
   analyzer: AnalyzerClient;
+  lyrics: LyricsClient;
   webDist: string;
 }
 
@@ -37,6 +40,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     tools: options.tools ?? createMediaTools(config),
     analyzer:
       options.analyzer ?? createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken),
+    lyrics: options.lyrics ?? createLyricsClient(fetch),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -79,6 +83,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   });
 
   app.use('/api/analyses', createAnalysesRouter(deps));
+  app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));

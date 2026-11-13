@@ -1,5 +1,5 @@
 import { t } from '../i18n';
-import type { AnalysisResult, AnalysisView } from '../types';
+import type { AnalysisResult, AnalysisView, LyricsResult } from '../types';
 
 export class ApiClientError extends Error {
   readonly code: string;
@@ -64,6 +64,24 @@ export async function createUploadAnalysis(
   form.append('file', file);
   const response = await fetch('/api/analyses', { method: 'POST', body: form, signal });
   return parseResponse(response);
+}
+
+export async function fetchLyrics(
+  params: { title: string; artist?: string; duration?: number },
+  signal?: AbortSignal,
+): Promise<LyricsResult> {
+  const query = new URLSearchParams({ title: params.title });
+  if (params.artist) query.set('artist', params.artist);
+  if (
+    params.duration &&
+    Number.isFinite(params.duration) &&
+    params.duration >= 1 &&
+    params.duration <= 3600
+  ) {
+    query.set('duration', String(Math.round(params.duration)));
+  }
+  const response = await fetch(`/api/lyrics?${query.toString()}`, { signal });
+  return parseResponse<LyricsResult>(response);
 }
 
 export async function deleteAnalysis(id: string): Promise<void> {

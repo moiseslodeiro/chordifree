@@ -10,7 +10,9 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'NOT_FOUND'
   | 'INVALID_REQUEST'
-  | 'UNSUPPORTED_MEDIA';
+  | 'UNSUPPORTED_MEDIA'
+  | 'LYRICS_NOT_FOUND'
+  | 'LYRICS_UNAVAILABLE';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   INVALID_URL: 400,
@@ -25,6 +27,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   NOT_FOUND: 404,
   INVALID_REQUEST: 400,
   UNSUPPORTED_MEDIA: 415,
+  LYRICS_NOT_FOUND: 404,
+  LYRICS_UNAVAILABLE: 502,
 };
 
 export class ApiError extends Error {

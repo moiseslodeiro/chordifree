@@ -21,6 +21,7 @@ import {
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
 import { useT } from '../i18n';
+import { fetchLyrics } from '../lib/api';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
 import {
   MAX_SHARE_URL,
@@ -340,6 +341,21 @@ export function SongView({
     if (separator <= 0) return null;
     return song.title.slice(0, separator).trim() || null;
   }, [song.artist, song.title]);
+
+  const lyricsQueryTitle = useMemo(() => {
+    if (song.artist?.trim()) return song.title;
+    const separator = song.title.indexOf(' - ');
+    return separator > 0 ? song.title.slice(separator + 3).trim() || song.title : song.title;
+  }, [song.artist, song.title]);
+
+  const findLyrics = async () => {
+    const result = await fetchLyrics({
+      title: lyricsQueryTitle,
+      ...(artist ? { artist } : {}),
+      duration: song.duration,
+    });
+    return result.lyrics;
+  };
 
   const openDetails = () => {
     setDetailsDraft({ title: song.title, artist: artist ?? '' });
@@ -819,6 +835,7 @@ export function SongView({
               onSave={saveLyrics}
               onCancel={closeLyricsEditor}
               onDelete={deleteLyrics}
+              onFindLyrics={findLyrics}
             />
           ) : editing ? (
             <EditorPanel

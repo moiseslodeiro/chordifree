@@ -3,6 +3,7 @@ import {
   ApiClientError,
   createUploadAnalysis,
   createYoutubeAnalysis,
+  fetchLyrics,
   getAnalysis,
   getHealth,
   pollAnalysis,
@@ -64,6 +65,25 @@ describe('cliente HTTP', () => {
     expect(url).toBe('/api/analyses');
     expect(options.body).toBeInstanceOf(FormData);
     expect((options.body as FormData).get('file')).toBe(file);
+  });
+
+  it('solicita letras con título, artista y duración', async () => {
+    const fetchMock = vi.fn(async (_url: string) =>
+      response({
+        lyrics: 'Uno\nDos',
+        trackName: 'Demo',
+        artistName: 'Artista',
+        source: 'lrclib',
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchLyrics({ title: 'Demo', artist: 'Artista', duration: 120.4 }),
+    ).resolves.toMatchObject({ lyrics: 'Uno\nDos', source: 'lrclib' });
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      '/api/lyrics?title=Demo&artist=Artista&duration=120',
+    );
   });
 
   it('convierte respuestas de error en ApiClientError con código estable', async () => {
