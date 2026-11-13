@@ -1,5 +1,20 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useT } from '../i18n';
+
+const TOAST_DURATION_MS = 5_000;
+let toastRoot: HTMLElement | null = null;
+
+function getToastRoot(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  if (!toastRoot?.isConnected) {
+    toastRoot = document.createElement('div');
+    toastRoot.className = 'toast-viewport';
+    toastRoot.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toastRoot);
+  }
+  return toastRoot;
+}
 
 type NoticeTone = 'info' | 'warning' | 'success' | 'danger';
 
@@ -93,23 +108,45 @@ interface NoticeBannerProps {
   onDismiss?: () => void;
 }
 
-const TONES: Record<NonNullable<NoticeBannerProps['tone']>, string> = {
-  info: 'note note-info',
-  warning: 'note note-warning',
-  success: 'note note-success',
-};
-
 export function NoticeBanner({ message, tone = 'info', onDismiss }: NoticeBannerProps) {
   const t = useT();
-  return (
-    <div role="status" className={`${TONES[tone]} flex items-center gap-3`}>
+  const dismissRef = useRef(onDismiss);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    dismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  useEffect(() => {
+    setVisible(true);
+    const timer = window.setTimeout(() => {
+      setVisible(false);
+      dismissRef.current?.();
+    }, TOAST_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  const root = getToastRoot();
+  if (!visible || !root) return null;
+
+  const dismiss = () => {
+    setVisible(false);
+    dismissRef.current?.();
+  };
+
+  return createPortal(
+    <div role="status" className={`toast toast-${tone}`}>
       <NoticeIcon tone={tone} />
       <span className="min-w-0 flex-1">{message}</span>
-      {onDismiss ? (
-        <button type="button" className="btn btn-ghost shrink-0" onClick={onDismiss}>
-          {t('common.close')}
-        </button>
-      ) : null}
-    </div>
+      <button
+        type="button"
+        className="toast-close"
+        aria-label={t('common.close')}
+        onClick={dismiss}
+      >
+        ×
+      </button>
+    </div>,
+    root,
   );
 }
