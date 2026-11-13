@@ -38,6 +38,7 @@ import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
+import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
 import {
   supportsCapo,
@@ -296,6 +297,32 @@ export function SongView({
       }`;
     },
     [song.notation, song.accidentalPreference],
+  );
+
+  const printLyrics = useMemo(
+    () =>
+      buildLyricLines({
+        lyrics: song.lyrics ?? '',
+        segments: lyricsSegments,
+        beats,
+        beatsPerBar,
+        duration: song.duration,
+        notation: song.notation,
+        accidental,
+        vocalRegions: song.vocalRegions,
+        chordLines: song.lyricChordLines,
+      }).filter((line) => line.text.trim().length > 0 || line.chords.length > 0),
+    [
+      song.lyrics,
+      song.vocalRegions,
+      song.lyricChordLines,
+      lyricsSegments,
+      beats,
+      beatsPerBar,
+      song.duration,
+      song.notation,
+      accidental,
+    ],
   );
 
   const keyLabel = keyName(estimatedKey);
@@ -999,6 +1026,37 @@ export function SongView({
               .join(' · ')}
           </p>
         </header>
+
+        {song.lyrics?.trim() ? (
+          <section className="print-lyrics">
+            <h2 className="print-section-title">{t('song.printLyrics')}</h2>
+            <div className="print-lyric-lines">
+              {printLyrics.map((line) => (
+                <div className="print-lyric-line" key={line.index}>
+                  {line.chords.length > 0 ? (
+                    <div
+                      className="print-lyric-chords"
+                      style={{ paddingLeft: chordRowMargin(line.chords) }}
+                    >
+                      {line.chords.map((chord) => {
+                        const offset = song.lyricChordOffsets?.[String(chord.segmentIndex)] ?? 0;
+                        return (
+                          <span
+                            key={`${chord.segmentIndex}-${chord.time}`}
+                            style={{ transform: `translateX(${offset}em)` }}
+                          >
+                            {chord.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  <p className="print-lyric-text">{line.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <ol className="print-chords" aria-label="Cambios de acorde">
           {printRows.map((row, index) => (

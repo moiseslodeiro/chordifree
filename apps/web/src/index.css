@@ -979,6 +979,47 @@ body.performance-mode .song-view {
     font-size: 9pt;
   }
 
+  .print-section-title {
+    margin-bottom: 3mm;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1.5mm;
+    color: #666;
+    font-family: var(--font-mono);
+    font-size: 8pt;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .print-lyrics {
+    margin-top: 7mm;
+  }
+
+  .print-lyric-line {
+    margin-bottom: 3.5mm;
+    break-inside: avoid;
+  }
+
+  .print-lyric-chords {
+    display: flex;
+    min-height: 4.5mm;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.3rem;
+  }
+
+  .print-lyric-chords span {
+    display: inline-block;
+    color: #0040ae;
+    font-size: 9.5pt;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .print-lyric-text {
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
   .print-chords {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
