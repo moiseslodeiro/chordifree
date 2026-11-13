@@ -32,6 +32,7 @@ import {
   telegramShareUrl,
   whatsappShareUrl,
 } from '../lib/share';
+import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
@@ -571,6 +572,28 @@ export function SongView({
       vocalRegions: song.vocalRegions,
     });
 
+  const scoreContent = () =>
+    buildMusicXml({
+      title: song.title,
+      artist,
+      instrument,
+      key: estimatedKey,
+      segments: displaySegments,
+      beats,
+      beatsPerBar,
+      duration: song.duration,
+      notation: song.notation,
+      accidental,
+      tempo: bpm,
+      capo: effectiveCapo,
+    });
+
+  const exportScoreFile = () => {
+    const content = scoreContent();
+    const base = song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    downloadMusicXml(`${base}.musicxml`, content);
+  };
+
   const exportChordProFile = () => {
     const content = chordProContent();
     const base = song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
@@ -705,6 +728,7 @@ export function SongView({
                 ...(!editing && !editingLyrics && printRows.length > 0
                   ? ([
                       { label: t('song.print'), onSelect: () => window.print() },
+                      { label: t('song.score'), onSelect: exportScoreFile },
                       { label: t('song.chordpro'), onSelect: exportChordProFile },
                     ] satisfies ActionMenuItem[])
                   : []),
