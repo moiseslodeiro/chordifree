@@ -25,10 +25,10 @@ jobs:
       # Our repository is checked out at the workspace root so the patch script
       # and the test fixture are available; Essentia lives in essentia-src.
       - name: Checkout Chordifree
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout the Essentia Windows PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: MTG/essentia
           ref: refs/pull/1514/head
@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -95,7 +95,7 @@ jobs:
         # Windows configuration that ships with the PR (vcpkg deps + env vars).
         run: python -m cibuildwheel --platform windows --config-file cibuildwheel.toml --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: essentia-windows-wheel
           path: essentia-src/wheelhouse/*.whl
@@ -108,13 +108,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: essentia-windows-wheel
           path: wheelhouse
@@ -158,7 +158,7 @@ jobs:
           PY
           taskkill //F //IM analyzer.exe || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chordifree-analyzer-windows
           path: dist/analyzer
@@ -173,19 +173,19 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
 
       - name: Download the frozen analyzer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: chordifree-analyzer-windows
           path: dist/analyzer
@@ -223,7 +223,7 @@ jobs:
 
       - name: Upload the desktop smoke log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chordifree-desktop-smoke-log
           path: desktop-smoke.log
@@ -246,7 +246,7 @@ jobs:
             echo 'Unsigned preview. SmartScreen: **More info → Run anyway**.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chordifree-windows-installer
           path: |
@@ -271,9 +271,9 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -314,11 +314,11 @@ jobs:
           find dist/analyzer -path '*/Python.framework/Versions/*/Python' -type f -exec codesign --force --sign - {} \;
           codesign --force --sign - dist/analyzer/analyzer
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
@@ -363,13 +363,13 @@ jobs:
 
       - name: Upload the desktop smoke log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}-smoke-log
           path: desktop-smoke.log
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: |
@@ -383,9 +383,9 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -408,11 +408,11 @@ jobs:
       - name: Build the analyzer sidecar
         run: pyinstaller packaging/analyzer/analyzer.spec --noconfirm
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
@@ -450,13 +450,13 @@ jobs:
 
       - name: Upload the desktop smoke log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chordifree-linux-x64-smoke-log
           path: desktop-smoke.log
           if-no-files-found: ignore
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: chordifree-linux-x64
           path: |
@@ -472,24 +472,24 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: chordifree-windows-installer
           path: artifacts/windows
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: chordifree-macos-arm64
           path: artifacts/mac-arm64
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: chordifree-macos-x64
           path: artifacts/mac-x64
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: chordifree-linux-x64
           path: artifacts/linux
