@@ -11,6 +11,8 @@ export type ErrorCode =
   | 'NOT_FOUND'
   | 'INVALID_REQUEST'
   | 'UNSUPPORTED_MEDIA'
+  | 'LYRICS_NOT_FOUND'
+  | 'LYRICS_UNAVAILABLE'
   | 'FORBIDDEN';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
@@ -26,6 +28,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   NOT_FOUND: 404,
   INVALID_REQUEST: 400,
   UNSUPPORTED_MEDIA: 415,
+  LYRICS_NOT_FOUND: 404,
+  LYRICS_UNAVAILABLE: 502,
   FORBIDDEN: 403,
 };
 

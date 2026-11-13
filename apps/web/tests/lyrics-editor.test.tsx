@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { LyricsEditor } from '../src/components/LyricsEditor';
+import { ApiClientError } from '../src/lib/api';
 
 function Harness({
   initial = '',
@@ -11,6 +12,7 @@ function Harness({
   onSave = vi.fn(),
   onCancel = vi.fn(),
   onDelete = vi.fn(),
+  onFindLyrics,
 }: {
   initial?: string;
   canDelete?: boolean;
@@ -19,6 +21,7 @@ function Harness({
   onSave?: () => void;
   onCancel?: () => void;
   onDelete?: () => void;
+  onFindLyrics?: () => Promise<string | null>;
 }) {
   const [value, setValue] = useState(initial);
   return (
@@ -32,6 +35,7 @@ function Harness({
       onSave={onSave}
       onCancel={onCancel}
       onDelete={onDelete}
+      {...(onFindLyrics ? { onFindLyrics } : {})}
     />
   );
 }
@@ -101,6 +105,37 @@ describe('LyricsEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Anclar inicio' }));
     expect(screen.getByLabelText('Letra de la canción')).toHaveValue('\n[01:15] Uno\nDos');
+  });
+
+  it('rellena el borrador con la letra encontrada sin guardarla', async () => {
+    const onFindLyrics = vi.fn().mockResolvedValue('Nueva letra');
+    const onSave = vi.fn();
+    render(<Harness canDelete={false} onSave={onSave} onFindLyrics={onFindLyrics} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar letra' }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Letra de la canción')).toHaveValue('Nueva letra'),
+    );
+    expect(onFindLyrics).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('muestra un aviso si no hay letra o falla el proveedor', async () => {
+    const notFound = vi
+      .fn()
+      .mockRejectedValue(new ApiClientError('LYRICS_NOT_FOUND', 'No lyrics', 404));
+    render(<Harness canDelete={false} onFindLyrics={notFound} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar letra' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'No se encontró la letra de esta canción.',
+    );
+
+    const failure = vi.fn().mockRejectedValue(new Error('offline'));
+    render(<Harness canDelete={false} onFindLyrics={failure} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Buscar letra' })[1]!);
+    expect(await screen.findByText('No se pudo obtener la letra. Inténtalo más tarde.')).toBeInTheDocument();
   });
 
   it('deshabilita el anclaje sin reproductor', () => {

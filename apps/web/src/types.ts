@@ -34,6 +34,16 @@ export interface AnalysisView {
   error?: { code: string; message: string };
 }
 
+export interface LyricsResult {
+  lyrics: string;
+  syncedLyrics?: string;
+  trackName: string;
+  artistName: string;
+  albumName?: string;
+  duration?: number;
+  source: 'lrclib';
+}
+
 export interface Folder {
   id: string;
   name: string;

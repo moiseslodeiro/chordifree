@@ -323,6 +323,12 @@ const en = {
   'lyrics.anchorLine': 'Anchor line',
   'lyrics.anchorLineTitle': 'Insert the current time at the start of the cursor line',
   'lyrics.delete': 'Delete lyrics',
+  'lyrics.find': 'Find lyrics',
+  'lyrics.finding': 'Searching…',
+  'lyrics.notFound': 'No lyrics found for this song.',
+  'lyrics.findFailed': 'Could not fetch lyrics. Try again later.',
+  'lyrics.providerNote':
+    'Title and artist are sent to LRCLIB only when you press Find lyrics. Review the result before saving.',
   'lyrics.anchorPlaceholder': 'Insert an anchor like [01:23] at the start of a line.',
 
   'editor.eyebrow': 'Editing',
@@ -852,6 +858,12 @@ const es: Record<MessageKey, string> = {
   'lyrics.anchorLineTitle':
     'Insertar el tiempo actual al inicio de la línea del cursor',
   'lyrics.delete': 'Eliminar letra',
+  'lyrics.find': 'Buscar letra',
+  'lyrics.finding': 'Buscando…',
+  'lyrics.notFound': 'No se encontró la letra de esta canción.',
+  'lyrics.findFailed': 'No se pudo obtener la letra. Inténtalo más tarde.',
+  'lyrics.providerNote':
+    'El título y el artista se envían a LRCLIB solo al pulsar Buscar letra. Revisa el resultado antes de guardarlo.',
   'lyrics.anchorPlaceholder': 'Inserta un ancla como [01:23] al inicio de una línea.',
 
   'editor.eyebrow': 'Edición',

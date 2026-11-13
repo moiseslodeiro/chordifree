@@ -163,6 +163,47 @@ describe('POST /api/analyses', () => {
     expect(extra.body.error.code).toBe('INVALID_REQUEST');
   });
 
+  it('devuelve la letra encontrada por el proveedor', async () => {
+    const app = await buildApp({
+      lyrics: {
+        find: async () => ({
+          lyrics: 'Primera línea\nSegunda línea',
+          trackName: 'Demo',
+          artistName: 'Artista',
+          source: 'lrclib',
+        }),
+      },
+    });
+
+    const response = await request(app)
+      .get('/api/lyrics')
+      .query({ title: 'Demo', artist: 'Artista', duration: 120 });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      lyrics: 'Primera línea\nSegunda línea',
+      source: 'lrclib',
+    });
+  });
+
+  it('valida la petición de letras y devuelve 404 si no hay coincidencia', async () => {
+    const app = await buildApp({
+      lyrics: {
+        find: async () => {
+          throw new ApiError('LYRICS_NOT_FOUND', 'No lyrics');
+        },
+      },
+    });
+
+    const invalid = await request(app).get('/api/lyrics');
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.error.code).toBe('INVALID_REQUEST');
+
+    const missing = await request(app).get('/api/lyrics').query({ title: 'Demo' });
+    expect(missing.status).toBe(404);
+    expect(missing.body.error.code).toBe('LYRICS_NOT_FOUND');
+  });
+
   it('rechaza escrituras cross-origin sin ejecutar el análisis', async () => {
     let probes = 0;
     const app = await buildApp({
