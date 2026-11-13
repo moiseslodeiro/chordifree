@@ -142,7 +142,6 @@ const en = {
   'library.renameFolder': 'Rename folder',
   'library.deleteFolder': 'Delete folder',
   'library.folderPrompt': 'Folder name',
-  'library.folderRenamePrompt': 'New name for “{name}”',
   'library.folderDeleteConfirm':
     'Delete the folder “{name}”? Its songs will be moved to Unfiled.',
   'library.folderCreated': 'Folder created.',
@@ -667,7 +666,6 @@ const es: Record<MessageKey, string> = {
   'library.renameFolder': 'Renombrar carpeta',
   'library.deleteFolder': 'Eliminar carpeta',
   'library.folderPrompt': 'Nombre de la carpeta',
-  'library.folderRenamePrompt': 'Nuevo nombre para «{name}»',
   'library.folderDeleteConfirm':
     '¿Eliminar la carpeta «{name}»? Sus canciones pasarán a Sin carpeta.',
   'library.folderCreated': 'Carpeta creada.',

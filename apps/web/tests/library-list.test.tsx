@@ -195,12 +195,21 @@ describe('LibraryList', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Favoritas' }));
     fireEvent.click(screen.getByRole('button', { name: 'Renombrar carpeta' }));
-    expect(onRenameFolder).toHaveBeenCalledWith(folder);
+    fireEvent.change(screen.getByLabelText('Nombre de la carpeta'), {
+      target: { value: 'Ensayos' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(onRenameFolder).toHaveBeenCalledWith(folder, 'Ensayos');
+
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar carpeta' }));
     expect(onDeleteFolder).toHaveBeenCalledWith(folder);
 
     fireEvent.click(screen.getByRole('button', { name: 'Nueva carpeta' }));
-    expect(onCreateFolder).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByLabelText('Nombre de la carpeta'), {
+      target: { value: 'Directos' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(onCreateFolder).toHaveBeenCalledWith('Directos');
   });
 
   it('combina búsqueda y origen y los limpia con un solo botón', () => {

@@ -460,9 +460,8 @@ export default function App() {
     }
   };
 
-  const createFolder = () => {
-    const name = window.prompt(t('library.folderPrompt'));
-    if (!name?.trim()) return;
+  const createFolder = (name: string) => {
+    if (!name.trim()) return;
     try {
       library.createFolder(name);
       refreshLibrary();
@@ -472,12 +471,8 @@ export default function App() {
     }
   };
 
-  const renameFolder = (folder: Folder) => {
-    const name = window.prompt(
-      t('library.folderRenamePrompt', { name: folder.name }),
-      folder.name,
-    );
-    if (!name?.trim() || name.trim() === folder.name) return;
+  const renameFolder = (folder: Folder, name: string) => {
+    if (!name.trim() || name.trim() === folder.name) return;
     try {
       if (library.renameFolder(folder.id, name.trim())) {
         refreshLibrary();

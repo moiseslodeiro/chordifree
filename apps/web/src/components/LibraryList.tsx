@@ -44,8 +44,8 @@ interface LibraryListProps {
   onClearCache?: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
-  onCreateFolder?: () => void;
-  onRenameFolder?: (folder: Folder) => void;
+  onCreateFolder?: (name: string) => void;
+  onRenameFolder?: (folder: Folder, name: string) => void;
   onDeleteFolder?: (folder: Folder) => void;
   onMoveSong?: (songId: string, folderId: string | null) => void;
   onBack: () => void;
@@ -89,6 +89,11 @@ export function LibraryList({
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<SourceFilter>('all');
   const [folder, setFolder] = useState('all');
+  const [folderEditor, setFolderEditor] = useState<{
+    mode: 'create' | 'rename';
+    value: string;
+    folderId?: string;
+  } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const activeFolder =
     folder !== 'all' && folder !== 'unfiled'
@@ -270,7 +275,11 @@ export function LibraryList({
                   </button>
                 );
               })}
-              <button type="button" className="btn btn-ghost" onClick={onCreateFolder}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setFolderEditor({ mode: 'create', value: '' })}
+              >
                 {t('library.newFolder')}
               </button>
               {activeFolder ? (
@@ -278,7 +287,13 @@ export function LibraryList({
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    onClick={() => onRenameFolder?.(activeFolder)}
+                    onClick={() =>
+                      setFolderEditor({
+                        mode: 'rename',
+                        value: activeFolder.name,
+                        folderId: activeFolder.id,
+                      })
+                    }
                   >
                     {t('library.renameFolder')}
                   </button>
@@ -290,6 +305,53 @@ export function LibraryList({
                     {t('library.deleteFolder')}
                   </button>
                 </>
+              ) : null}
+              {folderEditor ? (
+                <form
+                  className="flex flex-wrap items-center gap-1.5"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const name = folderEditor.value.trim();
+                    if (!name) return;
+                    if (folderEditor.mode === 'create') {
+                      onCreateFolder?.(name);
+                    } else {
+                      const target = folders.find((item) => item.id === folderEditor.folderId);
+                      if (target) onRenameFolder?.(target, name);
+                    }
+                    setFolderEditor(null);
+                  }}
+                >
+                  <label htmlFor="folder-name" className="sr-only">
+                    {t('library.folderPrompt')}
+                  </label>
+                  <input
+                    id="folder-name"
+                    className="field max-w-48"
+                    value={folderEditor.value}
+                    onChange={(event) =>
+                      setFolderEditor((current) =>
+                        current ? { ...current, value: event.target.value } : current,
+                      )
+                    }
+                    placeholder={t('library.folderPrompt')}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={!folderEditor.value.trim()}
+                  >
+                    {t('common.save')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setFolderEditor(null)}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </form>
               ) : null}
             </div>
 
