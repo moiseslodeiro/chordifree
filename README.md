@@ -201,7 +201,10 @@ The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs wi
 Linux wheel. See [`docs/LINUX_INSTALL.md`](docs/LINUX_INSTALL.md) for checksum
 verification, FUSE and uninstall steps.
 
-Code signing, notarization and auto-updates are still pending.
+Code signing and automatic installation of updates are still pending. The packaged
+desktop app does check the latest GitHub release on startup and shows a dismissible
+notice with a download link; set `CHORDIFREE_DISABLE_UPDATE_CHECK=1` to disable the
+check. Only the app version and the public GitHub release metadata are involved.
 
 
 ## Landing page (GitHub Pages)

@@ -506,6 +506,13 @@ const en = {
   'footer.github': 'GitHub',
   'footer.license': 'AGPL-3.0',
   'footer.essentia': 'Essentia',
+  'update.available': 'A new version is available: {version}',
+  'update.download': 'Download',
+  'update.dismiss': 'Not now',
+  'update.check': 'Check for updates',
+  'update.current': 'You are up to date.',
+  'update.failed': 'Could not check for updates.',
+  'update.disabled': 'Update checks are only available in the packaged desktop app.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1025,6 +1032,13 @@ const es: Record<MessageKey, string> = {
   'footer.github': 'GitHub',
   'footer.license': 'AGPL-3.0',
   'footer.essentia': 'Essentia',
+  'update.available': 'Hay una nueva versión disponible: {version}',
+  'update.download': 'Descargar',
+  'update.dismiss': 'Ahora no',
+  'update.check': 'Buscar actualizaciones',
+  'update.current': 'Ya tienes la última versión.',
+  'update.failed': 'No se pudieron buscar actualizaciones.',
+  'update.disabled': 'La búsqueda de actualizaciones solo está disponible en la app de escritorio empaquetada.',
 };
 
 export const messages: Record<Language, Record<MessageKey, string>> = { en, es };

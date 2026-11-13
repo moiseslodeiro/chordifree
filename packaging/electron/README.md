@@ -133,6 +133,24 @@ resources/
 `ffmpeg-static` and `ffprobe-static` provide the media binaries for uploads and
 YouTube jobs.
 
+## Update check
+
+The packaged app requests the latest release from the public GitHub API on startup and
+shows a dismissible notice when a newer version exists. The footer also has a manual
+**Check for updates** button. No library, audio or account data is sent.
+
+Set `CHORDIFREE_DISABLE_UPDATE_CHECK=1` to disable the check. Automatic installation
+of updates is not implemented.
+
+To test the banner without packaging a release:
+
+```bash
+CHORDIFREE_UPDATE_CHECK=1 CHORDIFREE_UPDATE_FAKE_VERSION=0.2.0 pnpm start
+```
+
+In development the check is disabled unless `CHORDIFREE_UPDATE_CHECK=1` is set; the
+fake version only works in development.
+
 ## Still missing
 
 - Real code signing, macOS notarization and auto-updates.

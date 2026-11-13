@@ -69,9 +69,33 @@ async function analyze() {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete window.chordifreeDesktop;
 });
 
 describe('App', () => {
+  it('muestra el aviso de actualización en escritorio', async () => {
+    stubApi();
+    const openExternal = vi.fn();
+    window.chordifreeDesktop = {
+      isDesktop: true,
+      platform: 'linux',
+      checkForUpdates: vi.fn(async () => ({
+        status: 'update' as const,
+        version: '0.2.0',
+        url: 'https://github.com/moiseslodeiro/chordifree/releases/tag/v0.2.0',
+      })),
+      openExternal,
+    };
+
+    render(<App />);
+
+    expect(await screen.findByText(/0.2.0/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar' }));
+    expect(openExternal).toHaveBeenCalledWith(
+      'https://github.com/moiseslodeiro/chordifree/releases/tag/v0.2.0',
+    );
+  });
+
   it('analiza, cambia notación y trasposición, guarda y recarga desde la biblioteca', async () => {
     stubApi();
     const view = await analyze();
