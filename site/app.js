@@ -189,8 +189,7 @@ const spanish = {
   'finale.slogan': 'De un músico para músicos y músicas.',
   'finale.author': 'Hecho por Moisés Lodeiro.',
 
-  'footer.tagline':
-    'Busca en YouTube por nombre o trae tu propio audio. Local first y código abierto.',
+  'footer.tagline': 'De un músico para músicos y músicas. Hecho por Moisés Lodeiro.',
   'footer.github': 'GitHub',
   'footer.readme': 'README',
   'footer.privacy': 'Privacidad',
