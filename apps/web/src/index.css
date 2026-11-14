@@ -628,8 +628,11 @@ p {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+    /* Keep colour and opacity feedback; drop spatial movement. */
+    transition-property: color, background-color, border-color, outline-color, box-shadow, opacity !important;
+    transition-duration: 120ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
