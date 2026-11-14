@@ -57,6 +57,8 @@ function Harness({
       onRateChange={setRate}
       manualBpm={manualBpm}
       onManualBpmChange={setManualBpm}
+      pitch={0}
+      onPitchChange={() => undefined}
     />
   );
 }

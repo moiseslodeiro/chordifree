@@ -7,6 +7,8 @@ export interface PlayerAdapter {
   onStateChange(listener: (playing: boolean) => void): () => void;
   getPlaybackRate?(): number;
   setPlaybackRate?(rate: number): void;
+  /** Audio pitch in semitones, independent from the chord transposition. */
+  setPitch?(semitones: number): void;
   destroy(): void;
 }
 

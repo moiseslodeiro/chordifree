@@ -7,6 +7,8 @@ export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 export const MIN_BPM = 40;
 export const MAX_BPM = 240;
 export const DEFAULT_BPM = 90;
+export const MIN_PITCH = -12;
+export const MAX_PITCH = 12;
 
 export interface PracticeSession {
   loopA: number | null;
@@ -15,6 +17,8 @@ export interface PracticeSession {
   rate: number;
   /** Manual BPM for the metronome when the analysis has no beats. */
   bpm: number;
+  /** Audio pitch in semitones, independent from the chord transposition. */
+  pitch: number;
 }
 
 export const DEFAULT_PRACTICE: PracticeSession = {
@@ -23,6 +27,7 @@ export const DEFAULT_PRACTICE: PracticeSession = {
   loopEnabled: false,
   rate: 1,
   bpm: DEFAULT_BPM,
+  pitch: 0,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -42,6 +47,11 @@ function pickRate(value: unknown): number {
   return PLAYBACK_RATES.find((rate) => rate === value) ?? 1;
 }
 
+function clampPitch(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.max(MIN_PITCH, Math.min(MAX_PITCH, Math.round(value)));
+}
+
 /** Fixes inverted ranges, unsupported rates and out-of-range BPM. */
 export function normalizePractice(value: unknown): PracticeSession {
   const candidate = isRecord(value) ? value : {};
@@ -55,6 +65,7 @@ export function normalizePractice(value: unknown): PracticeSession {
     loopEnabled: candidate.loopEnabled === true && loopA !== null && loopB !== null,
     rate: pickRate(candidate.rate),
     bpm: clampBpm(candidate.bpm),
+    pitch: clampPitch(candidate.pitch),
   };
 }
 

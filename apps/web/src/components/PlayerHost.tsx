@@ -11,6 +11,7 @@ interface PlayerHostProps {
   audioUrl: string | null;
   forceFake: boolean;
   variant?: 'default' | 'compact';
+  pitch: number;
   onAdapter: (adapter: PlayerAdapter | null) => void;
   onPlaybackError: (message: string) => void;
 }
@@ -28,6 +29,7 @@ export function PlayerHost({
   audioUrl,
   forceFake,
   variant = 'default',
+  pitch,
   onAdapter,
   onPlaybackError,
 }: PlayerHostProps) {
@@ -36,6 +38,9 @@ export function PlayerHost({
   const audioRef = useRef<HTMLAudioElement>(null);
   const adapterCallback = useRef(onAdapter);
   const errorCallback = useRef(onPlaybackError);
+  const adapterRef = useRef<PlayerAdapter | null>(null);
+  const pitchRef = useRef(pitch);
+  pitchRef.current = pitch;
 
   adapterCallback.current = onAdapter;
   errorCallback.current = onPlaybackError;
@@ -64,12 +69,21 @@ export function PlayerHost({
       adapter = new AudioPlayerAdapter(audioRef.current);
     }
 
-    if (adapter) adapterCallback.current(adapter);
+    if (adapter) {
+      adapter.setPitch?.(pitchRef.current);
+      adapterRef.current = adapter;
+      adapterCallback.current(adapter);
+    }
     return () => {
+      adapterRef.current = null;
       adapterCallback.current(null);
       adapter?.destroy();
     };
   }, [mode, song.id, audioUrl]);
+
+  useEffect(() => {
+    adapterRef.current?.setPitch?.(pitch);
+  }, [pitch]);
 
   return (
     <div className="space-y-3">
@@ -91,7 +105,14 @@ export function PlayerHost({
       ) : null}
 
       {mode === 'audio' && audioUrl ? (
-        <audio ref={audioRef} src={audioUrl} controls className="w-full" preload="metadata">
+        <audio
+          key={audioUrl}
+          ref={audioRef}
+          src={audioUrl}
+          controls
+          className="w-full"
+          preload="metadata"
+        >
           {t('player.audioUnsupported')}
         </audio>
       ) : null}

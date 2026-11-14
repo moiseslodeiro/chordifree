@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { tempoFromBeats } from '../grid/beats';
 import type { PlayerAdapter } from '../player/types';
-import { MAX_BPM, MIN_BPM, PLAYBACK_RATES } from '../storage/practice';
+import { MAX_BPM, MAX_PITCH, MIN_BPM, MIN_PITCH, PLAYBACK_RATES } from '../storage/practice';
 import type { PlaybackClock } from '../sync/clock';
 import { useT } from '../i18n';
 import { barRangeAt, firstBeatAtOrAfter } from '../practice/range';
@@ -25,12 +25,19 @@ interface PracticeBarProps {
   onRateChange: (value: number) => void;
   manualBpm: number;
   onManualBpmChange: (value: number) => void;
+  pitch: number;
+  onPitchChange: (value: number) => void;
 }
 
 const SPEEDS = PLAYBACK_RATES.map((value) => ({
   value,
   label: `${String(value).replace('.', ',')}×`,
 }));
+
+const PITCHES = Array.from(
+  { length: MAX_PITCH - MIN_PITCH + 1 },
+  (_, index) => MIN_PITCH + index,
+);
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -74,6 +81,8 @@ export function PracticeBar({
   onRateChange,
   manualBpm,
   onManualBpmChange,
+  pitch,
+  onPitchChange,
 }: PracticeBarProps) {
   const t = useT();
   const [metronome, setMetronome] = useState(false);
@@ -336,6 +345,28 @@ export function PracticeBar({
           {SPEEDS.map((speed) => (
             <option key={speed.value} value={speed.value}>
               {speed.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+        {t('practice.pitch')}
+        <select
+          className="tool-select font-mono text-xs tabular-nums normal-case tracking-normal"
+          value={pitch}
+          onChange={(event) => onPitchChange(Number(event.target.value))}
+          aria-label={t('practice.pitchLabel')}
+          disabled={typeof adapter.setPitch !== 'function'}
+          title={
+            typeof adapter.setPitch === 'function'
+              ? t('practice.pitchTitle')
+              : t('practice.pitchUnavailable')
+          }
+        >
+          {PITCHES.map((value) => (
+            <option key={value} value={value}>
+              {value > 0 ? `+${value}` : value}
             </option>
           ))}
         </select>
