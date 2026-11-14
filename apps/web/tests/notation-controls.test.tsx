@@ -9,7 +9,6 @@ function renderControls(overrides: Partial<Parameters<typeof NotationControls>[0
       notation="english"
       accidentalPreference="auto"
       transpose={0}
-      keyLabel="C mayor"
       onChange={onChange}
       {...overrides}
     />,
@@ -43,14 +42,13 @@ describe('NotationControls', () => {
     expect(screen.getByRole('button', { name: 'Subir un semitono' })).toBeDisabled();
   });
 
-  it('changes the enharmonic preference', () => {
+  it('changes the enharmonic preference with symbol buttons', () => {
     const { onChange } = renderControls();
-    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'flat' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Bemoles' }));
     expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'flat' });
-  });
-
-  it('shows the estimated key', () => {
-    renderControls({ keyLabel: 'Fa mayor' });
-    expect(screen.getByText('Tonalidad estimada: Fa mayor')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sostenidos' }));
+    expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'sharp' });
+    fireEvent.click(screen.getByRole('button', { name: 'Auto' }));
+    expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'auto' });
   });
 });

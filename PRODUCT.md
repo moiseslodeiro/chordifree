@@ -38,7 +38,7 @@ musicians.
   and mark an A–B range to loop; the active beat and chord follow playback.
 - Presentation: transpose ±11 semitones, capo, English or Spanish notation, sharps or flats,
   guitar/piano/ukelele diagrams, simplify or reduce chords.
-- Library: songs, folders and setlists in local storage, with practice history, JSON
+- Library: songs and ordered setlists in local storage, with practice history, JSON
   backups, ChordPro import/export, MusicXML export, print/PDF, and share links for a song
   or a setlist.
 - Deployment: Docker stack for a laptop, home server or VPS; PWA when served over HTTPS;

@@ -161,6 +161,19 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
+  it('in maximum mode keeps a cross-bar dominant at its real start', () => {
+    const result = reduceChordSegments(
+      [segment(1, 3.8, 'Abm'), segment(3.8, 6, 'Fdim')],
+      [0, 1, 2, 3, 4, 5, 6],
+      'max',
+    );
+
+    expect(result.map((item) => [item.start, item.end, item.chord?.root])).toEqual([
+      [1, 3.8, 8],
+      [3.8, 6, 5],
+    ]);
+  });
+
   it('in maximum mode keeps the real start of the dominant chord', () => {
     const result = reduceChordSegments(
       [segment(0, 1.6, 'C'), segment(1.6, 4, 'G')],

@@ -133,7 +133,7 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-cell-0')).toContainText('Do');
     await expect(page.getByTestId('beat-cell-8')).toContainText('Sol');
 
-    await page.getByLabel('Alteraciones').selectOption('sharp');
+    await page.getByRole('button', { name: 'Sostenidos' }).click();
     await page.getByRole('button', { name: 'Subir un semitono' }).click();
     await expect(page.getByTestId('beat-cell-0')).toContainText('Do♯');
     await expect(page.getByTestId('beat-cell-8')).toContainText('Sol♯');
@@ -282,7 +282,7 @@ test.describe('full flow', () => {
     expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
   });
 
-  test('saves the lyrics, updates the chords with the capo and restores the view', async ({
+  test('saves the lyrics, updates the chords with the capo and restores them', async ({
     page,
   }) => {
     await analyze(page);
@@ -305,10 +305,11 @@ test.describe('full flow', () => {
 
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Letra', exact: true })).toHaveAttribute(
+    await expect(page.getByRole('button', { name: 'Parrilla' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
     await expect(page.getByRole('button', { name: /Ir a la línea 1/ })).toBeVisible();
     await expect(page.getByRole('button', { name: 'A♯ en 00:00' })).toBeVisible();
 
@@ -394,8 +395,7 @@ test.describe('full flow', () => {
     });
     await analyze(page);
 
-    await page.getByRole('button', { name: /Reducir acordes/ }).click();
-    await page.getByRole('button', { name: 'Reducir al máximo' }).click();
+    await page.getByRole('button', { name: 'Máxima' }).click();
 
     await expect(page.getByTestId('beat-cell-0')).toContainText('C');
     await expect(page.getByTestId('beat-cell-1')).not.toContainText('G');
@@ -507,9 +507,20 @@ test.describe('full flow', () => {
       page.getByTestId('song-grid-column').getByText('Línea que debe conservarse'),
     ).toBeVisible();
 
+    // Keep the reanalysis running long enough to observe the progress toast.
+    await page.route('**/api/analyses/job-e2e', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...JOB, status: 'done', progress: 100, result: RESULT }),
+      });
+    });
+
     await page.getByRole('button', { name: 'Más acciones' }).click();
     page.once('dialog', (dialog) => void dialog.accept());
     await page.getByRole('menuitem', { name: 'Reanalizar' }).click();
+    await expect(page.getByText(/Reanalizando… \d+%/)).toBeVisible();
     await expect(page.getByText('Canción reanalizada con el analizador actual.')).toBeVisible({
       timeout: 10_000,
     });
@@ -573,7 +584,7 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByTestId('chord-row-2')).toBeVisible();
 
-    await page.getByRole('button', { name: /Reducir acordes/ }).click();
+    await page.getByRole('button', { name: 'Normal' }).click();
     await expect(page.getByTestId('chord-row-2')).toHaveCount(0);
     await expect(page.getByTestId('chord-row-0')).toContainText('C');
     await expect(page.getByTestId('chord-row-1')).toContainText('A');
@@ -593,6 +604,29 @@ test.describe('full flow', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await page.getByRole('button', { name: /Tema oscuro/ }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+
+  test('moves secondary controls into disclosures on mobile', async ({ page }) => {
+    await analyze(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await expect(page.getByText('Más ajustes')).toBeVisible();
+    await expect(page.getByText('Más práctica')).toBeVisible();
+    await expect(page.getByText('Alteraciones')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Metrónomo' })).not.toBeVisible();
+
+    await expect(page.getByText('Notación')).toBeVisible();
+    await expect(page.getByText('Transponer')).toBeVisible();
+    await expect(page.getByText('Presentación')).toBeVisible();
+
+    await page.getByText('Más ajustes').click();
+    await expect(page.getByText('Alteraciones')).toBeVisible();
+    await expect(page.getByLabel('Instrumento')).toBeVisible();
+    await expect(page.getByLabel('Capo')).toBeVisible();
+
+    await page.getByText('Más práctica').click();
+    await expect(page.getByRole('button', { name: 'Metrónomo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cuenta atrás' })).toBeVisible();
   });
 
   test('changes instrument, switches views and keeps the two-column layout', async ({ page }) => {

@@ -52,20 +52,11 @@ export interface LyricsResult {
   source: 'lrclib';
 }
 
-export interface Folder {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface Song {
   id: string;
   title: string;
   /** Optional artist, separate from the title once the user edits details. */
   artist?: string;
-  /** Optional library folder. Songs without a folder are unfiled. */
-  folderId?: string;
   source: AnalysisSource;
   duration: number;
   segments: ChordSegment[];
@@ -110,7 +101,6 @@ export interface SongSummary {
   title: string;
   source: AnalysisSource;
   duration: number;
-  folderId?: string;
   updatedAt: string;
 }
 

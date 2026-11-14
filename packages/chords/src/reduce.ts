@@ -306,7 +306,32 @@ function collapseToBars(
     const firstDominant = list.find(
       (slot) => slot.chord !== null && chordEquals(slot.chord, dominant),
     );
-    const dominantStart = firstDominant?.start ?? windowStart;
+    let dominantStart = firstDominant?.start ?? windowStart;
+
+    // A chord can dominate the next bar while starting just before its line.
+    // Keep its real start instead of snapping it to the bar boundary.
+    const source = firstDominant
+      ? segments.find(
+          (segment) =>
+            segment.chord !== null &&
+            chordEquals(segment.chord, dominant) &&
+            segment.start <= firstDominant.start + EPSILON &&
+            segment.end > firstDominant.start + EPSILON,
+        )
+      : undefined;
+    const previousBarStart = windowStart - window;
+    if (
+      source !== undefined &&
+      source.start < dominantStart - EPSILON &&
+      source.start > previousBarStart + EPSILON
+    ) {
+      dominantStart = source.start;
+      const previous = collapsed[collapsed.length - 1];
+      if (previous && previous.end > dominantStart + EPSILON) {
+        previous.end = Math.max(previous.start, dominantStart);
+        if (previous.end - previous.start <= EPSILON) collapsed.pop();
+      }
+    }
 
     if (dominantStart > windowStart + EPSILON) {
       const before = list.filter((slot) => slot.start < dominantStart - EPSILON);
@@ -319,7 +344,7 @@ function collapseToBars(
     }
 
     collapsed.push({
-      start: Math.max(windowStart, dominantStart),
+      start: dominantStart,
       end: windowEnd,
       chord: dominant,
     });

@@ -5,6 +5,7 @@ import type { PlayerAdapter } from '../player/types';
 import { MAX_BPM, MAX_PITCH, MIN_BPM, MIN_PITCH, PLAYBACK_RATES } from '../storage/practice';
 import type { PlaybackClock } from '../sync/clock';
 import { useT } from '../i18n';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { barRangeAt, firstBeatAtOrAfter } from '../practice/range';
 
 interface PracticeBarProps {
@@ -87,6 +88,7 @@ export function PracticeBar({
   pitchAvailable,
 }: PracticeBarProps) {
   const t = useT();
+  const mobile = useIsMobile();
   const [metronome, setMetronome] = useState(false);
   const [countingIn, setCountingIn] = useState(false);
   const [bpmDraft, setBpmDraft] = useState(String(manualBpm));
@@ -274,6 +276,54 @@ export function PracticeBar({
     markMode === 'b' ? ' tool-chip-b' : loopB !== null ? ' tool-chip-set tool-chip-set-b' : ''
   }`;
 
+  const practiceExtras = (
+    <>
+      {beats.length === 0 ? (
+        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          {t('practice.bpm')}
+          <input
+            type="number"
+            className="tool-select w-16 font-mono text-xs tabular-nums normal-case tracking-normal"
+            min={MIN_BPM}
+            max={MAX_BPM}
+            step={1}
+            value={bpmDraft}
+            onChange={(event) => setBpmDraft(event.target.value)}
+            onBlur={commitManualBpm}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur();
+            }}
+            aria-label={t('practice.bpmLabel')}
+          />
+        </label>
+      ) : null}
+
+      <button
+        type="button"
+        className={metronome ? 'tool-chip-active' : 'tool-chip'}
+        aria-pressed={metronome}
+        disabled={duration <= 0}
+        title={
+          beats.length === 0
+            ? t('practice.metronomeManual')
+            : t('practice.metronomeOn')
+        }
+        onClick={() => setMetronome((value) => !value)}
+      >
+        {t('practice.metronome')}
+      </button>
+
+      <button
+        type="button"
+        className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em]"
+        onClick={startCountIn}
+        disabled={countingIn}
+      >
+        {countingIn ? t('practice.counting') : t('practice.countIn')}
+      </button>
+    </>
+  );
+
   return (
     <section
       className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm"
@@ -336,83 +386,58 @@ export function PracticeBar({
         {t('practice.repeatBar')}
       </button>
 
-      <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-        {t('practice.rate')}
-        <select
-          className="tool-select font-mono text-xs normal-case tracking-normal"
-          value={rate}
-          onChange={(event) => onRateChange(Number(event.target.value))}
-          aria-label={t('practice.rateLabel')}
-        >
-          {SPEEDS.map((speed) => (
-            <option key={speed.value} value={speed.value}>
-              {speed.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-        {t('practice.pitch')}
-        <select
-          className="tool-select font-mono text-xs tabular-nums normal-case tracking-normal"
-          value={pitch}
-          onChange={(event) => onPitchChange(Number(event.target.value))}
-          aria-label={t('practice.pitchLabel')}
-          disabled={!pitchAvailable}
-          title={pitchAvailable ? t('practice.pitchTitle') : t('practice.pitchUnavailable')}
-        >
-          {PITCHES.map((value) => (
-            <option key={value} value={value}>
-              {value > 0 ? `+${value}` : value}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {beats.length === 0 ? (
+      {mobile ? null : practiceExtras}
+      <div
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-line pl-0 sm:border-l sm:pl-3"
+        role="group"
+        aria-label={t('practice.songAudioAria')}
+      >
+        <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          {t('practice.songAudio')}
+        </span>
         <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-          {t('practice.bpm')}
-          <input
-            type="number"
-            className="tool-select w-16 font-mono text-xs tabular-nums normal-case tracking-normal"
-            min={MIN_BPM}
-            max={MAX_BPM}
-            step={1}
-            value={bpmDraft}
-            onChange={(event) => setBpmDraft(event.target.value)}
-            onBlur={commitManualBpm}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') event.currentTarget.blur();
-            }}
-            aria-label={t('practice.bpmLabel')}
-          />
+          {t('practice.rate')}
+          <select
+            className="tool-select font-mono text-xs normal-case tracking-normal"
+            value={rate}
+            onChange={(event) => onRateChange(Number(event.target.value))}
+            aria-label={t('practice.rateLabel')}
+          >
+            {SPEEDS.map((speed) => (
+              <option key={speed.value} value={speed.value}>
+                {speed.label}
+              </option>
+            ))}
+          </select>
         </label>
+
+        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          {t('practice.pitch')}
+          <select
+            className="tool-select font-mono text-xs tabular-nums normal-case tracking-normal"
+            value={pitch}
+            onChange={(event) => onPitchChange(Number(event.target.value))}
+            aria-label={t('practice.pitchLabel')}
+            disabled={!pitchAvailable}
+            title={pitchAvailable ? t('practice.pitchTitle') : t('practice.pitchUnavailable')}
+          >
+            {PITCHES.map((value) => (
+              <option key={value} value={value}>
+                {value > 0 ? `+${value}` : value}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {mobile ? (
+        <details className="basis-full pt-1">
+          <summary className="cursor-pointer font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+            {t('toolbar.morePractice')}
+          </summary>
+          <div className="flex flex-wrap items-center gap-2 pt-2">{practiceExtras}</div>
+        </details>
       ) : null}
-
-      <button
-        type="button"
-        className={metronome ? 'tool-chip-active' : 'tool-chip'}
-        aria-pressed={metronome}
-        disabled={duration <= 0}
-        title={
-          beats.length === 0
-            ? t('practice.metronomeManual')
-            : t('practice.metronomeOn')
-        }
-        onClick={() => setMetronome((value) => !value)}
-      >
-        {t('practice.metronome')}
-      </button>
-
-      <button
-        type="button"
-        className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em]"
-        onClick={startCountIn}
-        disabled={countingIn}
-      >
-        {countingIn ? t('practice.counting') : t('practice.countIn')}
-      </button>
     </section>
   );
 }

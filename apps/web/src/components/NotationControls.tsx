@@ -1,12 +1,12 @@
 import type { AccidentalPreference, Notation } from '@chordifree/chords';
-import { IconAccidental, IconKey, IconNote, IconTranspose, Tool } from './Toolbar';
+import { IconAccidental, IconNote, IconTranspose, Tool } from './Toolbar';
 import { useT } from '../i18n';
 
 interface NotationControlsProps {
   notation: Notation;
   accidentalPreference: AccidentalPreference;
   transpose: number;
-  keyLabel: string | null;
+  hideAdvanced?: boolean;
   onChange: (patch: {
     notation?: Notation;
     accidentalPreference?: AccidentalPreference;
@@ -18,13 +18,13 @@ export function NotationControls({
   notation,
   accidentalPreference,
   transpose,
-  keyLabel,
+  hideAdvanced = false,
   onChange,
 }: NotationControlsProps) {
   const t = useT();
   return (
     <section className="contents" aria-label={t('notation.aria')}>
-      <Tool label={t('notation.notation')} icon={<IconNote />}>
+      <Tool label={t('notation.notation')} icon={<IconNote />} className="border-l-0">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -45,28 +45,51 @@ export function NotationControls({
         </div>
       </Tool>
 
+      {hideAdvanced ? null : (
       <div className="tool">
-        <span className="tool-icon" aria-hidden="true">
-          <IconAccidental />
+        <span className="tool-head">
+          <span className="tool-icon" aria-hidden="true">
+            <IconAccidental />
+          </span>
+          <span className="tool-label">{t('notation.accidentals')}</span>
         </span>
-        <label htmlFor="accidental-preference" className="tool-label">
-          {t('notation.accidentals')}
-        </label>
-        <div className="tool-value">
-          <select
-            id="accidental-preference"
-            className="tool-select"
-            value={accidentalPreference}
-            onChange={(event) =>
-              onChange({ accidentalPreference: event.target.value as AccidentalPreference })
-            }
+        <div
+          className="flex items-center gap-0.5"
+          role="group"
+          aria-label={t('notation.accidentals')}
+        >
+          <button
+            type="button"
+            className="tool-chip px-2 text-xs"
+            aria-pressed={accidentalPreference === 'auto'}
+            title={t('notation.auto')}
+            onClick={() => onChange({ accidentalPreference: 'auto' })}
           >
-            <option value="auto">{t('notation.auto')}</option>
-            <option value="sharp">{t('notation.sharp')} ♯</option>
-            <option value="flat">{t('notation.flat')} ♭</option>
-          </select>
+            {t('notation.autoShort')}
+          </button>
+          <button
+            type="button"
+            className="tool-chip min-w-8 px-1.5 text-center text-lg leading-none"
+            aria-pressed={accidentalPreference === 'sharp'}
+            aria-label={t('notation.sharp')}
+            title={t('notation.sharp')}
+            onClick={() => onChange({ accidentalPreference: 'sharp' })}
+          >
+            ♯
+          </button>
+          <button
+            type="button"
+            className="tool-chip min-w-8 px-1.5 text-center text-lg leading-none"
+            aria-pressed={accidentalPreference === 'flat'}
+            aria-label={t('notation.flat')}
+            title={t('notation.flat')}
+            onClick={() => onChange({ accidentalPreference: 'flat' })}
+          >
+            ♭
+          </button>
         </div>
       </div>
+      )}
 
       <Tool label={t('notation.transpose')} icon={<IconTranspose />}>
         <div className="flex items-center gap-0.5">
@@ -101,12 +124,6 @@ export function NotationControls({
         </div>
       </Tool>
 
-      <Tool label={t('notation.key')} icon={<IconKey />}>
-        <span className="font-display text-base font-bold leading-none text-ink">{keyLabel ?? '—'}</span>
-        <p className="sr-only">
-          {keyLabel ? t('notation.estimatedKey', { key: keyLabel }) : t('notation.unknownKey')}
-        </p>
-      </Tool>
     </section>
   );
 }

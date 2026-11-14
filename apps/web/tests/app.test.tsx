@@ -4,7 +4,8 @@ import App from '../src/App';
 import { createDemoSong } from '../src/demo';
 import { setLanguage } from '../src/i18n';
 import { encodeSongForShare } from '../src/lib/share';
-import { KEYS } from '../src/storage/keys';
+import { getStorage, KEYS } from '../src/storage/keys';
+import { createSetlist, loadSetlists, saveSetlists } from '../src/storage/setlists';
 import { DEFAULT_PREFERENCES } from '../src/storage/preferences';
 
 function response(body: unknown, status = 200): Response {
@@ -43,6 +44,12 @@ function stubApi(analysis: typeof result = result) {
     if (url === '/api/health') {
       return response({ status: 'ok', analyzer: 'ok', analyzerVersion: 'essentia-1.0' });
     }
+    if (url === '/api/youtube/audio-cache') {
+      return response({ entries: 0, bytes: 0, ttlMinutes: 60 });
+    }
+    if (url.endsWith('/audio') && init?.method === 'POST') {
+      return response({ url: '/demo.wav' });
+    }
     if (init?.method === 'POST') {
       return response({
         id: 'job-1',
@@ -55,6 +62,14 @@ function stubApi(analysis: typeof result = result) {
   });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
+}
+
+function toggleSimplify() {
+  fireEvent.click(screen.getByRole('button', { name: 'Simplificar acordes' }));
+}
+
+function setReduction(level: 'Sin reducir' | 'Normal' | 'Máxima') {
+  fireEvent.click(screen.getByRole('button', { name: level }));
 }
 
 async function analyze() {
@@ -108,7 +123,7 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol');
 
     // Automatic accidentals choose flats for the resulting key.
-    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sostenidos' }));
     fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
     expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
@@ -128,6 +143,37 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
     expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
+  });
+
+  it('opens songs in the chord grid and separates song audio from chord controls', async () => {
+    stubApi({
+      ...result,
+      beats: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5],
+      beatsPerBar: 4,
+    });
+    await analyze();
+
+    expect(screen.getByText('Transponer')).toBeInTheDocument();
+    const songAudio = screen.getByRole('group', { name: 'Controles de audio de la canción' });
+    expect(songAudio).toHaveTextContent('Velocidad');
+    expect(songAudio).toHaveTextContent('Tono de la canción');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    await screen.findByRole('heading', { name: 'Demo sincronizada' });
+
+    expect(screen.getByRole('button', { name: 'Parrilla' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('saves the lyrics with chords and restores them on reopen', async () => {
@@ -160,10 +206,7 @@ describe('App', () => {
     view.unmount();
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Letra' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Letra' }));
     const reopened = within(screen.getByTestId('song-grid-column'));
     expect(reopened.getByText('Primera línea')).toBeInTheDocument();
     expect(reopened.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
@@ -207,18 +250,18 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^Cmaj7 en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am7 en/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Simplificar acordes/ }));
+    toggleSimplify();
     expect(grid.getByRole('button', { name: /^C en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    setReduction('Normal');
     expect(grid.queryByRole('button', { name: /^G en/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Española' }));
     expect(grid.getByRole('button', { name: /^Do en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Lam en/ })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sostenidos' }));
     fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
     expect(grid.getByRole('button', { name: /^Do♯ en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^La♯m en/ })).toBeInTheDocument();
@@ -257,8 +300,7 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    setReduction('Máxima');
 
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
@@ -279,8 +321,7 @@ describe('App', () => {
     });
     await analyze();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    setReduction('Máxima');
 
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByTestId('beat-cell-1')).not.toHaveTextContent('G');
@@ -344,7 +385,7 @@ describe('App', () => {
     expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Simplificar acordes/ }));
+    toggleSimplify();
     expect(within(screen.getByTestId('chord-row-0')).getByText('C')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am')).toBeInTheDocument();
 
@@ -353,7 +394,7 @@ describe('App', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Cmaj7');
     fireEvent.click(screen.getByRole('button', { name: 'Salir de edición' }));
 
-    fireEvent.click(screen.getByRole('button', { name: /Simplificar acordes/ }));
+    toggleSimplify();
     expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
   });
@@ -374,7 +415,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(3);
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    setReduction('Normal');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.queryByText('G')).not.toBeInTheDocument();
@@ -402,10 +443,10 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    setReduction('Normal');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    setReduction('Máxima');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.getByText('C')).toBeInTheDocument();
@@ -534,6 +575,7 @@ describe('App', () => {
     render(<App />);
 
     const footer = screen.getByTestId('site-footer');
+    expect(footer).toHaveTextContent('Musica laetitiae comes, medicina dolorum');
     expect(footer).toHaveTextContent('GitHub');
     expect(footer).toHaveTextContent('AGPL-3.0');
     expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
@@ -553,6 +595,42 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByRole('button', { name: 'Guardar en biblioteca' })).toBeInTheDocument();
+  });
+
+  it('shows save changes only after modifying a saved song', async () => {
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument(),
+    );
+  });
+
+  it('adds the current song to a setlist from More actions', async () => {
+    const setlist = createSetlist('Ensayo');
+    saveSetlists(getStorage(), [setlist]);
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Más acciones' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Añadir a lista' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Añadir a una lista' });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Ensayo/ }));
+
+    expect(await screen.findByText('Canción añadida a «Ensayo».')).toBeInTheDocument();
+    expect(loadSetlists(getStorage())[0]?.songIds).toHaveLength(1);
   });
 
   it('creates a setlist, adds a song, and opens it', async () => {

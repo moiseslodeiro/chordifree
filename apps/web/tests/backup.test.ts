@@ -4,13 +4,11 @@ import {
   BackupError,
   backupFilename,
   createBackup,
-  createBackupSnapshot,
   parseBackup,
   parseBackupSnapshot,
   serializeBackup,
-  serializeBackupSnapshot,
 } from '../src/storage/backup';
-import type { Folder, Song } from '../src/types';
+import type { Song } from '../src/types';
 
 function song(id = 'song-1', videoId = 'dQw4w9WgXcQ', title = 'Demo'): Song {
   return {
@@ -87,20 +85,25 @@ describe('backup', () => {
     ).toThrow('La canción 1');
   });
 
-  it('includes and restores folders in a snapshot', () => {
-    const folder: Folder = {
-      id: 'folder-1',
-      name: 'Favoritas',
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    };
-    const withFolder = { ...song('a', 'video-a', 'Con carpeta'), folderId: folder.id };
-    const backup = createBackupSnapshot([withFolder], [folder], now);
-    expect(backup.folders).toEqual([folder]);
+  it('imports songs from an older backup that still contains folders', () => {
+    const raw = JSON.stringify({
+      format: 'chordifree-backup',
+      version: 1,
+      exportedAt: now.toISOString(),
+      songs: [song('a', 'video-a', 'Con carpeta')],
+      folders: [
+        {
+          id: 'folder-1',
+          name: 'Favoritas',
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        },
+      ],
+    });
 
-    const restored = parseBackupSnapshot(serializeBackupSnapshot([withFolder], [folder], now));
-    expect(restored.folders).toEqual([folder]);
-    expect(restored.songs[0]?.folderId).toBe(folder.id);
+    const restored = parseBackupSnapshot(raw);
+    expect(restored.songs).toHaveLength(1);
+    expect(restored).not.toHaveProperty('folders');
   });
 
   it('generates a filename with the date', () => {

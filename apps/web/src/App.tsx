@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearAudioCache,
   createYoutubeAnalysis,
@@ -18,7 +18,7 @@ import { SetlistView } from './components/SetlistView';
 import { SongView } from './components/SongView';
 import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
-import { BackupError, downloadBackupSnapshot, parseBackupSnapshot } from './storage/backup';
+import { BackupError, downloadBackup, parseBackupSnapshot } from './storage/backup';
 import { decodeSongFromToken } from './lib/share';
 import { ChordProError, parseChordPro } from './lib/chordpro';
 import { Library, analysisCacheStats, clearAnalysisCache } from './storage/library';
@@ -34,7 +34,7 @@ import {
   saveSetlists,
 } from './storage/setlists';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
-import type { AppNotice, Folder, Preferences, Setlist, Song } from './types';
+import type { AppNotice, Preferences, Setlist, Song } from './types';
 
 type Route =
   | { name: 'home' }
@@ -70,6 +70,28 @@ function audioUrlForSong(song: Song): string | null {
     : null;
 }
 
+/** Stable comparison that ignores timestamps and object key order. */
+function comparableSong(song: Song): string {
+  const stable = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(stable);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, entry]) => [key, stable(entry)]),
+      );
+    }
+    return value;
+  };
+  const { updatedAt: _updatedAt, ...rest } = song;
+  return JSON.stringify(stable(rest));
+}
+
+function songIsDirty(current: Song | null, saved: Song | null): boolean {
+  if (!current || !saved) return false;
+  return comparableSong(current) !== comparableSong(saved);
+}
+
 function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
   return listKeys(storage, `${PREFIX}:corrupt:`).length > 0;
 }
@@ -79,7 +101,10 @@ export default function App() {
   const desktop = isDesktopApp();
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
-  const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
+  const [preferences, setPreferences] = useState<Preferences>(() => {
+    const loaded = loadPreferences(storage);
+    return parseHash().name === 'song' ? { ...loaded, gridView: 'beats' } : loaded;
+  });
   const analysisRunner = useAnalysisRunner();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [audioCache, setAudioCache] = useState<AudioCacheStats | null>(null);
@@ -102,6 +127,8 @@ export default function App() {
   });
   const [route, setRoute] = useState<Route>(initial.route);
   const [song, setSong] = useState<Song | null>(initial.song);
+  const [savedSong, setSavedSong] = useState<Song | null>(initial.song);
+  const dirty = useMemo(() => songIsDirty(song, savedSong), [song, savedSong]);
   useEffect(() => {
     if (route.name !== 'library') return;
     const controller = new AbortController();
@@ -121,7 +148,6 @@ export default function App() {
     initial.song ? audioUrlForSong(initial.song) : null,
   );
   const [songs, setSongs] = useState(() => library.list());
-  const [folders, setFolders] = useState(() => library.listFolders());
   const [notice, setNotice] = useState<AppNotice | null>(() =>
     hasQuarantinedData(storage)
       ? {
@@ -211,9 +237,22 @@ export default function App() {
     });
   }, []);
 
+  /** Every song opens in the chord grid; the view can still change afterwards. */
+  const resetGridView = useCallback(() => {
+    setPreferences((current) => {
+      if (current.gridView === 'beats') return current;
+      const next: Preferences = { ...current, gridView: 'beats' };
+      try {
+        savePreferences(storage, next);
+      } catch {
+        // The in-memory preference is still reset.
+      }
+      return next;
+    });
+  }, [storage]);
+
   const refreshLibrary = useCallback(() => {
     setSongs(library.list());
-    setFolders(library.listFolders());
   }, [library]);
 
   const recordOpen = useCallback(
@@ -235,6 +274,8 @@ export default function App() {
     (next: Song, nextAudioUrl: string | null) => {
       songRef.current = next;
       setSong(next);
+      setSavedSong(next);
+      resetGridView();
       recordOpen(next.id);
       replaceAudioUrl(nextAudioUrl);
       const nextRoute: Route = { name: 'song', id: next.id };
@@ -243,7 +284,7 @@ export default function App() {
         window.location.hash = hashFor(nextRoute);
       }
     },
-    [recordOpen, replaceAudioUrl],
+    [recordOpen, replaceAudioUrl, resetGridView],
   );
 
   const applyRoute = useCallback(
@@ -253,12 +294,15 @@ export default function App() {
         if (found) {
           songRef.current = found;
           setSong(found);
+          setSavedSong(found);
+          resetGridView();
           recordOpen(found.id);
           replaceAudioUrl(audioUrlForSong(found));
           setRoute(next);
           return;
         }
         if (songRef.current?.id === next.id) {
+          resetGridView();
           setRoute(next);
           return;
         }
@@ -282,7 +326,7 @@ export default function App() {
       }
       setRoute(next);
     },
-    [library, recordOpen, refreshLibrary, replaceAudioUrl, setlists, t],
+    [library, recordOpen, refreshLibrary, replaceAudioUrl, resetGridView, setlists, t],
   );
 
   useEffect(() => {
@@ -357,6 +401,26 @@ export default function App() {
     );
   };
 
+  const addCurrentSongToSetlist = (setlistId: string, song: Song) => {
+    const target = setlists.find((setlist) => setlist.id === setlistId);
+    if (!target) return;
+    if (target.songIds.includes(song.id)) {
+      setNotice({
+        message: t('setlists.songAlreadyIn', { name: target.name }),
+        tone: 'info',
+      });
+      return;
+    }
+    handleAddSongToSetlist(setlistId, song.id);
+    setNotice({ message: t('setlists.songAdded', { name: target.name }), tone: 'success' });
+  };
+
+  const createSetlistWithSong = (name: string, song: Song) => {
+    const created = addSongToSetlist(createSetlist(name), song.id);
+    updateSetlists((current) => [...current, created]);
+    setNotice({ message: t('setlists.songAdded', { name: created.name }), tone: 'success' });
+  };
+
   const handleRemoveSongFromSetlist = (id: string, songId: string) => {
     updateSetlists((current) =>
       current.map((setlist) =>
@@ -396,6 +460,7 @@ export default function App() {
       library.save(target);
       songRef.current = target;
       setSong(target);
+      setSavedSong(target);
       refreshLibrary();
       setNotice({ message: t('app.songSaved'), tone: 'success' });
     } catch (error) {
@@ -416,15 +481,27 @@ export default function App() {
     if (songRef.current?.id === id) {
       songRef.current = null;
       setSong(null);
+      setSavedSong(null);
       replaceAudioUrl(null);
     }
     setNotice({ message: t('app.songDeleted'), tone: 'info' });
   };
 
+  useEffect(() => {
+    if (reanalyzingId === null) return;
+    const progress = analysisRunner.state.view?.progress;
+    if (progress === undefined) return;
+    setNotice({
+      message: t('app.reanalyzingProgress', { progress: Math.round(progress) }),
+      tone: 'info',
+    });
+  }, [analysisRunner.state.view?.progress, reanalyzingId, t]);
+
   const reanalyzeSong = async (target: Song) => {
     const source = target.source;
     if (source.type !== 'youtube' || reanalyzingId !== null) return;
     setReanalyzingId(target.id);
+    setNotice({ message: t('app.reanalyzingProgress', { progress: 0 }), tone: 'info' });
     const result = await analysisRunner.run((signal) =>
       createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal),
     );
@@ -454,6 +531,7 @@ export default function App() {
     }
     try {
       library.save(updated);
+      setSavedSong(updated);
       refreshLibrary();
       setNotice({ message: t('app.reanalyzed'), tone: 'success' });
     } catch {
@@ -470,7 +548,7 @@ export default function App() {
       setNotice({ message: t('app.exportEmpty'), tone: 'warning' });
       return;
     }
-    downloadBackupSnapshot(snapshot.songs, snapshot.folders);
+    downloadBackup(snapshot.songs);
     setNotice({
       message: t('app.exported', {
         count: snapshot.songs.length,
@@ -539,49 +617,6 @@ export default function App() {
             : t('app.backupImportFailed'),
         tone: 'warning',
       });
-    }
-  };
-
-  const createFolder = (name: string) => {
-    if (!name.trim()) return;
-    try {
-      library.createFolder(name);
-      refreshLibrary();
-      setNotice({ message: t('library.folderCreated'), tone: 'success' });
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-    }
-  };
-
-  const renameFolder = (folder: Folder, name: string) => {
-    if (!name.trim() || name.trim() === folder.name) return;
-    try {
-      if (library.renameFolder(folder.id, name.trim())) {
-        refreshLibrary();
-        setNotice({ message: t('library.folderRenamed'), tone: 'success' });
-      }
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-    }
-  };
-
-  const deleteFolder = (folder: Folder) => {
-    if (!window.confirm(t('library.folderDeleteConfirm', { name: folder.name }))) return;
-    try {
-      if (library.deleteFolder(folder.id)) {
-        refreshLibrary();
-        setNotice({ message: t('library.folderDeleted'), tone: 'info' });
-      }
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-    }
-  };
-
-  const moveSongToFolder = (id: string, folderId: string | null) => {
-    try {
-      if (library.moveSong(id, folderId)) refreshLibrary();
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
     }
   };
 
@@ -688,7 +723,6 @@ export default function App() {
         {route.name === 'library' ? (
           <LibraryList
             songs={songs}
-            folders={folders}
             history={history}
             notice={notice}
             onDismissNotice={() => setNotice(null)}
@@ -700,10 +734,6 @@ export default function App() {
             onClearAudioCache={clearAudioCacheAndNotify}
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
-            onCreateFolder={createFolder}
-            onRenameFolder={renameFolder}
-            onDeleteFolder={deleteFolder}
-            onMoveSong={moveSongToFolder}
             onBack={() => navigate({ name: 'home' })}
             onHome={() => navigate({ name: 'home' })}
           />
@@ -742,6 +772,7 @@ export default function App() {
             audioUrl={audioUrl}
             forceFake={forceFake}
             saved={songs.some((item) => item.id === song.id)}
+            dirty={dirty}
             simplifyChords={preferences.simplifyChords}
             reduceChords={preferences.reduceChords}
             reduceChordsMax={preferences.reduceChordsMax}
@@ -754,6 +785,9 @@ export default function App() {
               setSong(next);
             }}
             onSave={saveSong}
+            setlists={setlists}
+            onAddToSetlist={(setlistId) => addCurrentSongToSetlist(setlistId, song)}
+            onCreateSetlistWithSong={(name) => createSetlistWithSong(name, song)}
             onReanalyze={() => void reanalyzeSong(song)}
             reanalyzing={reanalyzingId === song.id}
             reanalyzeProgress={
@@ -773,7 +807,7 @@ export default function App() {
         data-testid="site-footer"
         className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink3"
       >
-        <span>{t(desktop ? 'footer.desktopTagline' : 'footer.tagline')}</span>
+        <span title={t('footer.quoteTranslation')}>{t('footer.tagline')}</span>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
           {desktop ? (
             <button

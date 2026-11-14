@@ -1,6 +1,6 @@
 import { t } from '../i18n';
-import type { Folder, Song } from '../types';
-import { isFolder, isSong } from './library';
+import type { Song } from '../types';
+import { isSong } from './library';
 
 export const BACKUP_FORMAT = 'chordifree-backup';
 export const BACKUP_VERSION = 1;
@@ -10,12 +10,10 @@ export interface LibraryBackup {
   version: number;
   exportedAt: string;
   songs: Song[];
-  folders?: Folder[];
 }
 
 export interface BackupSnapshot {
   songs: Song[];
-  folders: Folder[];
 }
 
 export class BackupError extends Error {
@@ -34,24 +32,8 @@ export function createBackup(songs: Song[], now: Date = new Date()): LibraryBack
   };
 }
 
-export function createBackupSnapshot(
-  songs: Song[],
-  folders: Folder[] = [],
-  now: Date = new Date(),
-): LibraryBackup {
-  return { ...createBackup(songs, now), folders };
-}
-
 export function serializeBackup(songs: Song[], now: Date = new Date()): string {
   return JSON.stringify(createBackup(songs, now), null, 2);
-}
-
-export function serializeBackupSnapshot(
-  songs: Song[],
-  folders: Folder[] = [],
-  now: Date = new Date(),
-): string {
-  return JSON.stringify(createBackupSnapshot(songs, folders, now), null, 2);
 }
 
 function parseBackupData(raw: string): BackupSnapshot {
@@ -78,13 +60,6 @@ function parseBackupData(raw: string): BackupSnapshot {
   if (!Array.isArray(candidate.songs)) {
     throw new BackupError(t('backup.noSongs'));
   }
-  if (
-    candidate.folders !== undefined &&
-    (!Array.isArray(candidate.folders) || !candidate.folders.every(isFolder))
-  ) {
-    throw new BackupError(t('backup.invalidFormat'));
-  }
-
   const songs: Song[] = [];
   for (const [index, value] of candidate.songs.entries()) {
     if (!isSong(value)) {
@@ -92,7 +67,7 @@ function parseBackupData(raw: string): BackupSnapshot {
     }
     songs.push(value);
   }
-  return { songs, folders: (candidate.folders as Folder[] | undefined) ?? [] };
+  return { songs };
 }
 
 export function parseBackup(raw: string): Song[] {
@@ -131,14 +106,6 @@ function download(filename: string, content: string): void {
 /** Downloads the backup as JSON in the browser. */
 export function downloadBackup(songs: Song[], now: Date = new Date()): void {
   download(backupFilename(now), serializeBackup(songs, now));
-}
-
-export function downloadBackupSnapshot(
-  songs: Song[],
-  folders: Folder[] = [],
-  now: Date = new Date(),
-): void {
-  download(backupFilename(now), serializeBackupSnapshot(songs, folders, now));
 }
 
 /** Downloads one song in the same format used by Import JSON. */

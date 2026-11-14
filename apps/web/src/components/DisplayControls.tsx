@@ -8,6 +8,7 @@ interface DisplayControlsProps {
   reduceChordsMax: boolean;
   instrument: Instrument;
   capo: number;
+  hideAdvanced?: boolean;
   onChange: (patch: {
     simplifyChords?: boolean;
     reduceChords?: boolean;
@@ -32,91 +33,105 @@ export function DisplayControls({
   reduceChordsMax,
   instrument,
   capo,
+  hideAdvanced = false,
   onChange,
 }: DisplayControlsProps) {
   const t = useT();
   const instrumentLabel = t(
     INSTRUMENTS.find((item) => item.value === instrument)?.label ?? 'instrument.guitar',
   );
-  const maxActive = reduceChords && reduceChordsMax;
   /** The capo only makes sense on string instruments. */
   const capoAvailable = supportsCapo(instrument);
 
   return (
     <section className="contents" aria-label={t('display.aria')}>
-      <Tool label={t('display.presentation')} icon={<IconSliders />}>
-        <div className="flex flex-wrap items-center gap-0.5">
+      <Tool
+        label={t('display.presentation')}
+        icon={<IconSliders />}
+        className="sm:min-w-[22rem]"
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
+            className="tool-chip"
             aria-pressed={simplifyChords}
             aria-label={t('display.simplifyAria')}
             title={t('display.simplifyTitle')}
-            className="tool-chip"
             onClick={() => onChange({ simplifyChords: !simplifyChords })}
           >
             {t('display.simplify')}
           </button>
-          <button
-            type="button"
-            aria-pressed={reduceChords}
-            aria-label={t('display.reduceAria')}
-            title={t('display.reduceTitle')}
-            className="tool-chip"
-            onClick={() =>
-              onChange(
-                reduceChords
-                  ? { reduceChords: false, reduceChordsMax: false }
-                  : { reduceChords: true },
-              )
-            }
+          <span className="h-5 border-l border-line" aria-hidden="true" />
+          <div
+            className="flex flex-wrap items-center gap-0.5"
+            role="group"
+            aria-label={t('display.reduction')}
           >
-            {t('display.reduce')}
-          </button>
-          <button
-            type="button"
-            aria-pressed={maxActive}
-            aria-label={t('display.reduceMaxAria')}
-            title={t('display.reduceMaxTitle')}
-            disabled={!reduceChords}
-            className="tool-chip disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => onChange({ reduceChords: true, reduceChordsMax: !reduceChordsMax })}
-          >
-            {t('display.reduceMax')}
-          </button>
+            <button
+              type="button"
+              className="tool-chip"
+              aria-pressed={!reduceChords}
+              onClick={() => onChange({ reduceChords: false, reduceChordsMax: false })}
+            >
+              {t('display.reductionNone')}
+            </button>
+            <button
+              type="button"
+              className="tool-chip"
+              aria-pressed={reduceChords && !reduceChordsMax}
+              onClick={() => onChange({ reduceChords: true, reduceChordsMax: false })}
+            >
+              {t('display.reductionNormal')}
+            </button>
+            <button
+              type="button"
+              className="tool-chip"
+              aria-pressed={reduceChords && reduceChordsMax}
+              onClick={() => onChange({ reduceChords: true, reduceChordsMax: true })}
+            >
+              {t('display.reductionMax')}
+            </button>
+          </div>
         </div>
       </Tool>
 
-      <div className="tool">
-        <span className="tool-icon" aria-hidden="true">
-          <IconGuitar />
-        </span>
-        <label htmlFor="instrument-select" className="tool-label">
-          {t('display.instrument')}
-        </label>
-        <div className="tool-value">
-          <select
-            id="instrument-select"
-            className="tool-select"
-            value={instrument}
-            onChange={(event) => onChange({ instrument: event.target.value as Instrument })}
-          >
-            {INSTRUMENTS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {t(item.label)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {capoAvailable ? (
+      {hideAdvanced ? null : (
         <div className="tool">
-          <span className="tool-icon" aria-hidden="true">
-            <IconCapo />
+          <span className="tool-head">
+            <span className="tool-icon" aria-hidden="true">
+              <IconGuitar />
+            </span>
+            <label htmlFor="instrument-select" className="tool-label">
+              {t('display.instrument')}
+            </label>
           </span>
-          <label htmlFor="capo-select" className="tool-label">
-            Capo
-          </label>
+          <div className="tool-value">
+            <select
+              id="instrument-select"
+              className="tool-select"
+              value={instrument}
+              onChange={(event) => onChange({ instrument: event.target.value as Instrument })}
+            >
+              {INSTRUMENTS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {t(item.label)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {hideAdvanced || !capoAvailable ? null : (
+        <div className="tool">
+          <span className="tool-head">
+            <span className="tool-icon" aria-hidden="true">
+              <IconCapo />
+            </span>
+            <label htmlFor="capo-select" className="tool-label">
+              {t('display.capo')}
+            </label>
+          </span>
           <div className="tool-value">
             <select
               id="capo-select"
@@ -132,7 +147,7 @@ export function DisplayControls({
             </select>
           </div>
         </div>
-      ) : null}
+      )}
 
       <p className="sr-only" aria-live="polite">
         {`${t('display.summary', {
