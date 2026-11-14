@@ -58,6 +58,25 @@ export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): R
     }
   });
 
+  /** Disk usage of the temporary audio cache. */
+  router.get('/audio-cache', async (_req, res, next) => {
+    try {
+      res.json(await audioCache.stats());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /** Removes every temporary audio file. */
+  router.delete('/audio-cache', async (_req, res, next) => {
+    try {
+      const removed = await audioCache.clear();
+      res.json({ removed });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   /** Prepares the temporary audio used by the pitch-shifted player. */
   router.post('/:videoId/audio', audioLimiter, async (req, res, next) => {
     try {

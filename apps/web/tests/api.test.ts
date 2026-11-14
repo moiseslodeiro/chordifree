@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiClientError,
+  clearAudioCache,
   createUploadAnalysis,
   createYoutubeAnalysis,
   fetchLyrics,
   getAnalysis,
+  getAudioCacheStats,
   getHealth,
   pollAnalysis,
   prepareYoutubeAudio,
@@ -81,6 +83,29 @@ describe('HTTP client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/youtube/dQw4w9WgXcQ/audio', {
       method: 'POST',
       signal: undefined,
+    });
+  });
+
+  it('reads and clears the temporary audio cache', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === 'DELETE'
+        ? response({ removed: 2 })
+        : response({ entries: 2, bytes: 2048, ttlMinutes: 60 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getAudioCacheStats()).resolves.toEqual({
+      entries: 2,
+      bytes: 2048,
+      ttlMinutes: 60,
+    });
+    await expect(clearAudioCache()).resolves.toEqual({ removed: 2 });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/youtube/audio-cache', {
+      signal: undefined,
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/youtube/audio-cache', {
+      method: 'DELETE',
     });
   });
 

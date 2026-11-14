@@ -50,6 +50,8 @@ const en = {
   'app.exported': 'Backup downloaded with {count} {label}.',
   'app.importedSheet': 'Chord sheet imported: {title}.',
   'app.cacheCleared': 'Analysis cache cleared ({count} entries).',
+  'app.audioCacheCleared': 'Temporary audio cache cleared ({count} files).',
+  'app.audioCacheClearFailed': 'Could not clear the temporary audio cache.',
   'app.imported': 'Backup imported: {added} new {addedLabel} and {updated} {updatedLabel}.',
   'app.newSong': 'new song',
   'app.newSongs': 'new songs',
@@ -133,6 +135,11 @@ const en = {
   'library.clearFilters': 'Clear filters',
   'library.cacheStats': 'Analysis cache: {count} entries · {size}',
   'library.clearCache': 'Clear cache',
+  'library.audioCacheStatsOne':
+    'Temporary YouTube audio: 1 file · {size} · kept for about {minutes} min',
+  'library.audioCacheStatsOther':
+    'Temporary YouTube audio: {count} files · {size} · kept for about {minutes} min',
+  'library.clearAudioCache': 'Clear temporary audio',
   'library.uploadSource': 'Uploaded audio',
   'library.sheetSource': 'Chord sheet',
   'library.title': 'Library',
@@ -631,6 +638,8 @@ const es: Record<MessageKey, string> = {
   'app.exported': 'Copia de seguridad descargada con {count} {label}.',
   'app.importedSheet': 'Hoja de acordes importada: {title}.',
   'app.cacheCleared': 'Caché de análisis vaciada ({count} entradas).',
+  'app.audioCacheCleared': 'Caché de audio temporal vaciada ({count} archivos).',
+  'app.audioCacheClearFailed': 'No se pudo vaciar la caché de audio temporal.',
   'app.imported': 'Copia importada: {added} {addedLabel} y {updated} {updatedLabel}.',
   'app.newSong': 'canción nueva',
   'app.newSongs': 'canciones nuevas',
@@ -716,6 +725,11 @@ const es: Record<MessageKey, string> = {
   'library.clearFilters': 'Limpiar filtros',
   'library.cacheStats': 'Caché de análisis: {count} entradas · {size}',
   'library.clearCache': 'Vaciar caché',
+  'library.audioCacheStatsOne':
+    'Audio temporal de YouTube: 1 archivo · {size} · se conserva unos {minutes} min',
+  'library.audioCacheStatsOther':
+    'Audio temporal de YouTube: {count} archivos · {size} · se conserva unos {minutes} min',
+  'library.clearAudioCache': 'Borrar audio temporal',
   'library.uploadSource': 'Audio subido',
   'library.sheetSource': 'Hoja de acordes',
   'library.title': 'Biblioteca',

@@ -77,7 +77,8 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
-- **Analysis cache manager** in the library, with storage size and a clear button.
+- **Cache manager** in the library: analysis cache and temporary YouTube audio, with their
+  storage size and clear buttons.
 - **English and Spanish interface**, English by default.
 
 ## Local development

@@ -112,6 +112,54 @@ export class TemporaryAudioCache {
     }
   }
 
+  /** Disk usage and number of files currently kept for playback. */
+  async stats(): Promise<{ entries: number; bytes: number; ttlMinutes: number }> {
+    await this.sweep();
+    let entries = 0;
+    let bytes = 0;
+    try {
+      const files = await readdir(this.options.directory, { withFileTypes: true });
+      for (const entry of files) {
+        if (!entry.isFile()) continue;
+        const videoId = entry.name.split('.')[0] ?? '';
+        if (!isVideoId(videoId)) continue;
+        try {
+          const info = await stat(join(this.options.directory, entry.name));
+          entries += 1;
+          bytes += info.size;
+        } catch {
+          // The file may have disappeared between reading and deleting.
+        }
+      }
+    } catch {
+      // The cache does not exist yet.
+    }
+    return {
+      entries,
+      bytes,
+      ttlMinutes: Math.round(this.options.ttlMs / 60_000),
+    };
+  }
+
+  /** Removes every cached audio file and returns how many were deleted. */
+  async clear(): Promise<number> {
+    let files;
+    try {
+      files = await readdir(this.options.directory, { withFileTypes: true });
+    } catch {
+      return 0;
+    }
+    let removed = 0;
+    for (const entry of files) {
+      if (!entry.isFile()) continue;
+      const videoId = entry.name.split('.')[0] ?? '';
+      if (!isVideoId(videoId)) continue;
+      await rm(join(this.options.directory, entry.name), { force: true });
+      removed += 1;
+    }
+    return removed;
+  }
+
   /** Removes expired files and trims the cache to its maximum size. */
   async sweep(): Promise<number> {
     return sweepAudioCache(

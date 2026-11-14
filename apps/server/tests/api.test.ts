@@ -513,6 +513,26 @@ describe('temporary YouTube audio', () => {
     expect(downloads).toBe(1);
   });
 
+  it('reports and clears the temporary audio usage', async () => {
+    const app = await buildApp();
+    const empty = await request(app).get('/api/youtube/audio-cache');
+    expect(empty.status).toBe(200);
+    expect(empty.body).toEqual({ entries: 0, bytes: 0, ttlMinutes: 60 });
+
+    await request(app).post('/api/youtube/dQw4w9WgXcQ/audio');
+    const used = await request(app).get('/api/youtube/audio-cache');
+    expect(used.status).toBe(200);
+    expect(used.body.entries).toBe(1);
+    expect(used.body.bytes).toBeGreaterThan(0);
+
+    const cleared = await request(app).delete('/api/youtube/audio-cache');
+    expect(cleared.status).toBe(200);
+    expect(cleared.body).toEqual({ removed: 1 });
+
+    const after = await request(app).get('/api/youtube/audio-cache');
+    expect(after.body).toEqual({ entries: 0, bytes: 0, ttlMinutes: 60 });
+  });
+
   it('returns 404 until the audio is prepared', async () => {
     const app = await buildApp();
     const response = await request(app).get('/api/youtube/dQw4w9WgXcQ/audio');

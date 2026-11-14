@@ -106,6 +106,19 @@ describe('TemporaryAudioCache', () => {
     await expect(stat(entry.path)).rejects.toThrow();
   });
 
+  it('reports the disk usage and clears every file', async () => {
+    const root = await makeRoot();
+    const { cache } = makeCache(root, { ttlMs: 120_000 });
+    await cache.prepare(VIDEO);
+    await cache.prepare('abcdefghijk');
+
+    const stats = await cache.stats();
+    expect(stats).toEqual({ entries: 2, bytes: 34, ttlMinutes: 2 });
+
+    expect(await cache.clear()).toBe(2);
+    expect(await cache.stats()).toEqual({ entries: 0, bytes: 0, ttlMinutes: 2 });
+  });
+
   it('rejects invalid video identifiers', async () => {
     const root = await makeRoot();
     const { cache } = makeCache(root);

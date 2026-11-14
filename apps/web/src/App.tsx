@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getHealth } from './lib/api';
-import { createYoutubeAnalysis } from './lib/api';
+import {
+  clearAudioCache,
+  createYoutubeAnalysis,
+  getAudioCacheStats,
+  getHealth,
+  type AudioCacheStats,
+} from './lib/api';
 import { isDesktopApp, type UpdateInfo } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT, setLanguage } from './i18n';
@@ -77,6 +82,8 @@ export default function App() {
   const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
   const analysisRunner = useAnalysisRunner();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
+  const [audioCache, setAudioCache] = useState<AudioCacheStats | null>(null);
+  const [audioCacheRefresh, setAudioCacheRefresh] = useState(0);
   const [setlists, setSetlists] = useState<Setlist[]>(() => loadSetlists(storage));
   const [history, setHistory] = useState<HistoryMap>(() => loadHistory(storage));
   const [initial] = useState(() => {
@@ -95,6 +102,19 @@ export default function App() {
   });
   const [route, setRoute] = useState<Route>(initial.route);
   const [song, setSong] = useState<Song | null>(initial.song);
+  useEffect(() => {
+    if (route.name !== 'library') return;
+    const controller = new AbortController();
+    void getAudioCacheStats(controller.signal)
+      .then((stats) => {
+        if (!controller.signal.aborted) setAudioCache(stats);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAudioCache(null);
+      });
+    return () => controller.abort();
+  }, [route.name, audioCacheRefresh]);
+
   const songRef = useRef<Song | null>(initial.song);
   const shareHandled = useRef(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(
@@ -465,6 +485,23 @@ export default function App() {
     setNotice({ message: t('app.cacheCleared', { count: removed }), tone: 'info' });
   };
 
+  const clearAudioCacheAndNotify = () => {
+    void clearAudioCache()
+      .then(({ removed }) => {
+        setAudioCache((current) =>
+          current ? { ...current, entries: 0, bytes: 0 } : current,
+        );
+        setNotice({
+          message: t('app.audioCacheCleared', { count: removed }),
+          tone: 'info',
+        });
+      })
+      .catch(() => {
+        setNotice({ message: t('app.audioCacheClearFailed'), tone: 'warning' });
+        setAudioCacheRefresh((value) => value + 1);
+      });
+  };
+
   const importLibrary = async (file: File) => {
     try {
       const text = await file.text();
@@ -659,6 +696,8 @@ export default function App() {
             onImport={(file) => void importLibrary(file)}
             cache={analysisCacheStats(storage)}
             onClearCache={clearAnalysisCacheAndNotify}
+            audioCache={audioCache ?? undefined}
+            onClearAudioCache={clearAudioCacheAndNotify}
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
             onCreateFolder={createFolder}
