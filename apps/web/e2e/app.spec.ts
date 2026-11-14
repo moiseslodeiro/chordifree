@@ -395,8 +395,7 @@ test.describe('full flow', () => {
     });
     await analyze(page);
 
-    await page.getByLabel('Reducción de acordes').selectOption('normal');
-    await page.getByLabel('Reducción de acordes').selectOption('max');
+    await page.getByLabel('Modo de presentación').selectOption('max');
 
     await expect(page.getByTestId('beat-cell-0')).toContainText('C');
     await expect(page.getByTestId('beat-cell-1')).not.toContainText('G');
@@ -585,7 +584,7 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByTestId('chord-row-2')).toBeVisible();
 
-    await page.getByLabel('Reducción de acordes').selectOption('normal');
+    await page.getByLabel('Modo de presentación').selectOption('reduced');
     await expect(page.getByTestId('chord-row-2')).toHaveCount(0);
     await expect(page.getByTestId('chord-row-0')).toContainText('C');
     await expect(page.getByTestId('chord-row-1')).toContainText('A');

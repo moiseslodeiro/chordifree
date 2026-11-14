@@ -63,6 +63,12 @@ function stubApi(analysis: typeof result = result) {
   return fetchMock;
 }
 
+function setPresentation(value: string) {
+  fireEvent.change(screen.getByLabelText('Modo de presentación'), {
+    target: { value },
+  });
+}
+
 async function analyze() {
   const view = render(<App />);
   fireEvent.change(screen.getByLabelText('Enlace del video'), {
@@ -241,11 +247,11 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^Cmaj7 en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am7 en/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Simplificar acordes' }));
+    setPresentation('simplified');
     expect(grid.getByRole('button', { name: /^C en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'normal' } });
+    setPresentation('simplified-reduced');
     expect(grid.queryByRole('button', { name: /^G en/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Española' }));
@@ -291,8 +297,7 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'normal' } });
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'max' } });
+    setPresentation('max');
 
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
@@ -313,8 +318,7 @@ describe('App', () => {
     });
     await analyze();
 
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'normal' } });
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'max' } });
+    setPresentation('max');
 
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByTestId('beat-cell-1')).not.toHaveTextContent('G');
@@ -378,7 +382,7 @@ describe('App', () => {
     expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Simplificar acordes' }));
+    setPresentation('simplified');
     expect(within(screen.getByTestId('chord-row-0')).getByText('C')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am')).toBeInTheDocument();
 
@@ -387,7 +391,7 @@ describe('App', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Cmaj7');
     fireEvent.click(screen.getByRole('button', { name: 'Salir de edición' }));
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Simplificar acordes' }));
+    setPresentation('original');
     expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
   });
@@ -408,7 +412,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(3);
 
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'normal' } });
+    setPresentation('reduced');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.queryByText('G')).not.toBeInTheDocument();
@@ -436,10 +440,10 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'normal' } });
+    setPresentation('reduced');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    fireEvent.change(screen.getByLabelText('Reducción de acordes'), { target: { value: 'max' } });
+    setPresentation('max');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.getByText('C')).toBeInTheDocument();
