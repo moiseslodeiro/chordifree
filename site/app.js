@@ -36,7 +36,7 @@ const spanish = {
     'Todas las vistas salen del mismo análisis: tonalidad, rejilla de pulsos, compases, acordes y las partes donde alguien canta.',
   'feature.find.title': 'Encuentra',
   'feature.find.body':
-    'Busca en YouTube por nombre. Cada resultado muestra la miniatura, el canal y la duración, y un clic en Chordifree analiza la canción.',
+    'Busca en YouTube por nombre. Cada resultado muestra la miniatura, el canal y la duración, y un clic analiza la canción.',
   'feature.find.tag': 'Un clic',
   'feature.1.title': 'Detecta',
   'feature.1.body':

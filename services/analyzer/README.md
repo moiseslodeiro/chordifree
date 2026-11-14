@@ -62,7 +62,9 @@ Response:
 ```
 
 `beats` contains detected beats in seconds, sorted and inside `[0, duration]`; it can be empty
-when the rhythm is unclear. `vocalRegions` contains sung sections; if the ONNX models are not
+when the rhythm is unclear. `beatsPerBar` is estimated from the beat accents (3/4 or 4/4) and
+defaults to 4 when the rhythm is ambiguous; the web app lets the user correct it.
+`vocalRegions` contains sung sections; if the ONNX models are not
 available, it is `[]` and the web app falls back to the harmonic heuristic. Labels are returned
 un-normalized; the Express server converts them to the canonical chord model and repairs the
 timeline.

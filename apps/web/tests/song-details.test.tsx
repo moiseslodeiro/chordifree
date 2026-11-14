@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { SongDetails } from '../src/components/SongDetails';
 
 describe('SongDetails', () => {
@@ -22,6 +22,30 @@ describe('SongDetails', () => {
     expect(screen.getByText('Si menor')).toBeInTheDocument();
     expect(screen.getByText('Traste 2 · Do mayor')).toBeInTheDocument();
     expect(screen.getByText('120')).toBeInTheDocument();
+  });
+
+  it('lets the user correct the meter', () => {
+    const onChangeMeter = vi.fn();
+    render(
+      <SongDetails
+        keyLabel="Do mayor"
+        relativeKeyLabel="La menor"
+        capo={0}
+        capoKeyLabel="Do mayor"
+        bpm={120}
+        beatsPerBar={4}
+        duration={90}
+        artist={null}
+        chords={[]}
+        onChangeMeter={onChangeMeter}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Compás' }), {
+      target: { value: '3' },
+    });
+
+    expect(onChangeMeter).toHaveBeenCalledWith(3);
   });
 
   it('indicates when there is no capo', () => {

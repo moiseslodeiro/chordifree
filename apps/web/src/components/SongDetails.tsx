@@ -13,6 +13,7 @@ interface SongDetailsProps {
   duration: number;
   artist: string | null;
   chords: string[];
+  onChangeMeter?: (beatsPerBar: number) => void;
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -40,6 +41,7 @@ export function SongDetails({
   duration,
   artist,
   chords,
+  onChangeMeter,
 }: SongDetailsProps) {
   const t = useT();
   return (
@@ -64,7 +66,22 @@ export function SongDetails({
           </Row>
         ) : null}
         <Row label={t('details.bpm')}>{bpm ?? '—'}</Row>
-        <Row label={t('details.meter')}>{`${beatsPerBar}/4`}</Row>
+        <Row label={t('details.meter')}>
+          {onChangeMeter ? (
+            <select
+              className="cursor-pointer border-0 bg-transparent p-0 text-right font-display text-base font-semibold text-ink underline decoration-line-strong underline-offset-4 focus:outline-none"
+              value={beatsPerBar}
+              onChange={(event) => onChangeMeter(Number(event.target.value))}
+              aria-label={t('details.meter')}
+            >
+              {[...new Set([2, 3, 4, beatsPerBar])].sort((a, b) => a - b).map((value) => (
+                <option key={value} value={value}>{`${value}/4`}</option>
+              ))}
+            </select>
+          ) : (
+            `${beatsPerBar}/4`
+          )}
+        </Row>
         <Row label={t('details.duration')}>{formatTime(duration)}</Row>
         <Row label={t('details.artist')}>{artist ?? '—'}</Row>
       </dl>

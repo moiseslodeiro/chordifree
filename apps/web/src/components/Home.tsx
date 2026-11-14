@@ -70,6 +70,7 @@ export function Home({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<YoutubeSearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const retryRef = useRef<(() => void) | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
 
@@ -143,10 +144,15 @@ export function Home({
     }
   };
 
-  const loadSearchResult = (result: YoutubeSearchResult) => {
+  const loadSearchResult = async (result: YoutubeSearchResult) => {
     const input = `https://www.youtube.com/watch?v=${result.videoId}`;
     setUrl(input);
-    void submitYoutube(input);
+    setAnalyzingId(result.videoId);
+    try {
+      await submitYoutube(input);
+    } finally {
+      setAnalyzingId(null);
+    }
   };
 
   const submitUpload = async () => {
@@ -273,6 +279,7 @@ export function Home({
                     ) : (
                       <ul className="space-y-2">
                         {results.map((item) => {
+                          const analyzing = analyzingId === item.videoId;
                           const meta = [
                             item.uploader,
                             typeof item.duration === 'number'
@@ -284,7 +291,11 @@ export function Home({
                           return (
                             <li
                               key={item.videoId}
-                              className="flex items-center gap-3 rounded-lg border border-line bg-panel-2/60 p-2"
+                              className={`flex items-center gap-3 rounded-lg border p-2 ${
+                                analyzing
+                                  ? 'border-accent/50 bg-accent/5'
+                                  : 'border-line bg-panel-2/60'
+                              }`}
                             >
                               <img
                                 src={item.thumbnail}
@@ -309,11 +320,26 @@ export function Home({
                               <button
                                 type="button"
                                 className="btn btn-primary shrink-0"
-                                onClick={() => loadSearchResult(item)}
+                                onClick={() => void loadSearchResult(item)}
                                 disabled={busy}
-                                aria-label={t('home.loadVideo', { title: item.title })}
+                                aria-busy={analyzing || undefined}
+                                aria-label={
+                                  analyzing
+                                    ? t('home.analyzingVideo', { title: item.title })
+                                    : t('home.analyzeVideo', { title: item.title })
+                                }
                               >
-                                {t('home.loadWithChordifree')}
+                                {analyzing ? (
+                                  <>
+                                    <span
+                                      aria-hidden="true"
+                                      className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+                                    />
+                                    {t('home.analyzing')}
+                                  </>
+                                ) : (
+                                  t('home.analyzeResult')
+                                )}
                               </button>
                             </li>
                           );

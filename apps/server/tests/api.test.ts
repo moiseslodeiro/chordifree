@@ -421,7 +421,7 @@ describe('analyzer response normalization', () => {
     expect(body.result.segments.at(-1).end).toBe(100);
   });
 
-  it('discards invalid beats and normalizes the time signature', async () => {
+  it('discards invalid beats and keeps the detected time signature', async () => {
     const app = await buildApp({
       analyzer: makeAnalyzer({
         analyze: async () => ({
@@ -437,7 +437,7 @@ describe('analyzer response normalization', () => {
       .send({ youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' });
     const body = await waitFor(app, created.body.id, 'done');
     expect(body.result.beats).toEqual([0.5, 1.25, 2]);
-    expect(body.result.beatsPerBar).toBe(4);
+    expect(body.result.beatsPerBar).toBe(3);
   });
 
   it('returns empty beats when the analyzer does not send them', async () => {

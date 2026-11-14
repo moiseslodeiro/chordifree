@@ -29,11 +29,14 @@ class AnalyzerUnavailable(RuntimeError):
 def _load_essentia():
     try:
         from essentia.standard import (  # type: ignore
+            Beatogram,
+            BeatsLoudness,
             ChordsDetection,
             ChordsDetectionBeats,
             FrameGenerator,
             KeyExtractor,
             LogSpectrum,
+            Meter,
             MonoLoader,
             NNLSChroma,
             Resample,
@@ -45,11 +48,14 @@ def _load_essentia():
     except Exception as exc:  # pragma: no cover - depends on the environment
         raise AnalyzerUnavailable(f"Essentia no disponible: {exc}") from exc
     return {
+        "Beatogram": Beatogram,
+        "BeatsLoudness": BeatsLoudness,
         "ChordsDetection": ChordsDetection,
         "ChordsDetectionBeats": ChordsDetectionBeats,
         "FrameGenerator": FrameGenerator,
         "KeyExtractor": KeyExtractor,
         "LogSpectrum": LogSpectrum,
+        "Meter": Meter,
         "MonoLoader": MonoLoader,
         "NNLSChroma": NNLSChroma,
         "Resample": Resample,
@@ -236,6 +242,43 @@ def _extract_beats(essentia: dict[str, Any], audio: Any, duration: float) -> lis
     return clean
 
 
+def _meter_score(loudness: Any, meter: int) -> float:
+    """How strongly the beat accents repeat every ``meter`` beats."""
+    import numpy as np  # type: ignore
+
+    values = np.asarray([max(0.0, _safe_float(value)) for value in loudness], dtype="float64")
+    if values.size < meter * 2:
+        return 0.0
+    mean = float(values.mean())
+    if mean <= 0:
+        return 0.0
+    return max(float(values[phase::meter].mean()) / mean for phase in range(meter))
+
+
+def _estimate_beats_per_bar(essentia: dict[str, Any], audio: Any, beats: list[float]) -> int:
+    """Estimates 3/4 or 4/4 from the beat loudness pattern.
+
+    Essentia's Meter is experimental, so it only decides when it clearly sees a
+    three-beat pattern; everything else keeps the 4/4 default. The UI lets the
+    user correct the result either way.
+    """
+    if len(beats) < 8:
+        return BEATS_PER_BAR
+    try:
+        loudness, band_ratios = essentia["BeatsLoudness"](
+            beats=beats, sampleRate=SAMPLE_RATE
+        )(audio)
+        beatogram = essentia["Beatogram"](size=16)(loudness, band_ratios)
+        raw = int(round(_safe_float(essentia["Meter"]()(beatogram), BEATS_PER_BAR)))
+    except Exception:
+        return BEATS_PER_BAR
+    if raw == 3:
+        return 3
+    if raw in (2, 4) and _meter_score(loudness, 3) > _meter_score(loudness, 4) * 1.08:
+        return 3
+    return BEATS_PER_BAR
+
+
 def _detect_with_beats(
     essentia: dict[str, Any],
     hpcp: Any,
@@ -338,12 +381,13 @@ def analyze_file(path: str) -> dict[str, Any]:
 
     segments = _merge_segments(segments)
     vocal_regions = detect_vocal_regions(essentia, audio, duration)
+    beats_per_bar = _estimate_beats_per_bar(essentia, audio, beats)
 
     return {
         "segments": segments,
         "duration": round(duration, 3),
         "beats": beats,
-        "beatsPerBar": BEATS_PER_BAR,
+        "beatsPerBar": beats_per_bar,
         "vocalRegions": vocal_regions,
         "analyzerVersion": ANALYZER_VERSION,
     }
