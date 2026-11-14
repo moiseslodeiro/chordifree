@@ -19,17 +19,17 @@ function renderControls(overrides: Partial<Parameters<typeof DisplayControls>[0]
 }
 
 describe('DisplayControls', () => {
-  it('toggles chord simplification with an operable button', () => {
+  it('toggles chord simplification with a checkbox', () => {
     const { onChange } = renderControls();
-    const button = screen.getByRole('button', { name: /Simplificar acordes/ });
-    expect(button).toHaveAttribute('aria-pressed', 'false');
-    fireEvent.click(button);
+    const checkbox = screen.getByRole('checkbox', { name: 'Simplificar acordes' });
+    expect(checkbox).not.toBeChecked();
+    fireEvent.click(checkbox);
     expect(onChange).toHaveBeenCalledWith({ simplifyChords: true });
   });
 
   it('chooses the chord reduction level', () => {
     const { onChange } = renderControls();
-    const select = screen.getByLabelText('Reducción');
+    const select = screen.getByLabelText('Reducción de acordes');
     expect(select).toHaveValue('none');
 
     fireEvent.change(select, { target: { value: 'normal' } });
@@ -41,7 +41,7 @@ describe('DisplayControls', () => {
 
   it('shows the current reduction level and can turn it off', () => {
     const { onChange } = renderControls({ reduceChords: true, reduceChordsMax: true });
-    const select = screen.getByLabelText('Reducción');
+    const select = screen.getByLabelText('Reducción de acordes');
     expect(select).toHaveValue('max');
 
     fireEvent.change(select, { target: { value: 'none' } });

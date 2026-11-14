@@ -439,10 +439,21 @@ export default function App() {
     setNotice({ message: t('app.songDeleted'), tone: 'info' });
   };
 
+  useEffect(() => {
+    if (reanalyzingId === null) return;
+    const progress = analysisRunner.state.view?.progress;
+    if (progress === undefined) return;
+    setNotice({
+      message: t('app.reanalyzingProgress', { progress: Math.round(progress) }),
+      tone: 'info',
+    });
+  }, [analysisRunner.state.view?.progress, reanalyzingId, t]);
+
   const reanalyzeSong = async (target: Song) => {
     const source = target.source;
     if (source.type !== 'youtube' || reanalyzingId !== null) return;
     setReanalyzingId(target.id);
+    setNotice({ message: t('app.reanalyzingProgress', { progress: 0 }), tone: 'info' });
     const result = await analysisRunner.run((signal) =>
       createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal),
     );

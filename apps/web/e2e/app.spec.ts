@@ -395,8 +395,8 @@ test.describe('full flow', () => {
     });
     await analyze(page);
 
-    await page.getByLabel('Reducción').selectOption('normal');
-    await page.getByLabel('Reducción').selectOption('max');
+    await page.getByLabel('Reducción de acordes').selectOption('normal');
+    await page.getByLabel('Reducción de acordes').selectOption('max');
 
     await expect(page.getByTestId('beat-cell-0')).toContainText('C');
     await expect(page.getByTestId('beat-cell-1')).not.toContainText('G');
@@ -508,9 +508,20 @@ test.describe('full flow', () => {
       page.getByTestId('song-grid-column').getByText('Línea que debe conservarse'),
     ).toBeVisible();
 
+    // Keep the reanalysis running long enough to observe the progress toast.
+    await page.route('**/api/analyses/job-e2e', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...JOB, status: 'done', progress: 100, result: RESULT }),
+      });
+    });
+
     await page.getByRole('button', { name: 'Más acciones' }).click();
     page.once('dialog', (dialog) => void dialog.accept());
     await page.getByRole('menuitem', { name: 'Reanalizar' }).click();
+    await expect(page.getByText(/Reanalizando… \d+%/)).toBeVisible();
     await expect(page.getByText('Canción reanalizada con el analizador actual.')).toBeVisible({
       timeout: 10_000,
     });
@@ -574,7 +585,7 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByTestId('chord-row-2')).toBeVisible();
 
-    await page.getByLabel('Reducción').selectOption('normal');
+    await page.getByLabel('Reducción de acordes').selectOption('normal');
     await expect(page.getByTestId('chord-row-2')).toHaveCount(0);
     await expect(page.getByTestId('chord-row-0')).toContainText('C');
     await expect(page.getByTestId('chord-row-1')).toContainText('A');
@@ -594,6 +605,29 @@ test.describe('full flow', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await page.getByRole('button', { name: /Tema oscuro/ }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+
+  test('moves secondary controls into disclosures on mobile', async ({ page }) => {
+    await analyze(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await expect(page.getByText('Más ajustes')).toBeVisible();
+    await expect(page.getByText('Más práctica')).toBeVisible();
+    await expect(page.getByText('Alteraciones')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Metrónomo' })).not.toBeVisible();
+
+    await expect(page.getByText('Notación')).toBeVisible();
+    await expect(page.getByText('Transponer')).toBeVisible();
+    await expect(page.getByText('Presentación')).toBeVisible();
+
+    await page.getByText('Más ajustes').click();
+    await expect(page.getByText('Alteraciones')).toBeVisible();
+    await expect(page.getByLabel('Instrumento')).toBeVisible();
+    await expect(page.getByLabel('Capo')).toBeVisible();
+
+    await page.getByText('Más práctica').click();
+    await expect(page.getByRole('button', { name: 'Metrónomo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cuenta atrás' })).toBeVisible();
   });
 
   test('changes instrument, switches views and keeps the two-column layout', async ({ page }) => {
