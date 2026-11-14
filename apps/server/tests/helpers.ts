@@ -11,7 +11,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     host: '127.0.0.1',
     port: 3001,
     corsOrigin: 'http://localhost:5173',
-    analyzerUrl: 'http://localhost:8000',
+    analyzerUrl: 'http://localhost:8001',
     analyzerToken: '',
     maxDurationSeconds: 900,
     maxUploadBytes: 25 * 1024 * 1024,

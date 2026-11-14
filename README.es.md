@@ -117,7 +117,7 @@ cp .env.example .env
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r services/analyzer/requirements.txt
-uvicorn app.main:app --app-dir services/analyzer --port 8000
+uvicorn app.main:app --app-dir services/analyzer --port 8001
 # Los modelos ONNX de detección de voz se descargan solos en el primer análisis.
 # Para hacerlo antes: consulta services/analyzer/models/README.md
 
@@ -162,7 +162,7 @@ como comprobación posterior a un despliegue (`docker compose up`).
 
 Ver `.env.example`. Las más relevantes:
 
-- `ANALYZER_URL`: URL del microservicio (por defecto `http://localhost:8000`).
+- `ANALYZER_URL`: URL del microservicio (por defecto `http://localhost:8001`).
 - `MAX_DURATION_SECONDS`: duración máxima analizable (900 s).
 - `MAX_UPLOAD_BYTES`: tamaño máximo de subida (25 MB).
 - `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS`: límite de análisis por IP.

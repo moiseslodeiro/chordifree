@@ -21,7 +21,7 @@ release, but it is from 2014, is not published on PyPI, and does not include `NN
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
 The ONNX models are downloaded automatically on the first analysis. To prefetch them, see
@@ -33,7 +33,7 @@ baked into the image.
 ### `GET /health`
 
 ```bash
-curl -fsS http://localhost:8000/health
+curl -fsS http://localhost:8001/health
 # {"status":"ok","analyzerVersion":"essentia-1.6"}
 ```
 
@@ -42,7 +42,7 @@ curl -fsS http://localhost:8000/health
 Accepts `multipart/form-data` with a `file` field (MP3, WAV, M4A, OGG, FLAC, WebM or MP4).
 
 ```bash
-curl -fsS -X POST http://localhost:8000/analyze \
+curl -fsS -X POST http://localhost:8001/analyze \
   -F "file=@song.wav"
 ```
 
