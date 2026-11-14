@@ -189,7 +189,7 @@ const spanish = {
   'finale.slogan': 'De un músico para músicos y músicas.',
   'finale.author': 'Hecho por Moisés Lodeiro.',
 
-  'footer.tagline': 'De un músico para músicos y músicas.',
+  'footer.tagline': 'Musica laetitiae comes, medicina dolorum.',
   'footer.github': 'GitHub',
   'footer.readme': 'README',
   'footer.privacy': 'Privacidad',

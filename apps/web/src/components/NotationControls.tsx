@@ -1,12 +1,11 @@
 import type { AccidentalPreference, Notation } from '@chordifree/chords';
-import { IconAccidental, IconKey, IconNote, IconTranspose, Tool } from './Toolbar';
+import { IconAccidental, IconNote, IconTranspose, Tool } from './Toolbar';
 import { useT } from '../i18n';
 
 interface NotationControlsProps {
   notation: Notation;
   accidentalPreference: AccidentalPreference;
   transpose: number;
-  keyLabel: string | null;
   onChange: (patch: {
     notation?: Notation;
     accidentalPreference?: AccidentalPreference;
@@ -18,7 +17,6 @@ export function NotationControls({
   notation,
   accidentalPreference,
   transpose,
-  keyLabel,
   onChange,
 }: NotationControlsProps) {
   const t = useT();
@@ -46,12 +44,14 @@ export function NotationControls({
       </Tool>
 
       <div className="tool">
-        <span className="tool-icon" aria-hidden="true">
-          <IconAccidental />
+        <span className="tool-head">
+          <span className="tool-icon" aria-hidden="true">
+            <IconAccidental />
+          </span>
+          <label htmlFor="accidental-preference" className="tool-label">
+            {t('notation.accidentals')}
+          </label>
         </span>
-        <label htmlFor="accidental-preference" className="tool-label">
-          {t('notation.accidentals')}
-        </label>
         <div className="tool-value">
           <select
             id="accidental-preference"
@@ -101,12 +101,6 @@ export function NotationControls({
         </div>
       </Tool>
 
-      <Tool label={t('notation.key')} icon={<IconKey />}>
-        <span className="font-display text-base font-bold leading-none text-ink">{keyLabel ?? '—'}</span>
-        <p className="sr-only">
-          {keyLabel ? t('notation.estimatedKey', { key: keyLabel }) : t('notation.unknownKey')}
-        </p>
-      </Tool>
     </section>
   );
 }
