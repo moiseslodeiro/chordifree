@@ -41,6 +41,14 @@ export interface YoutubeMetadata {
   title?: string;
 }
 
+export interface YoutubeSearchResult {
+  videoId: string;
+  title: string;
+  uploader?: string;
+  duration?: number;
+  thumbnail: string;
+}
+
 export interface AudioProbe {
   duration: number;
   codec: string;

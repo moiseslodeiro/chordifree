@@ -4,13 +4,17 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { AppConfig } from '../config';
 import { ApiError } from '../errors';
-import type { AudioProbe, YoutubeMetadata } from '../types';
+import type { AudioProbe, YoutubeMetadata, YoutubeSearchResult } from '../types';
+import { isVideoId } from '../youtube';
 
 const execFileAsync = promisify(execFile);
+
+const SEARCH_RESULT_LIMIT = 10;
 
 export interface MediaTools {
   probeYoutube(videoId: string): Promise<YoutubeMetadata>;
   downloadYoutube(videoId: string, directory: string): Promise<string>;
+  searchYoutube(query: string): Promise<YoutubeSearchResult[]>;
   convertToWav(input: string, output: string): Promise<void>;
   probeAudio(path: string): Promise<AudioProbe>;
 }
@@ -21,6 +25,7 @@ interface ExecOptions {
 
 export interface MediaTimeouts {
   probe: number;
+  search: number;
   download: number;
   convert: number;
   ffprobe: number;
@@ -28,6 +33,7 @@ export interface MediaTimeouts {
 
 const DEFAULT_TIMEOUTS: MediaTimeouts = {
   probe: 30_000,
+  search: 20_000,
   download: 90_000,
   convert: 60_000,
   ffprobe: 20_000,
@@ -76,6 +82,58 @@ export function createMediaTools(
       } catch (error) {
         if (error instanceof ApiError) throw error;
         throw new ApiError('VIDEO_UNAVAILABLE', 'Could not retrieve video information');
+      }
+    },
+
+    async searchYoutube(query: string): Promise<YoutubeSearchResult[]> {
+      try {
+        const stdout = await run(
+          config.ytdlpPath,
+          [
+            '--no-warnings',
+            '--skip-download',
+            '--flat-playlist',
+            '--dump-single-json',
+            `ytsearch${SEARCH_RESULT_LIMIT}:${query}`,
+          ],
+          { timeout: limits.search },
+        );
+        const parsed = JSON.parse(stdout) as {
+          entries?: Array<{
+            id?: string;
+            title?: string;
+            uploader?: string | null;
+            channel?: string | null;
+            duration?: number | null;
+            live_status?: string | null;
+          }>;
+        };
+        const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+        const results: YoutubeSearchResult[] = [];
+        for (const entry of entries) {
+          if (typeof entry.id !== 'string' || !isVideoId(entry.id)) continue;
+          if (typeof entry.title !== 'string' || !entry.title.trim()) continue;
+          if (entry.live_status === 'is_live' || entry.live_status === 'is_upcoming') continue;
+          const result: YoutubeSearchResult = {
+            videoId: entry.id,
+            title: entry.title,
+            thumbnail: `https://i.ytimg.com/vi/${entry.id}/mqdefault.jpg`,
+          };
+          const uploader = entry.uploader ?? entry.channel;
+          if (uploader) result.uploader = uploader;
+          if (
+            typeof entry.duration === 'number' &&
+            Number.isFinite(entry.duration) &&
+            entry.duration > 0
+          ) {
+            result.duration = entry.duration;
+          }
+          results.push(result);
+        }
+        return results;
+      } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError('SEARCH_FAILED', 'Could not search YouTube');
       }
     },
 

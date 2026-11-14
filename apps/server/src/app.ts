@@ -11,6 +11,7 @@ import { JobQueue } from './jobs/queue';
 import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
+import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
 import { createLyricsClient, type LyricsClient } from './services/lyrics';
 import { createMediaTools, type MediaTools } from './services/media';
@@ -118,6 +119,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
 
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
+  app.use('/api/youtube', createYoutubeRouter(deps.tools));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));

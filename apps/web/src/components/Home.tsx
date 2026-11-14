@@ -1,7 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
-import type { AppNotice, Preferences, Song } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { AppNotice, Preferences, Song, YoutubeSearchResult } from '../types';
 import { songFromResult } from '../types';
-import { createUploadAnalysis, createYoutubeAnalysis, sha256File } from '../lib/api';
+import {
+  ApiClientError,
+  createUploadAnalysis,
+  createYoutubeAnalysis,
+  searchYoutube,
+  sha256File,
+} from '../lib/api';
 import { isDesktopApp } from '../lib/platform';
 import { useAnalysisRunner } from '../lib/useAnalysis';
 import { createDemoSong, DEMO_AUDIO_URL } from '../demo';
@@ -37,6 +43,11 @@ function extensionOf(name: string): string {
   return index >= 0 ? name.slice(index + 1).toLowerCase() : '';
 }
 
+function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
 export function Home({
   storage,
   preferences,
@@ -56,7 +67,13 @@ export function Home({
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<YoutubeSearchResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const retryRef = useRef<(() => void) | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => searchAbortRef.current?.abort(), []);
 
   const busy = runner.state.phase === 'starting' || runner.state.phase === 'polling';
   const radioHint = mode === 'youtube' && isYoutubeRadio(url);
@@ -74,10 +91,10 @@ export function Home({
         ['03', t('home.step3Title'), t('home.step3Body')],
       ];
 
-  const submitYoutube = async () => {
+  const submitYoutube = async (input = url) => {
     setProblem(null);
-    retryRef.current = () => void submitYoutube();
-    const videoId = videoIdFromUrl(url);
+    retryRef.current = () => void submitYoutube(input);
+    const videoId = videoIdFromUrl(input);
     if (!videoId) {
       setProblem({
         code: 'INVALID_URL',
@@ -93,10 +110,43 @@ export function Home({
       return;
     }
 
-    const result = await runner.run((signal) => createYoutubeAnalysis(url, signal));
+    const result = await runner.run((signal) => createYoutubeAnalysis(input, signal));
     if (!result) return;
     cache.set(cacheKey, analyzerVersion, result);
     onAnalyzed(songFromResult(result, preferences), null);
+  };
+
+  const runSearch = async () => {
+    const trimmed = query.trim();
+    setProblem(null);
+    if (!trimmed) {
+      setProblem({ code: 'INVALID_REQUEST', message: t('home.searchRequired') });
+      return;
+    }
+
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    setSearching(true);
+    setResults(null);
+    try {
+      const found = await searchYoutube(trimmed, controller.signal);
+      if (!controller.signal.aborted) setResults(found);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setProblem({
+        code: error instanceof ApiClientError ? error.code : 'SEARCH_FAILED',
+        message: error instanceof Error ? error.message : t('home.searchFailed'),
+      });
+    } finally {
+      if (searchAbortRef.current === controller) setSearching(false);
+    }
+  };
+
+  const loadSearchResult = (result: YoutubeSearchResult) => {
+    const input = `https://www.youtube.com/watch?v=${result.videoId}`;
+    setUrl(input);
+    void submitYoutube(input);
   };
 
   const submitUpload = async () => {
@@ -182,27 +232,118 @@ export function Home({
             }}
           >
             {mode === 'youtube' ? (
-              <div className="space-y-2">
-                <label htmlFor="youtube-url" className="eyebrow block">
-                  {t('home.youtubeLabel')}
-                </label>
-                <input
-                  id="youtube-url"
-                  type="url"
-                  inputMode="url"
-                  className="field"
-                  placeholder="https://www.youtube.com/watch?v=…"
-                  value={url}
-                  onChange={(event) => setUrl(event.target.value)}
-                  disabled={busy}
-                  autoComplete="off"
-                />
-                <p className="text-xs leading-relaxed text-ink3">
-                  {t('home.youtubeHelp')}
-                </p>
-                {radioHint ? (
-                  <p className="text-xs leading-relaxed text-warning">{t('home.radioHint')}</p>
-                ) : null}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label htmlFor="youtube-search" className="eyebrow block">
+                    {t('home.searchLabel')}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="youtube-search"
+                      type="search"
+                      className="field"
+                      placeholder={t('home.searchPlaceholder')}
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          void runSearch();
+                        }
+                      }}
+                      disabled={busy}
+                      autoComplete="off"
+                    />
+                    <button
+                      type="button"
+                      className="btn shrink-0"
+                      onClick={() => void runSearch()}
+                      disabled={busy || searching}
+                    >
+                      {searching ? t('home.searching') : t('home.searchAction')}
+                    </button>
+                  </div>
+                  <p className="text-xs leading-relaxed text-ink3">{t('home.searchHelp')}</p>
+                </div>
+
+                <div aria-live="polite">
+                  {results !== null ? (
+                    results.length === 0 ? (
+                      <p className="text-xs text-ink3">{t('home.searchEmpty')}</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {results.map((item) => {
+                          const meta = [
+                            item.uploader,
+                            typeof item.duration === 'number'
+                              ? formatDuration(item.duration)
+                              : null,
+                          ]
+                            .filter((value): value is string => Boolean(value))
+                            .join(' · ');
+                          return (
+                            <li
+                              key={item.videoId}
+                              className="flex items-center gap-3 rounded-lg border border-line bg-panel-2/60 p-2"
+                            >
+                              <img
+                                src={item.thumbnail}
+                                alt=""
+                                width={128}
+                                height={72}
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                className="h-[4.5rem] w-32 shrink-0 rounded-md bg-panel object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className="truncate text-sm font-semibold leading-snug text-ink"
+                                  title={item.title}
+                                >
+                                  {item.title}
+                                </p>
+                                {meta ? (
+                                  <p className="mt-0.5 truncate text-xs text-ink3">{meta}</p>
+                                ) : null}
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-primary shrink-0"
+                                onClick={() => loadSearchResult(item)}
+                                disabled={busy}
+                                aria-label={t('home.loadVideo', { title: item.title })}
+                              >
+                                {t('home.loadWithChordifree')}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )
+                  ) : null}
+                </div>
+
+                <div className="space-y-2 border-t border-line pt-5">
+                  <p className="eyebrow">{t('home.orPasteLink')}</p>
+                  <label htmlFor="youtube-url" className="block">
+                    {t('home.youtubeLabel')}
+                  </label>
+                  <input
+                    id="youtube-url"
+                    type="url"
+                    inputMode="url"
+                    className="field"
+                    placeholder="https://www.youtube.com/watch?v=…"
+                    value={url}
+                    onChange={(event) => setUrl(event.target.value)}
+                    disabled={busy}
+                    autoComplete="off"
+                  />
+                  <p className="text-xs leading-relaxed text-ink3">{t('home.youtubeHelp')}</p>
+                  {radioHint ? (
+                    <p className="text-xs leading-relaxed text-warning">{t('home.radioHint')}</p>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <div className="space-y-2">

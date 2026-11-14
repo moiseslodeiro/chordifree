@@ -88,6 +88,39 @@ test.describe('full flow', () => {
     await expect(page.getByRole('button', { name: 'Detectar acordes' })).toBeVisible();
   });
 
+  test('searches YouTube and loads a result with the Chordifree button', async ({ page }) => {
+    await page.route('**/api/youtube/search**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            {
+              videoId: 'dQw4w9WgXcQ',
+              title: 'Never Gonna Give You Up',
+              uploader: 'Rick Astley',
+              duration: 213,
+              thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+            },
+          ],
+        }),
+      }),
+    );
+    await page.goto('/?fakePlayer=1');
+
+    await page.getByLabel('Buscar en YouTube').fill('rick astley');
+    await page.getByRole('button', { name: 'Buscar' }).click();
+
+    await expect(page.getByText('Never Gonna Give You Up')).toBeVisible();
+    await expect(page.getByText('Rick Astley · 3:33')).toBeVisible();
+
+    await page
+      .getByRole('button', { name: 'Cargar Never Gonna Give You Up con Chordifree' })
+      .click();
+
+    await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
+  });
+
   test('analyzes, switches to Spanish notation, transposes, edits, saves and reloads', async ({
     page,
   }) => {

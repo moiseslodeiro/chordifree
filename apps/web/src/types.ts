@@ -34,6 +34,14 @@ export interface AnalysisView {
   error?: { code: string; message: string };
 }
 
+export interface YoutubeSearchResult {
+  videoId: string;
+  title: string;
+  uploader?: string;
+  duration?: number;
+  thumbnail: string;
+}
+
 export interface LyricsResult {
   lyrics: string;
   syncedLyrics?: string;
