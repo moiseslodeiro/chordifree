@@ -20,6 +20,13 @@ test.describe('audio pitch', () => {
         JSON.stringify({ schemaVersion: 1, data: { language: 'en' } }),
       );
     });
+    await page.route('**/api/health', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'ok', analyzer: 'ok', analyzerVersion: 'essentia-1.2' }),
+      }),
+    );
   });
 
   test('shifts the demo audio while keeping the native element playing', async ({ page }) => {
