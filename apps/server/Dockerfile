@@ -13,8 +13,8 @@ ARG PNPM_VERSION
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 
-# Instala las dependencias con el lockfile antes de copiar el código para
-# aprovechar la caché de capas.
+# Install dependencies with the lockfile before copying the code so the
+# layer cache is reused.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/server/package.json apps/server/package.json
@@ -29,8 +29,8 @@ FROM node:${NODE_VERSION} AS runtime
 ARG PNPM_VERSION
 ARG YTDLP_VERSION
 
-# ffmpeg y ffprobe se copian de una imagen fijada por etiqueta, así el build no
-# depende de la versión que traiga la distribución base.
+# ffmpeg and ffprobe come from an image pinned by tag, so the build does not
+# depend on the version shipped by the base distribution.
 COPY --from=ffmpeg /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /ffprobe /usr/local/bin/ffprobe
 

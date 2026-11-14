@@ -10,35 +10,35 @@ const chord = (label: string) => {
 };
 
 describe('transposeChord', () => {
-  it('traspone la fundamental', () => {
+  it('transposes the root', () => {
     expect(formatChord(transposeChord(chord('C'), 2))).toBe('D');
     expect(formatChord(transposeChord(chord('Am'), 2))).toBe('Bm');
     expect(formatChord(transposeChord(chord('F'), 2))).toBe('G');
   });
 
-  it('envuelve la octava', () => {
+  it('wraps around the octave', () => {
     expect(formatChord(transposeChord(chord('B'), 1))).toBe('C');
     expect(formatChord(transposeChord(chord('C'), -1))).toBe('B');
   });
 
-  it('traspone también el bajo', () => {
+  it('transposes the bass too', () => {
     expect(formatChord(transposeChord(chord('C/G'), 2))).toBe('D/A');
     expect(formatChord(transposeChord(chord('Am/C'), -2), 'english', 'flat')).toBe('Gm/B♭');
   });
 
-  it('mantiene el bajo al trasponer', () => {
+  it('keeps the bass when transposing', () => {
     const transposed = transposeChord(chord('C/E'), 4);
     expect(transposed.bass).toBe(8);
     expect(formatChord(transposed)).toBe('E/G♯');
   });
 
-  it('mantiene la cualidad y descarta la etiqueta original', () => {
+  it('keeps the quality and discards the original label', () => {
     const transposed = transposeChord(chord('C#m7b5'), 3);
     expect(transposed.quality).toBe('m7b5');
     expect(transposed.raw).toBeUndefined();
   });
 
-  it('limita el rango de trasposición', () => {
+  it('limits the transposition range', () => {
     expect(clampTranspose(20)).toBe(11);
     expect(clampTranspose(-20)).toBe(-11);
     expect(clampTranspose(Number.NaN)).toBe(0);

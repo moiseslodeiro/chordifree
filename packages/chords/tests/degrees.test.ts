@@ -10,7 +10,7 @@ const degree = (label: string, key: EstimatedKey = C_MAJOR) =>
   chordDegree(parseChord(label)!, key);
 
 describe('chordDegree', () => {
-  it('numera los acordes diatónicos de Do mayor', () => {
+  it('numbers the diatonic chords of C major', () => {
     expect(degree('C')).toBe('I');
     expect(degree('Dm')).toBe('ii');
     expect(degree('Em')).toBe('iii');
@@ -20,7 +20,7 @@ describe('chordDegree', () => {
     expect(degree('Bdim')).toBe('vii°');
   });
 
-  it('añade extensiones y séptimas al grado', () => {
+  it('adds extensions and sevenths to the degree', () => {
     expect(degree('G7')).toBe('V7');
     expect(degree('Cmaj7')).toBe('Imaj7');
     expect(degree('Dm7')).toBe('ii7');
@@ -28,7 +28,7 @@ describe('chordDegree', () => {
     expect(degree('Cadd9')).toBe('Iadd9');
   });
 
-  it('marca las alteraciones cromáticas', () => {
+  it('marks chromatic alterations', () => {
     expect(degree('Eb')).toBe('♭III');
     expect(degree('F#')).toBe('♯IV');
     expect(degree('Ab')).toBe('♭VI');
@@ -36,7 +36,7 @@ describe('chordDegree', () => {
     expect(degree('C#')).toBe('♭II');
   });
 
-  it('numera en menor natural y armónica', () => {
+  it('numbers in natural and harmonic minor', () => {
     expect(degree('Am', A_MINOR)).toBe('i');
     expect(degree('C', A_MINOR)).toBe('III');
     expect(degree('Dm', A_MINOR)).toBe('iv');
@@ -46,7 +46,7 @@ describe('chordDegree', () => {
     expect(degree('G#dim', A_MINOR)).toBe('♯vii°');
   });
 
-  it('incluye el bajo invertido', () => {
+  it('includes the inverted bass', () => {
     expect(degree('C/E')).toBe('I/III');
     expect(degree('G/B')).toBe('V/VII');
   });
@@ -59,7 +59,7 @@ describe('progressionDegrees', () => {
     chord: label ? parseChord(label) : null,
   });
 
-  it('colapsa repeticiones consecutivas y omite silencios', () => {
+  it('collapses consecutive repeats and skips silences', () => {
     const segments = [
       segment('C', 0, 4),
       segment('C', 4, 6),
@@ -72,7 +72,7 @@ describe('progressionDegrees', () => {
     expect(progressionDegrees(segments, C_MAJOR)).toEqual(['I', 'V', 'vi', 'IV', 'I']);
   });
 
-  it('respeta el límite de grados', () => {
+  it('respects the degree limit', () => {
     const segments = ['C', 'G', 'Am', 'F', 'C', 'G'].map((label, index) =>
       segment(label, index * 4, index * 4 + 4),
     );

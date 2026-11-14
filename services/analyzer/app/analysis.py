@@ -256,7 +256,7 @@ def _detect_with_beats(
         if segment:
             segments.append(segment)
     if not segments:
-        raise ValueError("Sin segmentos por pulsos")
+        raise ValueError("No segments from beats")
     last = segments[-1]
     if last["end"] < duration:
         last["end"] = round(duration, 3)

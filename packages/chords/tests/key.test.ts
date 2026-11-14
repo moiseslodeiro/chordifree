@@ -18,7 +18,7 @@ const segment = (label: string, start: number, end: number): ChordSegment => ({
 });
 
 describe('estimateKey', () => {
-  it('detecta Fa mayor y elige bemoles', () => {
+  it('detects F major and picks flats', () => {
     const key = estimateKey([
       segment('F', 0, 4),
       segment('Bb', 4, 8),
@@ -30,7 +30,7 @@ describe('estimateKey', () => {
     expect(formatChord({ root: 10, quality: 'major' }, 'english', 'flat')).toBe('B♭');
   });
 
-  it('detecta La menor', () => {
+  it('detects A minor', () => {
     const key = estimateKey([
       segment('Am', 0, 4),
       segment('Dm', 4, 8),
@@ -40,14 +40,14 @@ describe('estimateKey', () => {
     expect(key).toMatchObject({ tonic: 9, mode: 'minor' });
   });
 
-  it('devuelve null sin material armónico', () => {
+  it('returns null without harmonic material', () => {
     expect(estimateKey([])).toBeNull();
     expect(estimateKey([segment('N', 0, 4)])).toBeNull();
   });
 });
 
 describe('resolveAccidental', () => {
-  it('respeta la preferencia forzada', () => {
+  it('respects the forced preference', () => {
     const key = estimateKey([segment('F', 0, 8), segment('Bb', 8, 16)]);
     expect(resolveAccidental(key, 'auto')).toBe('flat');
     expect(resolveAccidental(key, 'sharp')).toBe('sharp');
@@ -56,13 +56,13 @@ describe('resolveAccidental', () => {
 });
 
 describe('relativeMajor', () => {
-  it('calcula la relativa mayor', () => {
+  it('computes the relative major', () => {
     expect(relativeMajor(9)).toBe(0);
   });
 });
 
 describe('relativeKey', () => {
-  it('cambia entre mayor y menor conservando la armadura', () => {
+  it('switches between major and minor keeping the key signature', () => {
     expect(relativeKey({ tonic: 0, mode: 'major' })).toEqual({ tonic: 9, mode: 'minor' });
     expect(relativeKey({ tonic: 9, mode: 'minor' })).toEqual({ tonic: 0, mode: 'major' });
     expect(relativeKey({ tonic: 5, mode: 'major' })).toEqual({ tonic: 2, mode: 'minor' });
@@ -70,7 +70,7 @@ describe('relativeKey', () => {
 });
 
 describe('transposeKey', () => {
-  it('transporta la tónica y conserva el modo', () => {
+  it('transposes the tonic and keeps the mode', () => {
     expect(transposeKey({ tonic: 2, mode: 'major' }, -2)).toEqual({ tonic: 0, mode: 'major' });
     expect(transposeKey({ tonic: 9, mode: 'minor' }, 3)).toEqual({ tonic: 0, mode: 'minor' });
     expect(transposeKey({ tonic: 0, mode: 'major' }, 14)).toEqual({ tonic: 2, mode: 'major' });

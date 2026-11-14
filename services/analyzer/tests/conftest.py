@@ -38,14 +38,14 @@ def write_triad_sequence(path: Path, sequence: list[str], seconds: float = 2.0) 
 
 @pytest.fixture(scope="session")
 def chord_wav(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    path = tmp_path_factory.mktemp("audio") / "progresion.wav"
+    path = tmp_path_factory.mktemp("audio") / "progression.wav"
     write_triad_sequence(path, ["C", "F", "G"], seconds=2.0)
     return path
 
 
 @pytest.fixture(scope="session")
 def stereo_wav(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    path = tmp_path_factory.mktemp("audio") / "estereo.wav"
+    path = tmp_path_factory.mktemp("audio") / "stereo.wav"
     mono = tmp_path_factory.mktemp("audio") / "mono.wav"
     write_triad_sequence(mono, ["C"], seconds=1.0)
     with wave.open(str(mono), "rb") as source:

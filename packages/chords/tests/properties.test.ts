@@ -31,8 +31,8 @@ const QUALITIES: Quality[] = [
   '6/9',
 ];
 
-describe('propiedades de trasposición', () => {
-  it('ida y vuelta devuelve el acorde original', () => {
+describe('transposition properties', () => {
+  it('round trip returns the original chord', () => {
     for (let root = 0; root < 12; root += 1) {
       for (const quality of QUALITIES) {
         const original = { root: root as PitchClass, quality };
@@ -45,7 +45,7 @@ describe('propiedades de trasposición', () => {
     }
   });
 
-  it('conserva la ortografía al reformatear en notación inglesa y española', () => {
+  it('keeps the spelling when reformatting in English and Spanish notation', () => {
     for (let root = 0; root < 12; root += 1) {
       for (const quality of QUALITIES) {
         const chord = { root: root as PitchClass, quality };

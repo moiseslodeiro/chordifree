@@ -2,8 +2,8 @@ fastapi==0.162.2
 uvicorn[standard]==0.54.0
 python-multipart==0.0.20
 numpy>=1.26,<3
-# Essentia 2.0.1 (última estable) es de 2014, no está en PyPI y no incluye
-# NNLSChroma/LogSpectrum. Fijamos la beta exacta con la que se valida el analizador.
+# Essentia 2.0.1 (latest stable) is from 2014, is not on PyPI and does not
+# include NNLSChroma/LogSpectrum. We pin the exact beta the analyzer is validated with.
 essentia==2.1b6.dev1389
 onnxruntime>=1.20,<2
 pytest==9.2.0
