@@ -743,7 +743,7 @@ export default function App() {
         data-testid="site-footer"
         className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink3"
       >
-        <span>{t('app.tagline')}</span>
+        <span>{t('footer.tagline')}</span>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
           {desktop ? (
             <button
