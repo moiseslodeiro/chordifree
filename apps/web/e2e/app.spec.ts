@@ -282,7 +282,7 @@ test.describe('full flow', () => {
     expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
   });
 
-  test('saves the lyrics, updates the chords with the capo and restores the view', async ({
+  test('saves the lyrics, updates the chords with the capo and restores them', async ({
     page,
   }) => {
     await analyze(page);
@@ -305,10 +305,11 @@ test.describe('full flow', () => {
 
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Letra', exact: true })).toHaveAttribute(
+    await expect(page.getByRole('button', { name: 'Parrilla' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
+    await page.getByRole('button', { name: 'Letra', exact: true }).click();
     await expect(page.getByRole('button', { name: /Ir a la línea 1/ })).toBeVisible();
     await expect(page.getByRole('button', { name: 'A♯ en 00:00' })).toBeVisible();
 

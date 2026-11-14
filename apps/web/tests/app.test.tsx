@@ -43,6 +43,12 @@ function stubApi(analysis: typeof result = result) {
     if (url === '/api/health') {
       return response({ status: 'ok', analyzer: 'ok', analyzerVersion: 'essentia-1.0' });
     }
+    if (url === '/api/youtube/audio-cache') {
+      return response({ entries: 0, bytes: 0, ttlMinutes: 60 });
+    }
+    if (url.endsWith('/audio') && init?.method === 'POST') {
+      return response({ url: '/demo.wav' });
+    }
     if (init?.method === 'POST') {
       return response({
         id: 'job-1',
@@ -130,6 +136,37 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
   });
 
+  it('opens songs in the chord grid and separates song audio from chord controls', async () => {
+    stubApi({
+      ...result,
+      beats: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5],
+      beatsPerBar: 4,
+    });
+    await analyze();
+
+    expect(screen.getByText('Transporte de acordes')).toBeInTheDocument();
+    const songAudio = screen.getByRole('group', { name: 'Controles de audio de la canción' });
+    expect(songAudio).toHaveTextContent('Velocidad');
+    expect(songAudio).toHaveTextContent('Tono de la canción');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
+    await screen.findByRole('heading', { name: 'Demo sincronizada' });
+
+    expect(screen.getByRole('button', { name: 'Parrilla' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
   it('saves the lyrics with chords and restores them on reopen', async () => {
     stubApi();
     const view = await analyze();
@@ -160,10 +197,7 @@ describe('App', () => {
     view.unmount();
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Letra' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Letra' }));
     const reopened = within(screen.getByTestId('song-grid-column'));
     expect(reopened.getByText('Primera línea')).toBeInTheDocument();
     expect(reopened.getByRole('button', { name: 'G en 00:04' })).toBeInTheDocument();
@@ -534,6 +568,7 @@ describe('App', () => {
     render(<App />);
 
     const footer = screen.getByTestId('site-footer');
+    expect(footer).toHaveTextContent('Acordes sincronizados · YouTube o audio');
     expect(footer).toHaveTextContent('GitHub');
     expect(footer).toHaveTextContent('AGPL-3.0');
     expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(

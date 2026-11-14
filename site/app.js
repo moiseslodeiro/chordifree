@@ -55,7 +55,7 @@ const spanish = {
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
-    'Guarda canciones y repertorios en una biblioteca local con carpetas e historial de práctica. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o envía la hoja por WhatsApp, Telegram o correo.',
+    'Guarda canciones y repertorios en una biblioteca local con historial de práctica. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o envía la hoja por WhatsApp, Telegram o correo.',
   'feature.5.tag': 'Biblioteca local',
 
   'features.searchTag': 'Búsqueda en YouTube',

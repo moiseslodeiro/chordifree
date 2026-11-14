@@ -72,7 +72,7 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
 - **Audio pitch** for uploaded files and temporary YouTube audio (±12 semitones) without
   changing the tempo. YouTube songs show the thumbnail and play from the main player bar.
 - **Simplify / reduce chords** for simpler accompaniment.
-- **Local library** stored in the browser, with folders to group songs, JSON backups,
+- **Local library** stored in the browser, with setlists to group songs, JSON backups,
   **ChordPro import/export** and print/PDF.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.

@@ -36,12 +36,12 @@ function shareableSong(song: Song): SharePayload['song'] {
     createdAt: _created,
     updatedAt: _updated,
     detectedSegments: _detected,
-    folderId: _folderId,
+    folderId: _legacyFolder,
     ...rest
-  } = song;
+  } = song as Song & { folderId?: string };
   return {
     ...rest,
-    // Do not leak an upload's original filename or the sender's folder id.
+    // Do not leak an upload's original filename.
     source:
       song.source.type === 'youtube'
         ? song.source
