@@ -1,5 +1,5 @@
 import { t } from '../i18n';
-import type { AnalysisResult, AnalysisView, LyricsResult } from '../types';
+import type { AnalysisResult, AnalysisView, LyricsResult, YoutubeSearchResult } from '../types';
 
 export class ApiClientError extends Error {
   readonly code: string;
@@ -64,6 +64,16 @@ export async function createUploadAnalysis(
   form.append('file', file);
   const response = await fetch('/api/analyses', { method: 'POST', body: form, signal });
   return parseResponse(response);
+}
+
+export async function searchYoutube(
+  query: string,
+  signal?: AbortSignal,
+): Promise<YoutubeSearchResult[]> {
+  const params = new URLSearchParams({ q: query });
+  const response = await fetch(`/api/youtube/search?${params.toString()}`, { signal });
+  const body = await parseResponse<{ results?: YoutubeSearchResult[] }>(response);
+  return Array.isArray(body.results) ? body.results : [];
 }
 
 export async function fetchLyrics(

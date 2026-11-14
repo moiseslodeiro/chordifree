@@ -41,6 +41,7 @@ export const defaultRawAnalysis: RawAnalysis = {
 export function makeTools(overrides: Partial<MediaTools> = {}): MediaTools {
   return {
     probeYoutube: async () => ({ duration: 120, title: 'Canción de prueba' }),
+    searchYoutube: async () => [],
     downloadYoutube: async (videoId, directory) => {
       const { writeFile } = await import('node:fs/promises');
       const path = join(directory, `${videoId}.webm`);

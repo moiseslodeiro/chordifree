@@ -4,7 +4,9 @@
 
 Convierte un video musical de YouTube (o un audio propio) en una línea de tiempo de acordes
 sincronizada con la reproducción. Permite trasponer ±11 semitonos y cambiar entre notación
-inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`).
+inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`). También puedes buscar por nombre en
+YouTube: cada resultado muestra la miniatura, el canal y la duración, y el botón **Chordifree**
+analiza la canción al momento.
 
 > **Aviso legal**: descargar audio de YouTube puede contravenir sus Términos de Servicio.
 > Usa la vía de subida de audio cuando no tengas derechos sobre el contenido. Este proyecto

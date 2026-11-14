@@ -70,6 +70,59 @@ describe('MediaTools with fake binaries', () => {
     });
   });
 
+  it('normalizes and filters YouTube search results', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'chordifree-bin-'));
+    const entries = {
+      entries: [
+        {
+          id: 'XFkzRNyygfk',
+          title: 'Radiohead - Creep',
+          uploader: 'Radiohead',
+          duration: 237,
+          thumbnails: [{ url: 'https://i.ytimg.com/vi/XFkzRNyygfk/hq720.jpg' }],
+        },
+        {
+          id: 'dQw4w9WgXcQ',
+          title: 'Never Gonna Give You Up',
+          channel: 'Rick Astley',
+          duration: 213,
+        },
+        { id: 'abcdefghijk', title: 'Live radio', live_status: 'is_live' },
+        { id: 'corto', title: 'Invalid identifier' },
+        { id: 'zzzzzzzzzzz' },
+      ],
+    };
+    const ytdlp = await makeScript(
+      directory,
+      'yt-dlp',
+      [
+        'case "$*" in',
+        '  *"ytsearch10:creep"*) ;;',
+        '  *) exit 3 ;;',
+        'esac',
+        `echo '${JSON.stringify(entries)}'`,
+      ].join('\n'),
+    );
+    const tools = createMediaTools(makeConfig({ ytdlpPath: ytdlp }));
+
+    await expect(tools.searchYoutube('creep')).resolves.toEqual([
+      {
+        videoId: 'XFkzRNyygfk',
+        title: 'Radiohead - Creep',
+        uploader: 'Radiohead',
+        duration: 237,
+        thumbnail: 'https://i.ytimg.com/vi/XFkzRNyygfk/mqdefault.jpg',
+      },
+      {
+        videoId: 'dQw4w9WgXcQ',
+        title: 'Never Gonna Give You Up',
+        uploader: 'Rick Astley',
+        duration: 213,
+        thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+      },
+    ]);
+  });
+
   it('maps binary errors to stable codes', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'chordifree-bin-'));
     const failing = await makeScript(directory, 'failing', 'exit 1');
@@ -80,6 +133,7 @@ describe('MediaTools with fake binaries', () => {
     await expect(tools.probeYoutube('dQw4w9WgXcQ')).rejects.toMatchObject({
       code: 'VIDEO_UNAVAILABLE',
     });
+    await expect(tools.searchYoutube('creep')).rejects.toMatchObject({ code: 'SEARCH_FAILED' });
     await expect(tools.downloadYoutube('dQw4w9WgXcQ', directory)).rejects.toMatchObject({
       code: 'VIDEO_UNAVAILABLE',
     });

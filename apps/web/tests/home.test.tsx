@@ -190,6 +190,92 @@ describe('Home', () => {
     });
   });
 
+  it('searches YouTube and loads a result with the Chordifree button', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/youtube/search')) {
+        return response({
+          results: [
+            {
+              videoId: 'dQw4w9WgXcQ',
+              title: 'Never Gonna Give You Up',
+              uploader: 'Rick Astley',
+              duration: 213,
+              thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+            },
+          ],
+        });
+      }
+      if (init?.method === 'POST') {
+        return response({
+          id: 'job-3',
+          status: 'queued',
+          progress: 0,
+          source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+        });
+      }
+      return response({
+        id: 'job-3',
+        status: 'done',
+        progress: 100,
+        result: analysisResult(),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { onAnalyzed } = renderHome();
+
+    fireEvent.change(screen.getByLabelText('Buscar en YouTube'), {
+      target: { value: 'rick astley' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText('Never Gonna Give You Up')).toBeInTheDocument();
+    expect(screen.getByText('Rick Astley · 3:33')).toBeInTheDocument();
+    expect(
+      document.querySelector('img[src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"]'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Cargar Never Gonna Give You Up con Chordifree' }),
+    );
+
+    await waitFor(() => expect(onAnalyzed).toHaveBeenCalledTimes(1));
+    expect(onAnalyzed.mock.calls[0]?.[0].source).toMatchObject({
+      type: 'youtube',
+      videoId: 'dQw4w9WgXcQ',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/youtube/search?q=rick+astley',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('requires a query before searching', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    renderHome();
+
+    fireEvent.change(screen.getByLabelText('Buscar en YouTube'), {
+      target: { value: '   ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/Escribe algo para buscar/)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an empty state when the search has no results', async () => {
+    const fetchMock = vi.fn(async () => response({ results: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+    renderHome();
+
+    fireEvent.change(screen.getByLabelText('Buscar en YouTube'), {
+      target: { value: 'nada que exista' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText('Sin resultados. Prueba otra búsqueda.')).toBeInTheDocument();
+  });
+
   it('hides the analyzer status on desktop and starts with upload', () => {
     window.chordifreeDesktop = { isDesktop: true };
     try {
@@ -200,7 +286,7 @@ describe('Home', () => {
         'aria-selected',
         'true',
       );
-      expect(screen.getByRole('tab', { name: 'Enlace de YouTube' })).toHaveAttribute(
+      expect(screen.getByRole('tab', { name: 'YouTube' })).toHaveAttribute(
         'aria-selected',
         'false',
       );
