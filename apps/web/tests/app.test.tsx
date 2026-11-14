@@ -63,10 +63,12 @@ function stubApi(analysis: typeof result = result) {
   return fetchMock;
 }
 
-function setPresentation(value: string) {
-  fireEvent.change(screen.getByLabelText('Modo de presentación'), {
-    target: { value },
-  });
+function toggleSimplify() {
+  fireEvent.click(screen.getByRole('button', { name: 'Simplificar acordes' }));
+}
+
+function setReduction(level: 'Sin reducir' | 'Normal' | 'Máxima') {
+  fireEvent.click(screen.getByRole('button', { name: level }));
 }
 
 async function analyze() {
@@ -247,11 +249,11 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^Cmaj7 en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am7 en/ })).toBeInTheDocument();
 
-    setPresentation('simplified');
+    toggleSimplify();
     expect(grid.getByRole('button', { name: /^C en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
 
-    setPresentation('simplified-reduced');
+    setReduction('Normal');
     expect(grid.queryByRole('button', { name: /^G en/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Española' }));
@@ -297,7 +299,7 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
 
-    setPresentation('max');
+    setReduction('Máxima');
 
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
@@ -318,7 +320,7 @@ describe('App', () => {
     });
     await analyze();
 
-    setPresentation('max');
+    setReduction('Máxima');
 
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByTestId('beat-cell-1')).not.toHaveTextContent('G');
@@ -382,7 +384,7 @@ describe('App', () => {
     expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
 
-    setPresentation('simplified');
+    toggleSimplify();
     expect(within(screen.getByTestId('chord-row-0')).getByText('C')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am')).toBeInTheDocument();
 
@@ -391,7 +393,7 @@ describe('App', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Cmaj7');
     fireEvent.click(screen.getByRole('button', { name: 'Salir de edición' }));
 
-    setPresentation('original');
+    toggleSimplify();
     expect(within(screen.getByTestId('chord-row-0')).getByText('Cmaj7')).toBeInTheDocument();
     expect(within(screen.getByTestId('chord-row-1')).getByText('Am7')).toBeInTheDocument();
   });
@@ -412,7 +414,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(3);
 
-    setPresentation('reduced');
+    setReduction('Normal');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.queryByText('G')).not.toBeInTheDocument();
@@ -440,10 +442,10 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    setPresentation('reduced');
+    setReduction('Normal');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    setPresentation('max');
+    setReduction('Máxima');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.getByText('C')).toBeInTheDocument();

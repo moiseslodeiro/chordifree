@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DisplayControls } from '../src/components/DisplayControls';
 
@@ -19,43 +19,42 @@ function renderControls(overrides: Partial<Parameters<typeof DisplayControls>[0]
 }
 
 describe('DisplayControls', () => {
-  it('chooses a chord presentation mode', () => {
+  it('toggles simplification independently from reduction', () => {
     const { onChange } = renderControls();
-    const select = screen.getByLabelText('Modo de presentación');
-    expect(select).toHaveValue('original');
-
-    fireEvent.change(select, { target: { value: 'simplified' } });
-    expect(onChange).toHaveBeenCalledWith({
-      simplifyChords: true,
-      reduceChords: false,
-      reduceChordsMax: false,
-    });
-
-    fireEvent.change(select, { target: { value: 'reduced' } });
-    expect(onChange).toHaveBeenCalledWith({
-      simplifyChords: false,
-      reduceChords: true,
-      reduceChordsMax: false,
-    });
-
-    fireEvent.change(select, { target: { value: 'max' } });
-    expect(onChange).toHaveBeenCalledWith({
-      simplifyChords: false,
-      reduceChords: true,
-      reduceChordsMax: true,
-    });
-
-    fireEvent.change(select, { target: { value: 'simplified-reduced' } });
-    expect(onChange).toHaveBeenCalledWith({
-      simplifyChords: true,
-      reduceChords: true,
-      reduceChordsMax: false,
-    });
+    const button = screen.getByRole('button', { name: 'Simplificar acordes' });
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(button);
+    expect(onChange).toHaveBeenCalledWith({ simplifyChords: true });
   });
 
-  it('shows the current presentation mode', () => {
+  it('chooses the reduction level independently from simplification', () => {
+    const { onChange } = renderControls();
+    const group = screen.getByRole('group', { name: 'Reducción de acordes' });
+    expect(within(group).getByRole('button', { name: 'Sin reducir' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Normal' }));
+    expect(onChange).toHaveBeenCalledWith({ reduceChords: true, reduceChordsMax: false });
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Máxima' }));
+    expect(onChange).toHaveBeenCalledWith({ reduceChords: true, reduceChordsMax: true });
+
+    fireEvent.click(within(group).getByRole('button', { name: 'Sin reducir' }));
+    expect(onChange).toHaveBeenCalledWith({ reduceChords: false, reduceChordsMax: false });
+  });
+
+  it('reflects the active simplification and reduction chips', () => {
     renderControls({ simplifyChords: true, reduceChords: true, reduceChordsMax: true });
-    expect(screen.getByLabelText('Modo de presentación')).toHaveValue('simplified-max');
+    expect(screen.getByRole('button', { name: 'Simplificar acordes' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Máxima' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('changes the instrument from the labeled selector', () => {
