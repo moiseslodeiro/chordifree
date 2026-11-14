@@ -8,6 +8,7 @@ directories:
 files:
   - main.cjs
   - preload.cjs
+  - update-check.cjs
   - package.json
 
 extraResources:
