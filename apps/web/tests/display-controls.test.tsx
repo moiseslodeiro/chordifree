@@ -19,33 +19,43 @@ function renderControls(overrides: Partial<Parameters<typeof DisplayControls>[0]
 }
 
 describe('DisplayControls', () => {
-  it('toggles chord simplification with a checkbox', () => {
+  it('chooses a chord presentation mode', () => {
     const { onChange } = renderControls();
-    const checkbox = screen.getByRole('checkbox', { name: 'Simplificar acordes' });
-    expect(checkbox).not.toBeChecked();
-    fireEvent.click(checkbox);
-    expect(onChange).toHaveBeenCalledWith({ simplifyChords: true });
-  });
+    const select = screen.getByLabelText('Modo de presentación');
+    expect(select).toHaveValue('original');
 
-  it('chooses the chord reduction level', () => {
-    const { onChange } = renderControls();
-    const select = screen.getByLabelText('Reducción de acordes');
-    expect(select).toHaveValue('none');
+    fireEvent.change(select, { target: { value: 'simplified' } });
+    expect(onChange).toHaveBeenCalledWith({
+      simplifyChords: true,
+      reduceChords: false,
+      reduceChordsMax: false,
+    });
 
-    fireEvent.change(select, { target: { value: 'normal' } });
-    expect(onChange).toHaveBeenCalledWith({ reduceChords: true, reduceChordsMax: false });
+    fireEvent.change(select, { target: { value: 'reduced' } });
+    expect(onChange).toHaveBeenCalledWith({
+      simplifyChords: false,
+      reduceChords: true,
+      reduceChordsMax: false,
+    });
 
     fireEvent.change(select, { target: { value: 'max' } });
-    expect(onChange).toHaveBeenCalledWith({ reduceChords: true, reduceChordsMax: true });
+    expect(onChange).toHaveBeenCalledWith({
+      simplifyChords: false,
+      reduceChords: true,
+      reduceChordsMax: true,
+    });
+
+    fireEvent.change(select, { target: { value: 'simplified-reduced' } });
+    expect(onChange).toHaveBeenCalledWith({
+      simplifyChords: true,
+      reduceChords: true,
+      reduceChordsMax: false,
+    });
   });
 
-  it('shows the current reduction level and can turn it off', () => {
-    const { onChange } = renderControls({ reduceChords: true, reduceChordsMax: true });
-    const select = screen.getByLabelText('Reducción de acordes');
-    expect(select).toHaveValue('max');
-
-    fireEvent.change(select, { target: { value: 'none' } });
-    expect(onChange).toHaveBeenCalledWith({ reduceChords: false, reduceChordsMax: false });
+  it('shows the current presentation mode', () => {
+    renderControls({ simplifyChords: true, reduceChords: true, reduceChordsMax: true });
+    expect(screen.getByLabelText('Modo de presentación')).toHaveValue('simplified-max');
   });
 
   it('changes the instrument from the labeled selector', () => {

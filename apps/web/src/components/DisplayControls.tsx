@@ -27,6 +27,25 @@ const INSTRUMENTS: Array<{
   { value: 'ukelele', label: 'instrument.ukelele' },
 ];
 
+type PresentationMode =
+  | 'original'
+  | 'simplified'
+  | 'reduced'
+  | 'simplified-reduced'
+  | 'max'
+  | 'simplified-max';
+
+function modePatch(mode: PresentationMode): {
+  simplifyChords: boolean;
+  reduceChords: boolean;
+  reduceChordsMax: boolean;
+} {
+  const simplified = mode === 'simplified' || mode === 'simplified-reduced' || mode === 'simplified-max';
+  const reduced = mode !== 'original' && mode !== 'simplified';
+  const maximum = mode === 'max' || mode === 'simplified-max';
+  return { simplifyChords: simplified, reduceChords: reduced, reduceChordsMax: maximum };
+}
+
 export function DisplayControls({
   simplifyChords,
   reduceChords,
@@ -42,39 +61,36 @@ export function DisplayControls({
   );
   /** The capo only makes sense on string instruments. */
   const capoAvailable = supportsCapo(instrument);
+  const presentationMode: PresentationMode = reduceChords
+    ? reduceChordsMax
+      ? simplifyChords
+        ? 'simplified-max'
+        : 'max'
+      : simplifyChords
+        ? 'simplified-reduced'
+        : 'reduced'
+    : simplifyChords
+      ? 'simplified'
+      : 'original';
 
   return (
     <section className="contents" aria-label={t('display.aria')}>
-      <Tool label={t('display.presentation')} icon={<IconSliders />} className="sm:min-w-[22rem]">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1">
-            <span className="tool-label">{t('display.simplify')}</span>
-            <input
-              type="checkbox"
-              className="mt-1 size-4 accent-accent"
-              checked={simplifyChords}
-              onChange={(event) => onChange({ simplifyChords: event.target.checked })}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="tool-label">{t('display.reduction')}</span>
-            <select
-              className="tool-select w-full"
-              value={reduceChords ? (reduceChordsMax ? 'max' : 'normal') : 'none'}
-              onChange={(event) => {
-                const value = event.target.value;
-                onChange({
-                  reduceChords: value !== 'none',
-                  reduceChordsMax: value === 'max',
-                });
-              }}
-            >
-              <option value="none">{t('display.reductionNone')}</option>
-              <option value="normal">{t('display.reductionNormal')}</option>
-              <option value="max">{t('display.reductionMax')}</option>
-            </select>
-          </label>
-        </div>
+      <Tool label={t('display.presentation')} icon={<IconSliders />}>
+        <select
+          className="tool-select w-full max-w-56"
+          value={presentationMode}
+          onChange={(event) =>
+            onChange(modePatch(event.target.value as PresentationMode))
+          }
+          aria-label={t('display.presentationModeAria')}
+        >
+          <option value="original">{t('display.modeOriginal')}</option>
+          <option value="simplified">{t('display.modeSimplified')}</option>
+          <option value="reduced">{t('display.modeReduced')}</option>
+          <option value="simplified-reduced">{t('display.modeSimplifiedReduced')}</option>
+          <option value="max">{t('display.modeMax')}</option>
+          <option value="simplified-max">{t('display.modeSimplifiedMax')}</option>
+        </select>
       </Tool>
 
       {hideAdvanced ? null : (
