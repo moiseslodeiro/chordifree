@@ -70,7 +70,7 @@ describe('HTTP client', () => {
   it('requests lyrics with title, artist, and duration', async () => {
     const fetchMock = vi.fn(async (_url: string) =>
       response({
-        lyrics: 'Uno\nDos',
+        lyrics: 'Uno\n\n   \nDos\n',
         trackName: 'Demo',
         artistName: 'Artista',
         source: 'lrclib',

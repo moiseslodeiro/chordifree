@@ -571,7 +571,7 @@ export default function App() {
             alt="chordifree"
             className="brand-dark h-8 w-auto sm:h-9"
           />
-          <span className="hidden font-mono text-[0.56rem] uppercase leading-none tracking-[0.16em] text-ink3 sm:block sm:text-[0.6rem]">
+          <span className="hidden font-mono text-[0.56rem] uppercase leading-none tracking-[0.16em] text-ink3 sm:block sm:text-[0.62rem]">
             {t('app.tagline')}
           </span>
         </button>
@@ -732,7 +732,7 @@ export default function App() {
 
       <footer
         data-testid="site-footer"
-        className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-ink3"
+        className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink3"
       >
         <span>{t(desktop ? 'footer.desktopTagline' : 'footer.tagline')}</span>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>

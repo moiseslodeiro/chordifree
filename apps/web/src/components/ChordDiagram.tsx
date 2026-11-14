@@ -30,7 +30,7 @@ function Fallback({ label, instrument }: { label: string; instrument: Instrument
       className="flex min-h-[150px] w-full flex-col items-center justify-center gap-2 border border-dashed border-line-strong px-4 py-6 text-center"
     >
       <span className="font-display text-3xl font-extrabold leading-none text-ink">{label}</span>
-      <span className="font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink3">
+      <span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
         {t('diagram.noShape')}
       </span>
     </div>

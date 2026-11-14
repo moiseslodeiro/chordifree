@@ -79,7 +79,7 @@ export function ErrorBanner({ message, code, onRetry, onDismiss }: ErrorBannerPr
           <div className="min-w-0">
             <p className="font-medium text-ink">{message}</p>
             {code ? (
-              <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink3">
+              <p className="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
                 {code}
               </p>
             ) : null}

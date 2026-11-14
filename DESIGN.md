@@ -17,6 +17,10 @@ colors:
   positive: "#0C7A4A"
   warning: "#A65408"
   danger: "#BE2D26"
+  print-ink: "#555"
+  print-ink-soft: "#666"
+  print-ink-faint: "#888"
+  print-rule: "#DDD"
 typography:
   display:
     fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
@@ -30,22 +34,47 @@ typography:
     fontWeight: 700
     lineHeight: 1.08
     letterSpacing: "-0.03em"
+  title-sm:
+    fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "-0.03em"
   body:
     fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.55
+  body-sm:
+    fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  label-lg:
+    fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.7rem"
+    fontWeight: 500
+    lineHeight: 1
+    letterSpacing: "0.12em"
   label:
     fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
     fontSize: "0.62rem"
     fontWeight: 500
     lineHeight: 1
     letterSpacing: "0.14em"
+  label-sm:
+    fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.56rem"
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: "0.08em"
 rounded:
+  xs: "3px"
   sm: "6px"
   md: "8px"
   lg: "10px"
   xl: "14px"
+  pill: "999px"
 spacing:
   3xs: "4px"
   2xs: "8px"
@@ -148,6 +177,11 @@ only when something needs attention.
 - **Rehearsal Amber** (#A65408): warnings and destructive-range hints.
 - **Take Red** (#BE2D26): errors and destructive actions.
 
+### Print
+- **Print Ink** (#555), **Print Ink Soft** (#666) and **Print Ink Faint** (#888): the grayscale
+  ramp for metadata, section labels and the footer of the printed sheet.
+- **Print Rule** (#DDD): the only rule colour in print.
+
 ### Named Rules
 **The One Blue Rule.** Electric blue covers at most a tenth of any screen. It means action,
 selection or the current position, never decoration.
@@ -171,8 +205,10 @@ chord figures are set in it so they read as data, not prose.
 - **Title** (700, 1.5625rem / 1.08, -0.03em): section and card headings.
 - **Body** (400, 1rem / 1.55): lyrics, help text and notices. Keep the measure between 60
   and 75 characters.
-- **Label** (500, 0.62–0.7rem, 0.12–0.14em uppercase): tool labels, tabs, badges, times and
-  keyboard hints.
+- **Label LG** (500, 0.7rem, 0.12em uppercase): tabs, times and navigational labels.
+- **Label** (500, 0.62rem, 0.14em uppercase): the default eyebrow, badge and tool label.
+- **Label SM** (600, 0.56rem, 0.08em uppercase): the smallest loop and measure marks.
+- **Body SM** (400, 0.875rem / 1.5): dense menu items, toasts and lyric chord chips.
 
 ### Named Rules
 **The Mono Means Data Rule.** IBM Plex Mono is for figures, chord symbols, commands and
@@ -206,9 +242,10 @@ a surface genuinely leaves the page.
 
 ## Shapes
 
-Corners are soft but not friendly: 6px for badges and chips, 8px for buttons and fields,
-10px for cards and panels, 14px for large windows. Full-round is reserved for status dots
-and the play control. Borders are always complete rectangles; no coloured side stripes.
+Corners are soft but not friendly: 3px for the smallest loop marks, 6px for badges and chips,
+8px for buttons and fields, 10px for cards and panels, 14px for large windows. Full-round
+(`999px`) is reserved for status dots, the play control, slider tracks and their thumbs.
+Borders are always complete rectangles; no coloured side stripes.
 
 ## Components
 

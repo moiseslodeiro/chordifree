@@ -1,5 +1,6 @@
 import { t } from '../i18n';
 import type { AnalysisResult, AnalysisView, LyricsResult, YoutubeSearchResult } from '../types';
+import { normalizeLyricsText } from '../lyrics/normalize';
 
 export class ApiClientError extends Error {
   readonly code: string;
@@ -91,7 +92,14 @@ export async function fetchLyrics(
     query.set('duration', String(Math.round(params.duration)));
   }
   const response = await fetch(`/api/lyrics?${query.toString()}`, { signal });
-  return parseResponse<LyricsResult>(response);
+  const lyrics = await parseResponse<LyricsResult>(response);
+  return {
+    ...lyrics,
+    lyrics: normalizeLyricsText(lyrics.lyrics),
+    ...(typeof lyrics.syncedLyrics === 'string'
+      ? { syncedLyrics: normalizeLyricsText(lyrics.syncedLyrics) }
+      : {}),
+  };
 }
 
 export async function deleteAnalysis(id: string): Promise<void> {

@@ -34,7 +34,7 @@ describe('ChordGrid', () => {
     expect(screen.getByText('01:24')).toBeInTheDocument();
     expect(screen.getByText('Am')).toBeInTheDocument();
     expect(screen.getByText('F♯')).toBeInTheDocument();
-    expect(screen.getByText('silencio')).toBeInTheDocument();
+    expect(screen.getByText('Silencio')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 

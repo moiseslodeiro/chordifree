@@ -25,7 +25,7 @@ export function ProgressPanel({ state, onCancel }: ProgressPanelProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="font-display text-lg font-semibold leading-tight text-ink">{t(PHASE_LABEL[state.phase])}</p>
-          <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink3">
+          <p className="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
             {status ? t('progress.serverStatus', { status }) : t('progress.contacting')}
           </p>
         </div>
@@ -44,8 +44,8 @@ export function ProgressPanel({ state, onCancel }: ProgressPanelProps) {
         aria-label={t('progress.aria')}
       >
         <div
-          className="h-full bg-accent transition-[width] duration-300"
-          style={{ width: `${Math.max(4, Math.min(100, progress))}%` }}
+          className="h-full origin-left bg-accent transition-transform duration-300"
+          style={{ transform: `scaleX(${Math.max(4, Math.min(100, progress)) / 100})` }}
         />
       </div>
       <p className="mt-3 text-xs leading-relaxed text-ink3">

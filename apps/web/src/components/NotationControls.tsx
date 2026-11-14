@@ -62,8 +62,8 @@ export function NotationControls({
             }
           >
             <option value="auto">{t('notation.auto')}</option>
-            <option value="sharp">Sostenidos ♯</option>
-            <option value="flat">Bemoles ♭</option>
+            <option value="sharp">{t('notation.sharp')} ♯</option>
+            <option value="flat">{t('notation.flat')} ♭</option>
           </select>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function NotationControls({
           </button>
           <button
             type="button"
-            className="min-w-[2.75rem] px-1 font-mono text-sm tabular-nums text-ink transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+            className="transpose-reset min-w-[2.75rem] px-1 font-mono text-sm tabular-nums text-ink transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={`${t('notation.resetTranspose')} ${transpose > 0 ? `+${transpose}` : transpose}`}
             title={t('notation.resetTranspose')}
             onClick={() => onChange({ transpose: 0 })}

@@ -81,10 +81,38 @@
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Song titles, page heroes and the landing headline." },
-      "title": { "displayName": "Title", "purpose": "Section and card headings." },
-      "body": { "displayName": "Body", "purpose": "Lyrics, help text and notices." },
-      "label": { "displayName": "Label", "purpose": "Tool labels, tabs, badges, times and keyboard hints." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Song titles, page heroes and the landing headline."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and card headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Lyrics, help text and notices."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Tool labels, tabs, badges, times and keyboard hints."
+      },
+      "title-sm": {
+        "displayName": "Title Small",
+        "purpose": "Chord symbols in the beat and bar grids."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "Dense menus, toasts and lyric chord chips."
+      },
+      "label-lg": {
+        "displayName": "Label Large",
+        "purpose": "Tabs, times and navigational labels."
+      },
+      "label-sm": {
+        "displayName": "Label Small",
+        "purpose": "Loop and measure marks."
+      }
     },
     "shadows": [
       {
@@ -99,16 +127,44 @@
       }
     ],
     "motion": [
-      { "name": "dur-fast", "value": "120ms", "purpose": "Hover, focus and pressed states." },
-      { "name": "dur", "value": "200ms", "purpose": "Larger state changes such as panels and tabs." },
-      { "name": "ease", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "Default easing for state transitions." },
-      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrance and reveal motion." }
+      {
+        "name": "dur-fast",
+        "value": "120ms",
+        "purpose": "Hover, focus and pressed states."
+      },
+      {
+        "name": "dur",
+        "value": "200ms",
+        "purpose": "Larger state changes such as panels and tabs."
+      },
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Default easing for state transitions."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrance and reveal motion."
+      }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" },
-      { "name": "xl", "value": "1280px" }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
     ]
   },
   "components": [
@@ -171,11 +227,31 @@
       "Draft surfaces look editable: soft radii, visible focus, clear hover and active states."
     ],
     "rules": [
-      { "name": "The One Blue Rule", "body": "Electric blue covers at most a tenth of any screen. It means action, selection or the current position, never decoration.", "section": "colors" },
-      { "name": "The Two Papers Rule", "body": "The app runs on cool paper; the marketing site runs on warm paper. A single surface never mixes both grounds.", "section": "colors" },
-      { "name": "The Mono Means Data Rule", "body": "IBM Plex Mono is for figures, chord symbols, commands and short labels. Never set a paragraph in it.", "section": "typography" },
-      { "name": "The No Italic Rule", "body": "Emphasis comes from weight, size or the accent colour. The app has no italic voice.", "section": "typography" },
-      { "name": "The Hairline Rule", "body": "Separation is a 1px line or empty space. Reach for a shadow only when a surface genuinely leaves the page.", "section": "elevation" }
+      {
+        "name": "The One Blue Rule",
+        "body": "Electric blue covers at most a tenth of any screen. It means action, selection or the current position, never decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Papers Rule",
+        "body": "The app runs on cool paper; the marketing site runs on warm paper. A single surface never mixes both grounds.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Means Data Rule",
+        "body": "IBM Plex Mono is for figures, chord symbols, commands and short labels. Never set a paragraph in it.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Italic Rule",
+        "body": "Emphasis comes from weight, size or the accent colour. The app has no italic voice.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline Rule",
+        "body": "Separation is a 1px line or empty space. Reach for a shadow only when a surface genuinely leaves the page.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do keep electric blue for action, selection and the current beat only.",

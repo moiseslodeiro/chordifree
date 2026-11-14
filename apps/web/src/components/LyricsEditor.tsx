@@ -107,7 +107,7 @@ export function LyricsEditor({
   return (
     <section
       className="rounded-xl border border-line bg-panel p-4 shadow-sm sm:p-5"
-      aria-label="Editor de letra"
+      aria-label={t('lyrics.editorAria')}
     >
       <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
         <div>
@@ -119,7 +119,7 @@ export function LyricsEditor({
             count: lines,
             label: lines === 1 ? t('lyrics.line') : t('lyrics.lines'),
           })}
-          {dirty ? ' · sin guardar' : ''}
+          {dirty ? ` · ${t('lyrics.unsaved')}` : ''}
         </span>
       </header>
 
