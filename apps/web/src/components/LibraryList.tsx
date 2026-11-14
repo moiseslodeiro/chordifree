@@ -486,7 +486,12 @@ export function LibraryList({
                 {
                   count: audioCache.entries,
                   size: formatBytes(audioCache.bytes),
-                  minutes: audioCache.ttlMinutes,
+                  retention:
+                    audioCache.ttlMinutes > 0
+                      ? t('library.audioCacheKeepMinutes', {
+                          minutes: audioCache.ttlMinutes,
+                        })
+                      : t('library.audioCacheKeepForever'),
                 },
               )}
             </span>

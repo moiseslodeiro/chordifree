@@ -197,7 +197,7 @@ test.describe('full flow', () => {
     await expect(firstCell).toContainText('C');
   });
 
-  test('preserves the A-B range and the playback speed on reload', async ({ page }) => {
+  test('keeps the A-B range but resets speed and pitch on reload', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
@@ -206,6 +206,7 @@ test.describe('full flow', () => {
     await page.getByTestId('beat-cell-0').click();
     await page.getByRole('button', { name: 'Bucle', exact: true }).click();
     await page.getByLabel('Velocidad de reproducción').selectOption('1.25');
+    await page.getByLabel('Tono del audio en semitonos').selectOption('4');
 
     await expect(page.getByText('00:00 – 00:04')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Bucle', exact: true })).toHaveAttribute(
@@ -222,7 +223,8 @@ test.describe('full flow', () => {
       'true',
     );
     await expect(page.getByText('00:00 – 00:04')).toBeVisible();
-    await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1.25');
+    await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1');
+    await expect(page.getByLabel('Tono del audio en semitonos')).toHaveValue('0');
   });
 
   test('exports the library and restores it from a JSON backup', async ({ page }, testInfo) => {

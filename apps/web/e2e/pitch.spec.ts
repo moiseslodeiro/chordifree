@@ -86,7 +86,7 @@ test.describe('audio pitch', () => {
 test.describe('YouTube temporary audio', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'AudioWorklet is verified in Chromium');
 
-  test('switches from the video to temporary audio and back', async ({ page }) => {
+  test('plays YouTube from the thumbnail and the top player', async ({ page }) => {
     await page.addInitScript(() => {
       const worklets: string[] = [];
       (window as Window & { __worklets?: string[] }).__worklets = worklets;
@@ -103,9 +103,6 @@ test.describe('YouTube temporary audio', () => {
         JSON.stringify({ schemaVersion: 1, data: { language: 'en' } }),
       );
     });
-
-    // Keep the real YouTube iframe out of the test; the switch does not need it.
-    await page.route('https://www.youtube.com/**', (route) => route.abort());
 
     await page.route('**/api/health', (route) =>
       route.fulfill({
@@ -169,22 +166,22 @@ test.describe('YouTube temporary audio', () => {
     await page.getByLabel('Video link').fill('https://youtu.be/dQw4w9WgXcQ');
     await page.getByRole('button', { name: 'Detect chords' }).click();
     await expect(page.getByRole('heading', { name: 'Temporary audio demo' })).toBeVisible();
-    await expect(page.getByTestId('player-video')).toBeVisible();
-    expect(prepares).toBe(0);
-
-    await page.getByLabel('Audio pitch in semitones').selectOption('4');
-    await expect(page.getByText(/The pitch is applied to temporary audio/)).toBeVisible();
-    await expect(page.getByTestId('player-video')).not.toBeVisible();
+    await expect(page.getByTestId('player-thumbnail')).toBeVisible();
+    await expect(page.locator('iframe')).toHaveCount(0);
     expect(prepares).toBe(1);
 
     const audio = page.locator('audio');
     await expect(audio).toHaveAttribute('src', '/api/youtube/dQw4w9WgXcQ/audio');
+    await expect(audio).not.toHaveAttribute('controls');
+
+    await page.getByLabel('Audio pitch in semitones').selectOption('4');
+    await expect(page.getByText(/YouTube audio is played from a temporary copy/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Play' }).click();
     await expect.poll(() => audio.evaluate((element) => element.currentTime)).toBeGreaterThan(0.25);
 
     await page.getByLabel('Audio pitch in semitones').selectOption('0');
-    await expect(page.getByTestId('player-video')).toBeVisible();
-    await expect(audio).not.toBeVisible();
+    await expect(audio).toHaveAttribute('src', '/api/youtube/dQw4w9WgXcQ/audio');
+    expect(prepares).toBe(1);
   });
 });

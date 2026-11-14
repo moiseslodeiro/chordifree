@@ -135,10 +135,11 @@ const en = {
   'library.clearFilters': 'Clear filters',
   'library.cacheStats': 'Analysis cache: {count} entries · {size}',
   'library.clearCache': 'Clear cache',
-  'library.audioCacheStatsOne':
-    'Temporary YouTube audio: 1 file · {size} · kept for about {minutes} min',
+  'library.audioCacheStatsOne': 'Temporary YouTube audio: 1 file · {size} · {retention}',
   'library.audioCacheStatsOther':
-    'Temporary YouTube audio: {count} files · {size} · kept for about {minutes} min',
+    'Temporary YouTube audio: {count} files · {size} · {retention}',
+  'library.audioCacheKeepForever': 'kept until you clear it',
+  'library.audioCacheKeepMinutes': 'kept for about {minutes} min',
   'library.clearAudioCache': 'Clear temporary audio',
   'library.uploadSource': 'Uploaded audio',
   'library.sheetSource': 'Chord sheet',
@@ -489,11 +490,13 @@ const en = {
   'player.audioUnsupported': 'Your browser does not support audio playback.',
   'player.demo':
     'Demo mode: playback is simulated with a local clock so you can test synchronization without loading the video.',
-  'player.pitchPreparing': 'Preparing the temporary audio for the selected pitch…',
-  'player.pitchTemporary':
-    'The pitch is applied to temporary audio. The video is hidden until the pitch returns to 0.',
+  'player.pitchPreparing': 'Preparing the YouTube audio…',
   'player.pitchAudioFailed':
-    'The temporary audio could not be prepared. The original video keeps playing.',
+    'Could not prepare the YouTube audio. The song cannot be played right now.',
+  'player.youtubeTemporary':
+    'YouTube audio is played from a temporary copy on the server.',
+  'player.audioFileHint': 'Use the playback bar above to play this file.',
+  'player.audioLoadFailed': 'The audio could not be loaded.',
   'player.audioMissing':
     'The original audio for this song is not available: it is not saved to the library. You can view and edit the timeline, but not play it. Upload it again.',
 
@@ -725,10 +728,11 @@ const es: Record<MessageKey, string> = {
   'library.clearFilters': 'Limpiar filtros',
   'library.cacheStats': 'Caché de análisis: {count} entradas · {size}',
   'library.clearCache': 'Vaciar caché',
-  'library.audioCacheStatsOne':
-    'Audio temporal de YouTube: 1 archivo · {size} · se conserva unos {minutes} min',
+  'library.audioCacheStatsOne': 'Audio temporal de YouTube: 1 archivo · {size} · {retention}',
   'library.audioCacheStatsOther':
-    'Audio temporal de YouTube: {count} archivos · {size} · se conserva unos {minutes} min',
+    'Audio temporal de YouTube: {count} archivos · {size} · {retention}',
+  'library.audioCacheKeepForever': 'se conserva hasta que la borres',
+  'library.audioCacheKeepMinutes': 'se conserva unos {minutes} min',
   'library.clearAudioCache': 'Borrar audio temporal',
   'library.uploadSource': 'Audio subido',
   'library.sheetSource': 'Hoja de acordes',
@@ -1087,11 +1091,13 @@ const es: Record<MessageKey, string> = {
   'player.audioUnsupported': 'Tu navegador no admite la reproducción de audio.',
   'player.demo':
     'Modo de demostración: la reproducción se simula con un reloj local para poder probar la sincronización sin cargar el video.',
-  'player.pitchPreparing': 'Preparando el audio temporal para el tono seleccionado…',
-  'player.pitchTemporary':
-    'El tono se aplica a un audio temporal. El video se oculta hasta que el tono vuelva a 0.',
+  'player.pitchPreparing': 'Preparando el audio de YouTube…',
   'player.pitchAudioFailed':
-    'No se pudo preparar el audio temporal. Se sigue reproduciendo el video original.',
+    'No se pudo preparar el audio de YouTube. La canción no se puede reproducir ahora.',
+  'player.youtubeTemporary':
+    'El audio de YouTube se reproduce desde una copia temporal en el servidor.',
+  'player.audioFileHint': 'Usa la barra de reproducción superior para escuchar este archivo.',
+  'player.audioLoadFailed': 'No se pudo cargar el audio.',
   'player.audioMissing':
     'El audio original de esta canción no está disponible: no se guarda en la biblioteca. Puedes consultar y editar la línea de tiempo, pero no reproducirla. Vuelve a subir el archivo.',
 

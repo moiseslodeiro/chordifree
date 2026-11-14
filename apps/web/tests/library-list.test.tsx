@@ -79,6 +79,19 @@ describe('LibraryList', () => {
     expect(onClearAudioCache).toHaveBeenCalled();
   });
 
+  it('shows that a local cache is kept until cleared', () => {
+    renderLibrary({
+      audioCache: { entries: 1, bytes: 1024, ttlMinutes: 0 },
+      onClearAudioCache: vi.fn(),
+    });
+
+    expect(
+      screen.getByText(
+        'Audio temporal de YouTube: 1 archivo · 1.0 KB · se conserva hasta que la borres',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('opens a song when clicking Open', () => {
     const { onOpen } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Abrir' })[0]!);

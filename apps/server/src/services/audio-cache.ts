@@ -20,7 +20,8 @@ const CONTENT_TYPES: Record<string, string> = {
 export interface CachedAudio {
   path: string;
   contentType: string;
-  expiresAt: number;
+  /** Unix time in milliseconds, or null when the cache never expires. */
+  expiresAt: number | null;
 }
 
 export interface TemporaryAudioCacheOptions {
@@ -46,7 +47,10 @@ export class TemporaryAudioCache {
 
   constructor(private readonly options: TemporaryAudioCacheOptions) {
     this.now = options.now ?? Date.now;
-    this.maxEntries = options.maxEntries ?? MAX_ENTRIES;
+    // Loopback installs keep files until the user clears them; hosted servers
+    // still cap the number of cached videos.
+    this.maxEntries =
+      options.maxEntries ?? (options.ttlMs > 0 ? MAX_ENTRIES : Number.POSITIVE_INFINITY);
   }
 
   get directory(): string {
@@ -87,7 +91,7 @@ export class TemporaryAudioCache {
     return {
       path: target,
       contentType: CONTENT_TYPES[extension] ?? 'application/octet-stream',
-      expiresAt: info.mtimeMs + this.options.ttlMs,
+      expiresAt: this.options.ttlMs > 0 ? info.mtimeMs + this.options.ttlMs : null,
     };
   }
 
@@ -98,14 +102,14 @@ export class TemporaryAudioCache {
     if (!path) return null;
     try {
       const info = await stat(path);
-      if (this.now() - info.mtimeMs > this.options.ttlMs) {
+      if (this.options.ttlMs > 0 && this.now() - info.mtimeMs > this.options.ttlMs) {
         await rm(path, { force: true });
         return null;
       }
       return {
         path,
         contentType: CONTENT_TYPES[extname(path).toLowerCase()] ?? 'application/octet-stream',
-        expiresAt: info.mtimeMs + this.options.ttlMs,
+        expiresAt: this.options.ttlMs > 0 ? info.mtimeMs + this.options.ttlMs : null,
       };
     } catch {
       return null;
@@ -218,7 +222,7 @@ export async function sweepAudioCache(
   directory: string,
   ttlMs: number,
   now: () => number = Date.now,
-  maxEntries = MAX_ENTRIES,
+  maxEntries = ttlMs > 0 ? MAX_ENTRIES : Number.POSITIVE_INFINITY,
 ): Promise<number> {
   let entries;
   try {
@@ -236,7 +240,7 @@ export async function sweepAudioCache(
     const path = join(directory, entry.name);
     try {
       const info = await stat(path);
-      if (now() - info.mtimeMs > ttlMs) {
+      if (ttlMs > 0 && now() - info.mtimeMs > ttlMs) {
         await rm(path, { force: true });
         removed += 1;
       } else {

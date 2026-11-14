@@ -84,7 +84,7 @@ export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): R
       const entry = await audioCache.prepare(videoId);
       res.json({
         url: `/api/youtube/${videoId}/audio`,
-        expiresAt: new Date(entry.expiresAt).toISOString(),
+        expiresAt: entry.expiresAt === null ? null : new Date(entry.expiresAt).toISOString(),
       });
     } catch (error) {
       next(error);

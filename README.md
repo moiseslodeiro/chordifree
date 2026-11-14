@@ -70,7 +70,7 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
   play from A to B or loop the range.
 - **Transposition**, English/Spanish notation, sharps/flats, capo, guitar/piano/ukelele.
 - **Audio pitch** for uploaded files and temporary YouTube audio (±12 semitones) without
-  changing the tempo.
+  changing the tempo. YouTube songs show the thumbnail and play from the main player bar.
 - **Simplify / reduce chords** for simpler accompaniment.
 - **Local library** stored in the browser, with folders to group songs, JSON backups,
   **ChordPro import/export** and print/PDF.
@@ -121,7 +121,7 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `RATE_LIMIT_WINDOW_MS` | `3600000` | Rate-limit window |
 | `TRUST_PROXY` | `0` | Trusted reverse-proxy hops; set `1` behind nginx/Caddy |
 | `TEMP_DIR` | `./.tmp` | Temporary audio and analysis working directory |
-| `AUDIO_CACHE_TTL_MINUTES` | `60` | How long the temporary YouTube audio is kept for pitch shifting |
+| `AUDIO_CACHE_TTL_MINUTES` | auto | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
 | `YTDLP_PATH` | `yt-dlp` | yt-dlp binary |
 | `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
 | `FFPROBE_PATH` | `ffprobe` | ffprobe binary |

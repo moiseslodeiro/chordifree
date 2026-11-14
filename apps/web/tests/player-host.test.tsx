@@ -27,119 +27,93 @@ function song(source: Song['source']): Song {
   };
 }
 
+function renderHost(overrides: Partial<Parameters<typeof PlayerHost>[0]> = {}) {
+  const props: Parameters<typeof PlayerHost>[0] = {
+    song: song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' }),
+    audioUrl: null,
+    forceFake: false,
+    pitch: 0,
+    onAdapter: vi.fn(),
+    onPlaybackError: vi.fn(),
+    ...overrides,
+  };
+  return { ...render(<PlayerHost {...props} />), props };
+}
+
 describe('PlayerHost', () => {
-  it('limits video width in the compact variant without distorting the aspect ratio', () => {
-    render(
-      <PlayerHost
-        song={song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })}
-        audioUrl={null}
-        forceFake={false}
-        pitch={0}
-        variant="compact"
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
-    );
-
-    const video = screen.getByTestId('player-video');
-    expect(video).toHaveAttribute('data-variant', 'compact');
-    expect(video.className).toContain('w-full');
-    expect(video.className).toContain('aspect-video');
-  });
-
-  it('keeps the audio player working in the compact variant', () => {
-    render(
-      <PlayerHost
-        song={song({ type: 'upload', filename: 'demo.mp3' })}
-        audioUrl="blob:demo"
-        forceFake={false}
-        pitch={0}
-        variant="compact"
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
-    );
-
-    const audio = document.querySelector('audio');
-    expect(audio).not.toBeNull();
-    expect(audio).toHaveAttribute('src', 'blob:demo');
-  });
-});
-describe('PlayerHost temporary audio', () => {
   beforeEach(() => {
     prepareMock.mockReset();
+    prepareMock.mockResolvedValue({ url: '/api/youtube/dQw4w9WgXcQ/audio' });
   });
 
-  it('does not request temporary audio when the pitch is zero', () => {
-    render(
-      <PlayerHost
-        song={song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })}
-        audioUrl={null}
-        forceFake={false}
-        pitch={0}
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
-    );
+  it('shows the YouTube thumbnail instead of the video', () => {
+    prepareMock.mockReturnValue(new Promise(() => undefined));
+    renderHost({ variant: 'compact' });
 
-    expect(prepareMock).not.toHaveBeenCalled();
-    expect(screen.getByTestId('player-video')).toBeInTheDocument();
+    const thumbnail = screen.getByTestId('player-thumbnail');
+    expect(thumbnail).toHaveAttribute('data-variant', 'compact');
+    expect(thumbnail.className).toContain('max-w-[22rem]');
+    expect(thumbnail.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    );
+    expect(thumbnail.querySelector('img')).toHaveClass('aspect-video');
   });
 
-  it('shows the preparation state and then plays the temporary audio', async () => {
-    let resolve: (value: { url: string }) => void = () => undefined;
-    prepareMock.mockReturnValue(
-      new Promise((promiseResolve) => {
-        resolve = promiseResolve;
-      }),
-    );
-
-    render(
-      <PlayerHost
-        song={song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })}
-        audioUrl={null}
-        forceFake={false}
-        pitch={4}
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
-    );
+  it('prepares the temporary audio when a YouTube song opens', async () => {
+    renderHost();
 
     expect(prepareMock).toHaveBeenCalledWith('dQw4w9WgXcQ', expect.any(AbortSignal));
-    expect(screen.getByRole('status')).toHaveTextContent('Preparando el audio temporal');
-
-    resolve({ url: '/api/youtube/dQw4w9WgXcQ/audio' });
-
     await waitFor(() => {
       expect(document.querySelector('audio')).toHaveAttribute(
         'src',
         '/api/youtube/dQw4w9WgXcQ/audio',
       );
     });
-    expect(screen.queryByTestId('player-video')).not.toBeInTheDocument();
-    expect(screen.getByText(/El tono se aplica a un audio temporal/)).toBeInTheDocument();
+    expect(screen.getByText(/YouTube audio is played from a temporary copy|El audio de YouTube/))
+      .toBeInTheDocument();
   });
 
-  it('keeps the video and reports the problem when the audio cannot be prepared', async () => {
-    prepareMock.mockRejectedValue(new Error('download failed'));
+  it('does not request the audio again when the pitch changes', async () => {
+    const { rerender, props } = renderHost();
+    await waitFor(() => expect(document.querySelector('audio')).not.toBeNull());
 
-    render(
-      <PlayerHost
-        song={song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })}
-        audioUrl={null}
-        forceFake={false}
-        pitch={4}
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
-    );
+    rerender(<PlayerHost {...props} pitch={4} />);
+    expect(prepareMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the preparation state before the audio is ready', () => {
+    prepareMock.mockReturnValue(new Promise(() => undefined));
+    renderHost({ pitch: 4 });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Preparando el audio de YouTube');
+  });
+
+  it('keeps the thumbnail and reports a problem when the audio cannot be prepared', async () => {
+    prepareMock.mockRejectedValue(new Error('download failed'));
+    renderHost();
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'No se pudo preparar el audio temporal',
+        'No se pudo preparar el audio de YouTube',
       );
     });
-    expect(screen.getByTestId('player-video')).toBeInTheDocument();
+    expect(screen.getByTestId('player-thumbnail')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    expect(document.querySelector('audio')).toBeNull();
+  });
+
+  it('hides the audio element and delegates playback to the top bar', () => {
+    renderHost({
+      song: song({ type: 'upload', filename: 'demo.mp3' }),
+      audioUrl: 'blob:demo',
+    });
+
+    const audio = document.querySelector('audio');
+    expect(audio).toHaveAttribute('src', 'blob:demo');
+    expect(audio).toHaveClass('hidden');
+    expect(audio).not.toHaveAttribute('controls');
+    expect(screen.getByText(/Usa la barra de reproducción superior/)).toBeInTheDocument();
+    expect(prepareMock).not.toHaveBeenCalled();
   });
 });

@@ -12,12 +12,18 @@ interface PracticeSessionState {
   updatePractice: (patch: Partial<PracticeSession>) => void;
 }
 
+/**
+ * Loads the practice state of a song. The A-B range and the metronome are
+ * remembered, but every visit starts from the original tempo and pitch.
+ */
+function loadForOpen(storage: ReturnType<typeof getStorage>, songId: string): PracticeSession {
+  return { ...loadPractice(storage, songId), rate: 1, pitch: 0 };
+}
+
 /** Loads and saves the practice state of a specific song. */
 export function usePracticeSession(songId: string): PracticeSessionState {
   const [storage] = useState(getStorage);
-  const [practice, setPractice] = useState<PracticeSession>(() =>
-    loadPractice(storage, songId),
-  );
+  const [practice, setPractice] = useState<PracticeSession>(() => loadForOpen(storage, songId));
   const practiceRef = useRef(practice);
   const songRef = useRef(songId);
 
@@ -25,7 +31,7 @@ export function usePracticeSession(songId: string): PracticeSessionState {
   songRef.current = songId;
 
   useEffect(() => {
-    const next = loadPractice(storage, songId);
+    const next = loadForOpen(storage, songId);
     practiceRef.current = next;
     setPractice(next);
   }, [songId, storage]);

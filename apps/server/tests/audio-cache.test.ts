@@ -97,6 +97,20 @@ describe('TemporaryAudioCache', () => {
     expect(entries).toHaveLength(1);
   });
 
+  it('keeps entries indefinitely when the TTL is zero', async () => {
+    const root = await makeRoot();
+    const { cache } = makeCache(root, {
+      ttlMs: 0,
+      now: () => Date.now() + 30 * 24 * 60 * 60 * 1000,
+      maxEntries: undefined,
+    });
+
+    const entry = await cache.prepare(VIDEO);
+    expect(await cache.get(VIDEO)).not.toBeNull();
+    expect(await cache.stats()).toMatchObject({ entries: 1, ttlMinutes: 0 });
+    expect(entry.expiresAt).toBeNull();
+  });
+
   it('sweeps expired files', async () => {
     const root = await makeRoot();
     const { cache } = makeCache(root);

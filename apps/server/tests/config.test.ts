@@ -14,4 +14,27 @@ describe('config defaults', () => {
     expect(config.host).toBe('0.0.0.0');
     expect(config.trustProxy).toBe(1);
   });
+
+  it('keeps the temporary audio indefinitely on local installs', () => {
+    expect(loadConfig({}).audioCacheTtlMinutes).toBe(0);
+    expect(
+      loadConfig({ HOST: '0.0.0.0', CORS_ORIGIN: 'http://localhost:3000' })
+        .audioCacheTtlMinutes,
+    ).toBe(0);
+  });
+
+  it('expires the cache on remote installs unless a TTL is set', () => {
+    expect(
+      loadConfig({ HOST: '0.0.0.0', CORS_ORIGIN: 'https://app.example.com' })
+        .audioCacheTtlMinutes,
+    ).toBe(60);
+    expect(loadConfig({ AUDIO_CACHE_TTL_MINUTES: '15' }).audioCacheTtlMinutes).toBe(15);
+    expect(
+      loadConfig({
+        HOST: '0.0.0.0',
+        CORS_ORIGIN: 'https://app.example.com',
+        AUDIO_CACHE_TTL_MINUTES: '0',
+      }).audioCacheTtlMinutes,
+    ).toBe(0);
+  });
 });
