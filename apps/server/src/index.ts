@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { createApp } from './app';
 import { JobStore } from './jobs/store';
 import { loadConfig } from './config';
+import { audioCacheDirectory, sweepAudioCache } from './services/audio-cache';
 import { sweepTempDirectory } from './services/cleanup';
 
 const config = loadConfig();
@@ -16,6 +17,10 @@ const server = app.listen(config.port, config.host, () => {
 
 const sweep = () => {
   void sweepTempDirectory(config.tempDir).catch(() => undefined);
+  void sweepAudioCache(
+    audioCacheDirectory(config.tempDir),
+    config.audioCacheTtlMinutes * 60_000,
+  ).catch(() => undefined);
 };
 sweep();
 const sweeper = setInterval(sweep, 10 * 60 * 1000);

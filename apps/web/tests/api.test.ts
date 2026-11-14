@@ -7,6 +7,7 @@ import {
   getAnalysis,
   getHealth,
   pollAnalysis,
+  prepareYoutubeAudio,
 } from '../src/lib/api';
 
 function response(body: unknown, status = 200): Response {
@@ -65,6 +66,22 @@ describe('HTTP client', () => {
     expect(url).toBe('/api/analyses');
     expect(options.body).toBeInstanceOf(FormData);
     expect((options.body as FormData).get('file')).toBe(file);
+  });
+
+  it('prepares the temporary audio of a YouTube video', async () => {
+    const fetchMock = vi.fn(async () =>
+      response({ url: '/api/youtube/dQw4w9WgXcQ/audio', expiresAt: '2026-01-01T01:00:00.000Z' }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(prepareYoutubeAudio('dQw4w9WgXcQ')).resolves.toEqual({
+      url: '/api/youtube/dQw4w9WgXcQ/audio',
+      expiresAt: '2026-01-01T01:00:00.000Z',
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/youtube/dQw4w9WgXcQ/audio', {
+      method: 'POST',
+      signal: undefined,
+    });
   });
 
   it('requests lyrics with title, artist, and duration', async () => {

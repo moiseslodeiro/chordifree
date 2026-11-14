@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
@@ -472,5 +474,79 @@ describe('DELETE /api/analyses/:id', () => {
 
     const missing = await request(app).get(`/api/analyses/${created.body.id}`);
     expect(missing.status).toBe(404);
+  });
+});
+
+describe('temporary YouTube audio', () => {
+  it('prepares, streams and reuses the audio with range support', async () => {
+    let downloads = 0;
+    const app = await buildApp({
+      tools: makeTools({
+        downloadYoutube: async (videoId, directory) => {
+          downloads += 1;
+          const path = join(directory, `${videoId}.m4a`);
+          await writeFile(path, '0123456789');
+          return path;
+        },
+      }),
+    });
+
+    const prepared = await request(app).post('/api/youtube/dQw4w9WgXcQ/audio');
+    expect(prepared.status).toBe(200);
+    expect(prepared.body.url).toBe('/api/youtube/dQw4w9WgXcQ/audio');
+    expect(prepared.body.expiresAt).toEqual(expect.any(String));
+    expect(downloads).toBe(1);
+
+    const full = await request(app).get('/api/youtube/dQw4w9WgXcQ/audio');
+    expect(full.status).toBe(200);
+    expect(full.headers['content-type']).toContain('audio/mp4');
+    expect(Buffer.from(full.body).toString()).toBe('0123456789');
+
+    const range = await request(app)
+      .get('/api/youtube/dQw4w9WgXcQ/audio')
+      .set('Range', 'bytes=0-3');
+    expect(range.status).toBe(206);
+    expect(range.headers['content-range']).toBe('bytes 0-3/10');
+    expect(Buffer.from(range.body).toString()).toBe('0123');
+
+    await request(app).post('/api/youtube/dQw4w9WgXcQ/audio');
+    expect(downloads).toBe(1);
+  });
+
+  it('returns 404 until the audio is prepared', async () => {
+    const app = await buildApp();
+    const response = await request(app).get('/api/youtube/dQw4w9WgXcQ/audio');
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe('AUDIO_NOT_READY');
+  });
+
+  it('rejects invalid video identifiers', async () => {
+    const app = await buildApp();
+    const response = await request(app).post('/api/youtube/bad/audio');
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('keeps the downloaded audio after an analysis', async () => {
+    let downloads = 0;
+    const app = await buildApp({
+      tools: makeTools({
+        downloadYoutube: async (videoId, directory) => {
+          downloads += 1;
+          const path = join(directory, `${videoId}.webm`);
+          await writeFile(path, 'audio');
+          return path;
+        },
+      }),
+    });
+
+    const created = await request(app)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+    await waitFor(app, created.body.id, 'done');
+
+    const prepared = await request(app).post('/api/youtube/dQw4w9WgXcQ/audio');
+    expect(prepared.status).toBe(200);
+    expect(downloads).toBe(1);
   });
 });

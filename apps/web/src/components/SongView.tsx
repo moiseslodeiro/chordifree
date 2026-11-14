@@ -871,6 +871,9 @@ export function SongView({
             onManualBpmChange={(value) => updatePractice({ bpm: value })}
             pitch={pitch}
             onPitchChange={(value) => updatePractice({ pitch: value })}
+            pitchAvailable={
+              song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
+            }
           />
         </div>
       ) : (

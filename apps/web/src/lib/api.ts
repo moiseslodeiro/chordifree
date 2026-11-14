@@ -77,6 +77,25 @@ export async function searchYoutube(
   return Array.isArray(body.results) ? body.results : [];
 }
 
+/**
+ * Asks the server for the temporary audio of a YouTube video. The response is
+ * ready to be used as the `src` of an audio element.
+ */
+export async function prepareYoutubeAudio(
+  videoId: string,
+  signal?: AbortSignal,
+): Promise<{ url: string; expiresAt?: string }> {
+  const response = await fetch(`/api/youtube/${encodeURIComponent(videoId)}/audio`, {
+    method: 'POST',
+    signal,
+  });
+  const body = await parseResponse<{ url?: string; expiresAt?: string }>(response);
+  if (!body.url) {
+    throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), response.status);
+  }
+  return { url: body.url, ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}) };
+}
+
 export async function fetchLyrics(
   params: { title: string; artist?: string; duration?: number },
   signal?: AbortSignal,

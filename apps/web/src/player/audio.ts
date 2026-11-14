@@ -76,6 +76,7 @@ export class AudioPlayerAdapter implements PlayerAdapter {
     // Start immediately; the worklet is wired in parallel on the first play.
     // Without a pitch shift the element stays on the native audio path.
     if (this.pitch !== 0) void this.ensureGraph();
+    if (this.context?.state === 'suspended') void this.context.resume();
     void this.audio.play().catch(() => undefined);
   }
 

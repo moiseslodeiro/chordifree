@@ -59,6 +59,9 @@ export class YouTubePlayerAdapter implements PlayerAdapter {
   private playing = false;
   private readonly listeners = new Set<(playing: boolean) => void>();
   private readonly elementId: string;
+  private pendingSeek: number | null = null;
+  private pendingPlay = false;
+  private destroyed = false;
 
   constructor(
     private readonly container: HTMLElement,
@@ -72,10 +75,21 @@ export class YouTubePlayerAdapter implements PlayerAdapter {
 
     void loadYouTubeApi()
       .then((YT) => {
+        if (this.destroyed) return;
         this.player = new YT.Player(this.elementId, {
           videoId,
           playerVars: { playsinline: 1, rel: 0, origin: window.location.origin },
           events: {
+            onReady: () => {
+              if (this.pendingSeek !== null) {
+                this.player?.seekTo(this.pendingSeek, true);
+                this.pendingSeek = null;
+              }
+              if (this.pendingPlay) {
+                this.pendingPlay = false;
+                this.player?.playVideo();
+              }
+            },
             onStateChange: (event: { data: number }) => {
               this.playing = event.data === YT.PlayerState.PLAYING;
               this.emit();
@@ -84,22 +98,35 @@ export class YouTubePlayerAdapter implements PlayerAdapter {
           },
         });
       })
-      .catch(() => this.onError?.(-1));
+      .catch(() => {
+        if (!this.destroyed) this.onError?.(-1);
+      });
   }
 
   getCurrentTime(): number {
-    return this.player?.getCurrentTime?.() ?? 0;
+    return this.player?.getCurrentTime?.() ?? this.pendingSeek ?? 0;
   }
 
   seekTo(seconds: number): void {
-    this.player?.seekTo(Math.max(0, seconds), true);
+    const target = Math.max(0, seconds);
+    if (this.player) this.player.seekTo(target, true);
+    else this.pendingSeek = target;
   }
 
   play(): void {
-    this.player?.playVideo();
+    if (this.player) {
+      this.player.playVideo();
+      return;
+    }
+    this.pendingPlay = true;
+    this.playing = true;
+    this.emit();
   }
 
   pause(): void {
+    this.pendingPlay = false;
+    this.playing = false;
+    this.emit();
     this.player?.pauseVideo();
   }
 
@@ -122,6 +149,7 @@ export class YouTubePlayerAdapter implements PlayerAdapter {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.listeners.clear();
     try {
       this.player?.destroy();

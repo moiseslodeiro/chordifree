@@ -27,6 +27,7 @@ interface PracticeBarProps {
   onManualBpmChange: (value: number) => void;
   pitch: number;
   onPitchChange: (value: number) => void;
+  pitchAvailable: boolean;
 }
 
 const SPEEDS = PLAYBACK_RATES.map((value) => ({
@@ -83,6 +84,7 @@ export function PracticeBar({
   onManualBpmChange,
   pitch,
   onPitchChange,
+  pitchAvailable,
 }: PracticeBarProps) {
   const t = useT();
   const [metronome, setMetronome] = useState(false);
@@ -357,12 +359,8 @@ export function PracticeBar({
           value={pitch}
           onChange={(event) => onPitchChange(Number(event.target.value))}
           aria-label={t('practice.pitchLabel')}
-          disabled={typeof adapter.setPitch !== 'function'}
-          title={
-            typeof adapter.setPitch === 'function'
-              ? t('practice.pitchTitle')
-              : t('practice.pitchUnavailable')
-          }
+          disabled={!pitchAvailable}
+          title={pitchAvailable ? t('practice.pitchTitle') : t('practice.pitchUnavailable')}
         >
           {PITCHES.map((value) => (
             <option key={value} value={value}>

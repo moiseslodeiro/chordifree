@@ -257,8 +257,9 @@ const en = {
   'practice.metronome': 'Metronome',
   'practice.pitch': 'Pitch',
   'practice.pitchLabel': 'Audio pitch in semitones',
-  'practice.pitchTitle': 'Transpose the audio without changing its tempo',
-  'practice.pitchUnavailable': 'Audio pitch is available for uploaded audio',
+  'practice.pitchTitle':
+    'Transpose the audio without changing its tempo. YouTube uses temporary audio.',
+  'practice.pitchUnavailable': 'Audio pitch is not available for this player',
   'practice.metronomeOn': 'Turn the metronome click on or off',
   'practice.metronomeManual': 'Turn the metronome click on or off with the manual BPM',
   'practice.countIn': 'Count-in',
@@ -481,6 +482,11 @@ const en = {
   'player.audioUnsupported': 'Your browser does not support audio playback.',
   'player.demo':
     'Demo mode: playback is simulated with a local clock so you can test synchronization without loading the video.',
+  'player.pitchPreparing': 'Preparing the temporary audio for the selected pitch…',
+  'player.pitchTemporary':
+    'The pitch is applied to temporary audio. The video is hidden until the pitch returns to 0.',
+  'player.pitchAudioFailed':
+    'The temporary audio could not be prepared. The original video keeps playing.',
   'player.audioMissing':
     'The original audio for this song is not available: it is not saved to the library. You can view and edit the timeline, but not play it. Upload it again.',
 
@@ -502,6 +508,7 @@ const en = {
   'error.analysisFailed': 'The analysis failed',
   'error.unexpected': 'Unexpected error',
   'error.api': 'The API responded {status}',
+  'error.audioUnavailable': 'The temporary audio is not available.',
   'apiError.INVALID_URL': 'The link is not valid.',
   'apiError.UNSUPPORTED_HOST': 'Only YouTube links are supported.',
   'apiError.MISSING_VIDEO_ID': 'The link does not include a video ID.',
@@ -834,8 +841,9 @@ const es: Record<MessageKey, string> = {
   'practice.metronome': 'Metrónomo',
   'practice.pitch': 'Tono',
   'practice.pitchLabel': 'Tono del audio en semitonos',
-  'practice.pitchTitle': 'Transpone el audio sin cambiar el tempo',
-  'practice.pitchUnavailable': 'El tono del audio está disponible para archivos subidos',
+  'practice.pitchTitle':
+    'Transpone el audio sin cambiar el tempo. En YouTube se usa audio temporal.',
+  'practice.pitchUnavailable': 'El tono del audio no está disponible para este reproductor',
   'practice.metronomeOn': 'Activar o desactivar el clic del metrónomo',
   'practice.metronomeManual':
     'Activar o desactivar el clic del metrónomo con el BPM manual',
@@ -1065,6 +1073,11 @@ const es: Record<MessageKey, string> = {
   'player.audioUnsupported': 'Tu navegador no admite la reproducción de audio.',
   'player.demo':
     'Modo de demostración: la reproducción se simula con un reloj local para poder probar la sincronización sin cargar el video.',
+  'player.pitchPreparing': 'Preparando el audio temporal para el tono seleccionado…',
+  'player.pitchTemporary':
+    'El tono se aplica a un audio temporal. El video se oculta hasta que el tono vuelva a 0.',
+  'player.pitchAudioFailed':
+    'No se pudo preparar el audio temporal. Se sigue reproduciendo el video original.',
   'player.audioMissing':
     'El audio original de esta canción no está disponible: no se guarda en la biblioteca. Puedes consultar y editar la línea de tiempo, pero no reproducirla. Vuelve a subir el archivo.',
 
@@ -1086,6 +1099,7 @@ const es: Record<MessageKey, string> = {
   'error.analysisFailed': 'El análisis falló',
   'error.unexpected': 'Error inesperado',
   'error.api': 'La API respondió {status}',
+  'error.audioUnavailable': 'El audio temporal no está disponible.',
   'apiError.INVALID_URL': 'El enlace no es válido.',
   'apiError.UNSUPPORTED_HOST': 'Solo se admiten enlaces de YouTube.',
   'apiError.MISSING_VIDEO_ID': 'El enlace no incluye un identificador de video.',
