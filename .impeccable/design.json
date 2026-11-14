@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T17:20:00.000Z",
+  "title": "Design System: Chordifree",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Electric Blue",
+        "canonical": "#0052D6",
+        "tonalRamp": [
+          "oklch(28% 0.16 264)",
+          "oklch(36% 0.19 264)",
+          "oklch(44% 0.22 264)",
+          "oklch(52% 0.22 264)",
+          "oklch(62% 0.19 264)",
+          "oklch(72% 0.15 264)",
+          "oklch(83% 0.09 264)",
+          "oklch(93% 0.04 264)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "#F6F7F9",
+        "tonalRamp": [
+          "oklch(22% 0.01 245)",
+          "oklch(32% 0.01 245)",
+          "oklch(44% 0.01 245)",
+          "oklch(56% 0.01 245)",
+          "oklch(68% 0.01 245)",
+          "oklch(80% 0.008 245)",
+          "oklch(90% 0.006 245)",
+          "oklch(97% 0.004 245)"
+        ]
+      },
+      "paper-warm": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "canonical": "#F7F6F2",
+        "tonalRamp": [
+          "oklch(22% 0.008 85)",
+          "oklch(32% 0.008 85)",
+          "oklch(44% 0.008 85)",
+          "oklch(56% 0.008 85)",
+          "oklch(68% 0.008 85)",
+          "oklch(80% 0.008 85)",
+          "oklch(90% 0.006 85)",
+          "oklch(97% 0.004 85)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Near Black Ink",
+        "canonical": "#0B0D12",
+        "tonalRamp": [
+          "oklch(13% 0.01 260)",
+          "oklch(22% 0.01 260)",
+          "oklch(34% 0.01 260)",
+          "oklch(46% 0.01 260)",
+          "oklch(58% 0.008 260)",
+          "oklch(72% 0.006 260)",
+          "oklch(86% 0.004 260)",
+          "oklch(96% 0.002 260)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#E2E6ED",
+        "tonalRamp": [
+          "oklch(24% 0.008 250)",
+          "oklch(36% 0.008 250)",
+          "oklch(48% 0.008 250)",
+          "oklch(60% 0.008 250)",
+          "oklch(72% 0.008 250)",
+          "oklch(82% 0.008 250)",
+          "oklch(90% 0.008 250)",
+          "oklch(96% 0.006 250)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Song titles, page heroes and the landing headline." },
+      "title": { "displayName": "Title", "purpose": "Section and card headings." },
+      "body": { "displayName": "Body", "purpose": "Lyrics, help text and notices." },
+      "label": { "displayName": "Label", "purpose": "Tool labels, tabs, badges, times and keyboard hints." }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 2px rgb(10 13 18 / 0.05), 0 10px 28px -22px rgb(10 13 18 / 0.35)",
+        "purpose": "The only elevation used by cards, panels and floating windows."
+      },
+      {
+        "name": "field-focus",
+        "value": "0 0 0 3px rgb(0 82 214 / 0.14)",
+        "purpose": "Accent halo around focused text fields."
+      }
+    ],
+    "motion": [
+      { "name": "dur-fast", "value": "120ms", "purpose": "Hover, focus and pressed states." },
+      { "name": "dur", "value": "200ms", "purpose": "Larger state changes such as panels and tabs." },
+      { "name": "ease", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "Default easing for state transitions." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrance and reveal motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single confirmed action on a surface: save, analyze, open.",
+      "html": "<button class=\"ds-btn-primary\">Save to library</button>",
+      "css": ".ds-btn-primary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; background: #0052D6; color: #FFFFFF; padding: 8px 16px; font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 120ms cubic-bezier(0.2, 0, 0, 1), transform 120ms cubic-bezier(0.2, 0, 0, 1); } .ds-btn-primary:hover { background: #0040AE; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #0052D6; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral companion action; the default button of the toolbar.",
+      "html": "<button class=\"ds-btn-secondary\">Edit chords</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #C3CAD6; border-radius: 8px; background: #FFFFFF; color: #0B0D12; padding: 8px 16px; font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1), color 120ms cubic-bezier(0.2, 0, 0, 1); } .ds-btn-secondary:hover { border-color: #0052D6; background: rgb(0 82 214 / 0.06); color: #0052D6; } .ds-btn-secondary:active { transform: translateY(1px); } .ds-btn-secondary:focus-visible { outline: 2px solid #0052D6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Search, link and naming input with an accent halo on focus.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-field\">Search YouTube</label><input class=\"ds-field\" id=\"ds-field\" placeholder=\"Song, artist or band\" />",
+      "css": ".ds-field-label { display: block; margin-bottom: 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #60697C; } .ds-field { width: 100%; box-sizing: border-box; border: 1px solid #E2E6ED; border-radius: 8px; background: #FFFFFF; color: #0B0D12; padding: 8px 12px; font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif; font-size: 14px; transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1), box-shadow 120ms cubic-bezier(0.2, 0, 0, 1); } .ds-field::placeholder { color: #60697C; } .ds-field:focus { border-color: #0052D6; outline: none; box-shadow: 0 0 0 3px rgb(0 82 214 / 0.14); }"
+    },
+    {
+      "name": "Tab",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "Mono label with a 2px accent underline when selected.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab\" aria-selected=\"false\">Grid</button><button class=\"ds-tab\" aria-selected=\"true\">Bars</button></div>",
+      "css": ".ds-tabs { display: flex; gap: 24px; border-bottom: 1px solid #E2E6ED; } .ds-tab { border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 2px 4px 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #60697C; cursor: pointer; transition: color 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1); } .ds-tab:hover { color: #0B0D12; } .ds-tab[aria-selected=\"true\"] { border-bottom-color: #0052D6; color: #0052D6; }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Metadata only: source, analyzer version, save state.",
+      "html": "<span class=\"ds-badge\">Analyzer 1.6</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #E2E6ED; border-radius: 6px; background: #EEF1F6; padding: 2px 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; line-height: 20px; letter-spacing: 0.08em; text-transform: uppercase; color: #60697C; }"
+    },
+    {
+      "name": "Chord Cell",
+      "kind": "custom",
+      "description": "The signature timeline cell: measure and time in the gutter, chord in display weight, accent underline on the active beat.",
+      "html": "<div class=\"ds-chord-cell\"><span class=\"ds-chord-time\">00:08<br />C3</span><span class=\"ds-chord-value\">G</span><span class=\"ds-chord-rule\"></span></div>",
+      "css": ".ds-chord-cell { display: grid; grid-template-columns: 56px 1fr; gap: 4px 12px; width: 240px; border: 1px solid #E2E6ED; border-radius: 8px; background: #FFFFFF; padding: 12px; box-sizing: border-box; } .ds-chord-time { grid-row: span 2; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; line-height: 1.6; letter-spacing: 0.08em; color: #60697C; } .ds-chord-value { font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif; font-size: 28px; font-weight: 700; line-height: 1; color: #0B0D12; } .ds-chord-rule { display: block; height: 2px; background: #0052D6; border-radius: 999px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Session Sheet",
+    "overview": "Chordifree looks like the sheet a musician marks up during a session: clean paper, sharp ink, one electric blue that points at what to play next. The interface is a document first and a dashboard never. Chords, beats and times are the content; controls recede into hairline-separated tool cells, and the one saturated colour is reserved for the action, the selected state and the current beat. The system is deliberately quiet between the marks. Warm grey paper separates panels with white surfaces; IBM Plex Mono appears only where a musician expects a figure (tune, time, measure, chord name, keyboard hint). Manrope carries everything that is read as language. Depth comes from a single soft card shadow, not from stacked elevation levels. The marketing site keeps the same brand on a warmer paper stock. That is an intentional second ground for a different surface, not a second brand.",
+    "keyCharacteristics": [
+      "One electric blue accent, used sparingly and always meaning action or position.",
+      "Cool paper in the app, warm paper on the marketing site; never mixed within a screen.",
+      "Hairline rules and generous white space instead of boxes inside boxes.",
+      "Mono for data and labels, Manrope for prose and headings.",
+      "Draft surfaces look editable: soft radii, visible focus, clear hover and active states."
+    ],
+    "rules": [
+      { "name": "The One Blue Rule", "body": "Electric blue covers at most a tenth of any screen. It means action, selection or the current position, never decoration.", "section": "colors" },
+      { "name": "The Two Papers Rule", "body": "The app runs on cool paper; the marketing site runs on warm paper. A single surface never mixes both grounds.", "section": "colors" },
+      { "name": "The Mono Means Data Rule", "body": "IBM Plex Mono is for figures, chord symbols, commands and short labels. Never set a paragraph in it.", "section": "typography" },
+      { "name": "The No Italic Rule", "body": "Emphasis comes from weight, size or the accent colour. The app has no italic voice.", "section": "typography" },
+      { "name": "The Hairline Rule", "body": "Separation is a 1px line or empty space. Reach for a shadow only when a surface genuinely leaves the page.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep electric blue for action, selection and the current beat only.",
+      "Do set every time, measure, chord figure and mono label in IBM Plex Mono with tabular numerals.",
+      "Do separate with 1px hairlines and space before reaching for a shadow.",
+      "Do keep focus visible: 2px accent outline, 2px offset, and the 3px field halo.",
+      "Do make editable values look editable, with hover, active and disabled states."
+    ],
+    "donts": [
+      "Don't mix the cool app paper and the warm marketing paper on one surface.",
+      "Don't use the accent as a background wash for large areas or as decoration.",
+      "Don't set prose in mono or add italics.",
+      "Don't nest cards inside cards; use a note or a hairline-separated row instead.",
+      "Don't introduce a second display typeface or a heavy shadow vocabulary."
+    ]
+  }
+}
