@@ -556,6 +556,13 @@ export function SongView({
     setLyricsDraft('');
   };
 
+  const changeMeter = (beatsPerBar: number) => {
+    if (beatsPerBar === song.beatsPerBar) return;
+    const updated: Song = { ...song, beatsPerBar, updatedAt: new Date().toISOString() };
+    onChange(updated);
+    if (saved) onSave(updated);
+  };
+
   const updateLyricChordOffset = (segmentIndex: number, offset: number) => {
     const offsets = { ...(song.lyricChordOffsets ?? {}) };
     const key = String(segmentIndex);
@@ -999,6 +1006,7 @@ export function SongView({
             duration={song.duration}
             artist={artist}
             chords={chordList}
+            onChangeMeter={changeMeter}
           />
 
           <HarmonicAnalysis

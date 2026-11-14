@@ -62,8 +62,9 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
 
 - **Chord detection** with Essentia `NNLSChroma`, key estimation and Viterbi smoothing.
 - **YouTube search** by name: the results show the thumbnail, channel and duration, and one
-  click on **Chordifree** loads the song.
-- **Beat grid** with one row per bar, active-beat highlighting and keyboard navigation.
+  click analyzes the song.
+- **Beat grid** with one row per bar, active-beat highlighting, keyboard navigation and a
+  time signature you can correct (2/4, 3/4, 4/4).
 - **Bar view** with one chord per bar and automatic tempo/phase adjustment.
 - **Lyrics view** with approximate timing, vocal-region detection and manual anchors.
 - **Practice A-B**: arm A or B, hover to preview a bar, click to mark it without playing, then

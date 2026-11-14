@@ -51,6 +51,8 @@ musicians.
 - Lyrics lookup by title and artist (LRCLIB), manual lyrics, approximate timing and manual
   anchors; per-line chord positioning.
 - YouTube search (`yt-dlp`) with thumbnail, channel and duration, one click to analyze.
+- Time signature estimated from the beat accents (3/4 or 4/4) and correctable in the song
+  details (2/4, 3/4, 4/4).
 - Local-first storage; shared songs stay unfiled; the analysis cache can be inspected and
   cleared.
 - Constraints: the analyzer needs Essentia and ONNX Runtime; the voice/instrumental model
