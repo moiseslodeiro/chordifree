@@ -98,7 +98,7 @@ export function Transport({
         onChange={(event) => seek(Number(event.target.value))}
         className="range"
         aria-label={t('transport.position')}
-        aria-valuetext={`${formatTime(time)} de ${formatTime(duration)}`}
+        aria-valuetext={t('transport.positionValue', { current: formatTime(time), total: formatTime(duration) })}
       />
       <span className="w-12 font-mono text-xs tabular-nums text-ink3" aria-hidden="true">
         {formatTime(duration)}

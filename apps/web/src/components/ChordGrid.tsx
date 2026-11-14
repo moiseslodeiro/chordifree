@@ -88,7 +88,7 @@ const ChordRow = memo(function ChordRow({
         </span>
         <span className="truncate font-display text-xl font-bold leading-tight text-ink">{label}</span>
         <span className="flex items-center gap-2">
-          {segment.chord === null ? <span className="badge shrink-0">silencio</span> : null}
+          {segment.chord === null ? <span className="badge shrink-0">{t('common.silence')}</span> : null}
           {segment.chord !== null &&
           segment.confidence !== undefined &&
           segment.confidence < 0.4 ? (
@@ -96,7 +96,7 @@ const ChordRow = memo(function ChordRow({
               className="badge shrink-0 border-warning/50 text-warning"
               title={t('grid.confidence', { percent: Math.round(segment.confidence * 100) })}
             >
-              dudoso
+              {t('grid.doubtful')}
             </span>
           ) : null}
           {active ? (

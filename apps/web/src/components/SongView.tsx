@@ -879,7 +879,7 @@ export function SongView({
 
       <section
         className="song-toolbar flex flex-wrap items-stretch overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-        aria-label="Barra de herramientas"
+        aria-label={t('song.toolbarAria')}
       >
         <NotationControls
           notation={song.notation}
@@ -964,11 +964,11 @@ export function SongView({
         <aside
           data-testid="song-tools-column"
           className="song-tools order-1 space-y-5 lg:order-none lg:sticky lg:top-5"
-          aria-label="Video y herramientas"
+          aria-label={t('song.toolsColumnAria')}
         >
           <section
             className="rounded-xl border border-line bg-panel p-3 shadow-sm"
-            aria-label="Reproductor"
+            aria-label={t('song.playerAria')}
           >
             <PlayerHost
               song={song}
@@ -1058,7 +1058,7 @@ export function SongView({
           </section>
         ) : null}
 
-        <ol className="print-chords" aria-label="Cambios de acorde">
+        <ol className="print-chords" aria-label={t('song.printChordsAria')}>
           {printRows.map((row, index) => (
             <li key={`${row.time}-${row.chord}-${index}`}>
               <span className="print-time">{row.time}</span>

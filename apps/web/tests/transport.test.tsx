@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Transport } from '../src/components/Transport';
 import { FakePlayerAdapter } from '../src/player/fake';
 import { PlaybackClock } from '../src/sync/clock';
+import { setLanguage } from '../src/i18n';
 
 function setup({
   time = 0,
@@ -31,6 +32,19 @@ function setup({
 }
 
 describe('Transport', () => {
+  it('announces the position in the current language', () => {
+    setLanguage('en');
+    try {
+      setup({ time: 0 });
+      expect(screen.getByRole('slider', { name: 'Playback position' })).toHaveAttribute(
+        'aria-valuetext',
+        '00:00 of 00:30',
+      );
+    } finally {
+      setLanguage('es');
+    }
+  });
+
   it('starts at A on play if the cursor is outside the range', () => {
     const { adapter } = setup({ time: 20, loopA: 4, loopB: 8 });
 

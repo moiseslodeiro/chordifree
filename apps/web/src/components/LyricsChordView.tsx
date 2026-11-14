@@ -348,7 +348,7 @@ export function LyricsChordView({
 
       {segments.length === 0 ? (
         <p className="note note-info mt-3 text-xs leading-relaxed">
-          No hay acordes detectados; la letra se muestra sin capa de acordes.
+          {t('lyrics.noChordsLayer')}
         </p>
       ) : null}
     </div>

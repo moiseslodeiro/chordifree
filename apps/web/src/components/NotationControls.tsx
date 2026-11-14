@@ -62,8 +62,8 @@ export function NotationControls({
             }
           >
             <option value="auto">{t('notation.auto')}</option>
-            <option value="sharp">Sostenidos ♯</option>
-            <option value="flat">Bemoles ♭</option>
+            <option value="sharp">{t('notation.sharp')} ♯</option>
+            <option value="flat">{t('notation.flat')} ♭</option>
           </select>
         </div>
       </div>

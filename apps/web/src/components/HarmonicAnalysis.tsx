@@ -88,7 +88,7 @@ export function HarmonicAnalysis({
       </h2>
 
       {!hasChords ? (
-        <p className="px-4 py-4 text-sm text-ink2">No hay acordes que analizar.</p>
+        <p className="px-4 py-4 text-sm text-ink2">{t('harmonic.empty')}</p>
       ) : (
         <div className="space-y-4 px-4 py-4">
           {harmonyKey ? (
@@ -115,8 +115,8 @@ export function HarmonicAnalysis({
               </div>
 
               <div>
-                <h3 className="eyebrow">Acordes por grado</h3>
-                <ul className="mt-2 space-y-1" aria-label="Grado de cada acorde">
+                <h3 className="eyebrow">{t('harmonic.byDegree')}</h3>
+                <ul className="mt-2 space-y-1" aria-label={t('harmonic.degreesAria')}>
                   {degrees.map((item) => (
                     <li key={`${item.chord}-${item.degree}`} className="flex items-baseline gap-2">
                       <span className="min-w-[2.5rem] font-mono text-[0.7rem] font-semibold tabular-nums text-accent">

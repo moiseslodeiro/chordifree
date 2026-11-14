@@ -21,7 +21,7 @@ export function changeChord(
   index: number,
   chord: Chord | null,
 ): ChordSegment[] {
-  if (!segments[index]) throw new EditorError('Segmento inexistente');
+  if (!segments[index]) throw new EditorError(t('editor.missingSegment'));
   return segments.map((segment, current) =>
     current === index ? { ...segment, chord: chord ? { ...chord } : null } : segment,
   );
@@ -35,7 +35,7 @@ export function setBoundary(
   duration: number,
 ): ChordSegment[] {
   const segment = segments[index];
-  if (!segment) throw new EditorError('Segmento inexistente');
+  if (!segment) throw new EditorError(t('editor.missingSegment'));
   if (!Number.isFinite(time)) throw new EditorError(t('editor.invalidTime'));
 
   const next = clone(segments);
@@ -44,7 +44,7 @@ export function setBoundary(
     const previous = segments[index - 1];
     const lower = previous ? previous.start + MIN_SEGMENT_SECONDS : 0;
     if (time < lower) {
-      throw new EditorError('El inicio no puede solaparse con el segmento anterior');
+      throw new EditorError(t('editor.overlapStart'));
     }
     if (time > segment.end - MIN_SEGMENT_SECONDS) {
       throw new EditorError(t('editor.tooShort'));
@@ -55,7 +55,7 @@ export function setBoundary(
     const following = segments[index + 1];
     const upper = following ? following.end - MIN_SEGMENT_SECONDS : duration;
     if (time > upper) {
-      throw new EditorError('El fin no puede solaparse con el segmento siguiente');
+      throw new EditorError(t('editor.overlapEnd'));
     }
     if (time < segment.start + MIN_SEGMENT_SECONDS) {
       throw new EditorError(t('editor.tooShort'));
@@ -74,9 +74,9 @@ export function splitSegment(
   _duration: number,
 ): ChordSegment[] {
   const segment = segments[index];
-  if (!segment) throw new EditorError('Segmento inexistente');
+  if (!segment) throw new EditorError(t('editor.missingSegment'));
   if (time <= segment.start + MIN_SEGMENT_SECONDS || time >= segment.end - MIN_SEGMENT_SECONDS) {
-    throw new EditorError('El punto de corte debe dejar dos segmentos suficientemente largos');
+    throw new EditorError(t('editor.splitTooShort'));
   }
   const next = clone(segments);
   next.splice(index, 1, { ...segment, end: time }, { ...segment, start: time });
@@ -96,11 +96,11 @@ export function mergeSegments(
   _duration: number,
 ): ChordSegment[] {
   if (!canMerge(segments, index)) {
-    throw new EditorError('Solo se pueden fusionar segmentos adyacentes');
+    throw new EditorError(t('editor.mergeAdjacent'));
   }
   const current = segments[index];
   const following = segments[index + 1];
-  if (!current || !following) throw new EditorError('Segmento inexistente');
+  if (!current || !following) throw new EditorError(t('editor.missingSegment'));
   const next = clone(segments);
   next.splice(index, 2, { ...current, end: following.end });
   return next;
