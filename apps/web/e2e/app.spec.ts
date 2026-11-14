@@ -395,7 +395,7 @@ test.describe('full flow', () => {
     });
     await analyze(page);
 
-    await page.getByLabel('Modo de presentación').selectOption('max');
+    await page.getByRole('button', { name: 'Máxima' }).click();
 
     await expect(page.getByTestId('beat-cell-0')).toContainText('C');
     await expect(page.getByTestId('beat-cell-1')).not.toContainText('G');
@@ -584,7 +584,7 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'Lista', exact: true }).click();
     await expect(page.getByTestId('chord-row-2')).toBeVisible();
 
-    await page.getByLabel('Modo de presentación').selectOption('reduced');
+    await page.getByRole('button', { name: 'Normal' }).click();
     await expect(page.getByTestId('chord-row-2')).toHaveCount(0);
     await expect(page.getByTestId('chord-row-0')).toContainText('C');
     await expect(page.getByTestId('chord-row-1')).toContainText('A');
