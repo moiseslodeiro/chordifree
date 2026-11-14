@@ -45,6 +45,49 @@ def test_analyze_beats_cover_the_duration(chord_wav: Path) -> None:
         assert result["beats"][-1] > result["duration"] * 0.6
 
 
+def _click_track(meter: int, bars: int = 16, bpm: float = 120.0):
+    import numpy as np
+
+    rate = analysis.SAMPLE_RATE
+    beat = 60.0 / bpm
+    total = int(bars * meter * beat * rate)
+    audio = np.zeros(total, dtype="float32")
+    rng = np.random.default_rng(7)
+    for index in range(bars * meter):
+        start = int(index * beat * rate)
+        amplitude = 1.0 if index % meter == 0 else 0.35
+        length = int(0.12 * rate)
+        burst = (
+            rng.standard_normal(length) * 0.25
+            + np.sin(2 * np.pi * 90 * np.arange(length) / rate) * 0.6
+        ) * amplitude
+        burst *= np.exp(-np.arange(length) / (0.03 * rate))
+        end = min(total, start + length)
+        audio[start:end] += burst[: end - start]
+    beats = [index * beat for index in range(bars * meter)]
+    return audio, beats
+
+
+def test_estimate_beats_per_bar_detects_a_waltz() -> None:
+    essentia = analysis._load_essentia()
+    audio, beats = _click_track(3)
+
+    assert analysis._estimate_beats_per_bar(essentia, audio, beats) == 3
+
+
+def test_estimate_beats_per_bar_keeps_four() -> None:
+    essentia = analysis._load_essentia()
+    audio, beats = _click_track(4)
+
+    assert analysis._estimate_beats_per_bar(essentia, audio, beats) == 4
+
+
+def test_estimate_beats_per_bar_needs_enough_beats() -> None:
+    essentia = analysis._load_essentia()
+
+    assert analysis._estimate_beats_per_bar(essentia, object(), [0.5, 1.0, 1.5]) == 4
+
+
 def test_extract_beats_sanitizes_invalid_values() -> None:
     class FakeRhythm:
         def __call__(self, _audio: object):
