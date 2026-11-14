@@ -42,6 +42,8 @@ interface LibraryListProps {
   onImport: (file: File) => void;
   cache?: { entries: number; bytes: number };
   onClearCache?: () => void;
+  audioCache?: { entries: number; bytes: number; ttlMinutes: number };
+  onClearAudioCache?: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onCreateFolder?: (name: string) => void;
@@ -74,6 +76,8 @@ export function LibraryList({
   onImport,
   cache,
   onClearCache,
+  audioCache,
+  onClearAudioCache,
   onOpen,
   onDelete,
   onCreateFolder,
@@ -455,21 +459,47 @@ export function LibraryList({
         </>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4 text-xs text-ink3 sm:px-8">
-        <span>
-          {t('library.cacheStats', {
-            count: cache?.entries ?? 0,
-            size: formatBytes(cache?.bytes ?? 0),
-          })}
-        </span>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          disabled={!cache?.entries}
-          onClick={onClearCache}
-        >
-          {t('library.clearCache')}
-        </button>
+      <div className="border-t border-line text-xs text-ink3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 sm:px-8">
+          <span>
+            {t('library.cacheStats', {
+              count: cache?.entries ?? 0,
+              size: formatBytes(cache?.bytes ?? 0),
+            })}
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={!cache?.entries}
+            onClick={onClearCache}
+          >
+            {t('library.clearCache')}
+          </button>
+        </div>
+        {audioCache ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4 sm:px-8">
+            <span>
+              {t(
+                audioCache.entries === 1
+                  ? 'library.audioCacheStatsOne'
+                  : 'library.audioCacheStatsOther',
+                {
+                  count: audioCache.entries,
+                  size: formatBytes(audioCache.bytes),
+                  minutes: audioCache.ttlMinutes,
+                },
+              )}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={audioCache.entries === 0}
+              onClick={onClearAudioCache}
+            >
+              {t('library.clearAudioCache')}
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );

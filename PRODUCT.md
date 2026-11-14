@@ -34,8 +34,8 @@ musicians.
 
 - Source: a YouTube link, a YouTube search result, or a local audio file (MP3, WAV, M4A,
   OGG, FLAC, WebM, MP4; up to 25 MB and 15 minutes).
-- Practice: play, pause, seek, slow down, repeat a bar, count in, and mark an A–B range to
-  loop; the active beat and chord follow playback.
+- Practice: play, pause, seek, slow down, transpose the audio pitch, repeat a bar, count in,
+  and mark an A–B range to loop; the active beat and chord follow playback.
 - Presentation: transpose ±11 semitones, capo, English or Spanish notation, sharps or flats,
   guitar/piano/ukelele diagrams, simplify or reduce chords.
 - Library: songs, folders and setlists in local storage, with practice history, JSON

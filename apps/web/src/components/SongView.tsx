@@ -125,7 +125,7 @@ export function SongView({
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [performance, setPerformance] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
-  const { loopA, loopB, loopEnabled, rate, bpm: manualBpm } = practice;
+  const { loopA, loopB, loopEnabled, rate, bpm: manualBpm, pitch } = practice;
 
   useEffect(() => {
     setEditingLyrics(false);
@@ -869,6 +869,11 @@ export function SongView({
             onRateChange={(value) => updatePractice({ rate: value })}
             manualBpm={manualBpm}
             onManualBpmChange={(value) => updatePractice({ bpm: value })}
+            pitch={pitch}
+            onPitchChange={(value) => updatePractice({ pitch: value })}
+            pitchAvailable={
+              song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
+            }
           />
         </div>
       ) : (
@@ -975,6 +980,7 @@ export function SongView({
               audioUrl={audioUrl}
               forceFake={forceFake}
               variant="compact"
+              pitch={pitch}
               onAdapter={handleAdapter}
               onPlaybackError={setPlaybackError}
             />

@@ -65,6 +65,20 @@ describe('LibraryList', () => {
     expect(screen.getByText('02:05')).toBeInTheDocument();
   });
 
+  it('shows the temporary audio usage and clears it', () => {
+    const onClearAudioCache = vi.fn();
+    renderLibrary({
+      audioCache: { entries: 2, bytes: 2048, ttlMinutes: 60 },
+      onClearAudioCache,
+    });
+
+    expect(
+      screen.getByText('Audio temporal de YouTube: 2 archivos · 2.0 KB · se conserva unos 60 min'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar audio temporal' }));
+    expect(onClearAudioCache).toHaveBeenCalled();
+  });
+
   it('opens a song when clicking Open', () => {
     const { onOpen } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Abrir' })[0]!);

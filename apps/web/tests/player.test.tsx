@@ -1,9 +1,9 @@
 import { act, render, renderHook } from '@testing-library/react';
 import { memo } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseChord, type ChordSegment } from '@chordifree/chords';
 import { FakePlayerAdapter } from '../src/player/fake';
-import { AudioPlayerAdapter } from '../src/player/audio';
+import { AudioPlayerAdapter, pitchShiftLatency } from '../src/player/audio';
 import { loadYouTubeApi, YouTubePlayerAdapter } from '../src/player/youtube';
 import { PlaybackClock } from '../src/sync/clock';
 import {
@@ -13,6 +13,98 @@ import {
   usePlaybackIndex,
 } from '../src/sync/hooks';
 import { videoIdFromUrl } from '../src/lib/youtube';
+
+const audioMock = vi.hoisted(() => {
+  type FakeNode = {
+    pitchSemitones: { value: number };
+    playbackRate: { value: number };
+    connected: boolean;
+    disconnected: boolean;
+    stretchParameters: unknown;
+    setStretchParameters(params: unknown): void;
+    connect(): void;
+    disconnect(): void;
+  };
+  type FakeSource = { connected: boolean; connect(): void };
+
+  const contexts: FakeAudioContext[] = [];
+  const nodes: FakeNode[] = [];
+  const registers: Array<{ context: unknown; url: string | URL }> = [];
+
+  class FakeSoundTouchNode {
+    pitchSemitones = { value: 0 };
+    playbackRate = { value: 1 };
+    connected = false;
+    disconnected = false;
+    stretchParameters: unknown = null;
+
+    constructor() {
+      nodes.push(this);
+    }
+
+    static async register(context: unknown, url: string | URL): Promise<void> {
+      registers.push({ context, url });
+    }
+
+    setStretchParameters(params: unknown): void {
+      this.stretchParameters = params;
+    }
+
+    connect(): void {
+      this.connected = true;
+    }
+
+    disconnect(): void {
+      this.disconnected = true;
+    }
+  }
+
+  class FakeAudioContext {
+    sampleRate = 48000;
+    baseLatency = 0;
+    outputLatency = 0;
+    state = 'running';
+    destination = {};
+    sources: FakeSource[] = [];
+    closed = false;
+    resume = async () => undefined;
+    close = async () => {
+      this.closed = true;
+    };
+
+    constructor() {
+      contexts.push(this);
+    }
+
+    createMediaElementSource(): FakeSource {
+      const source: FakeSource = {
+        connected: false,
+        connect: () => {
+          source.connected = true;
+        },
+      };
+      this.sources.push(source);
+      return source;
+    }
+  }
+
+  return { contexts, nodes, registers, FakeSoundTouchNode, FakeAudioContext };
+});
+
+vi.mock('@soundtouchjs/audio-worklet', () => ({
+  SoundTouchNode: audioMock.FakeSoundTouchNode,
+}));
+
+vi.mock('@soundtouchjs/audio-worklet/processor?url', () => ({
+  default: '/processor.js',
+}));
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  audioMock.contexts.length = 0;
+  audioMock.nodes.length = 0;
+  audioMock.registers.length = 0;
+});
 
 const segments: ChordSegment[] = [
   { start: 0, end: 4, chord: parseChord('C') },
@@ -110,6 +202,86 @@ describe('AudioPlayerAdapter', () => {
     const adapter = new AudioPlayerAdapter('https://example.test/audio.mp3');
     expect(adapter.element).toBeInstanceOf(HTMLAudioElement);
     adapter.destroy();
+  });
+});
+
+describe('AudioPlayerAdapter pitch shift', () => {
+  it('routes the element through SoundTouch only when the pitch is not zero', async () => {
+    vi.stubGlobal('AudioContext', audioMock.FakeAudioContext);
+    const element = document.createElement('audio');
+    const adapter = new AudioPlayerAdapter(element);
+
+    adapter.play();
+    await Promise.resolve();
+    expect(audioMock.contexts).toHaveLength(0);
+    expect(audioMock.nodes).toHaveLength(0);
+
+    adapter.setPitch(3);
+    await vi.waitFor(() => expect(audioMock.nodes).toHaveLength(1));
+
+    const node = audioMock.nodes[0]!;
+    expect(audioMock.registers).toEqual([{ context: audioMock.contexts[0], url: '/processor.js' }]);
+    expect(node.pitchSemitones.value).toBe(3);
+    expect(node.playbackRate.value).toBe(1);
+    expect(node.stretchParameters).toEqual({ sequenceMs: 60, seekWindowMs: 20, overlapMs: 8 });
+    expect(node.connected).toBe(true);
+    expect(audioMock.contexts[0]!.sources[0]!.connected).toBe(true);
+    expect(element.preservesPitch).toBe(false);
+
+    adapter.setPitch(-2);
+    expect(node.pitchSemitones.value).toBe(-2);
+
+    adapter.setPitch(0);
+    expect(node.pitchSemitones.value).toBe(0);
+    expect(audioMock.nodes).toHaveLength(1);
+
+    adapter.destroy();
+    expect(node.disconnected).toBe(true);
+    await vi.waitFor(() => expect(audioMock.contexts[0]!.closed).toBe(true));
+  });
+
+  it('keeps the pitch when the playback rate changes', async () => {
+    vi.stubGlobal('AudioContext', audioMock.FakeAudioContext);
+    const element = document.createElement('audio');
+    const adapter = new AudioPlayerAdapter(element);
+    adapter.setPitch(4);
+    await vi.waitFor(() => expect(audioMock.nodes).toHaveLength(1));
+
+    adapter.setPlaybackRate(1.5);
+    expect(element.playbackRate).toBe(1.5);
+    expect(audioMock.nodes[0]!.playbackRate.value).toBe(1.5);
+    expect(element.preservesPitch).toBe(false);
+
+    adapter.setPitch(4);
+    expect(audioMock.nodes).toHaveLength(1);
+    adapter.destroy();
+  });
+
+  it('subtracts the processing latency from the playback clock', async () => {
+    vi.stubGlobal('AudioContext', audioMock.FakeAudioContext);
+    const element = document.createElement('audio');
+    const adapter = new AudioPlayerAdapter(element);
+    adapter.setPitch(-12);
+    await vi.waitFor(() => expect(audioMock.nodes).toHaveLength(1));
+
+    adapter.setPlaybackRate(1.5);
+    adapter.seekTo(2);
+    adapter.play();
+
+    const latency = pitchShiftLatency(1.5);
+    expect(adapter.getCurrentTime()).toBeCloseTo(2 - latency, 6);
+
+    adapter.pause();
+    expect(adapter.getCurrentTime()).toBe(2);
+    adapter.destroy();
+  });
+
+  it('estimates the latency from the shift window and the playback rate', () => {
+    expect(pitchShiftLatency(1)).toBeCloseTo(0.08, 6);
+    expect(pitchShiftLatency(0.5)).toBeCloseTo(0.04, 6);
+    expect(pitchShiftLatency(1.5)).toBeCloseTo(0.12, 6);
+    expect(pitchShiftLatency(2)).toBeCloseTo(0.16, 6);
+    expect(pitchShiftLatency(Number.NaN)).toBeCloseTo(0.08, 6);
   });
 });
 

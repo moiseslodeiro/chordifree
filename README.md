@@ -69,13 +69,16 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
 - **Practice A-B**: arm A or B, hover to preview a bar, click to mark it without playing, then
   play from A to B or loop the range.
 - **Transposition**, English/Spanish notation, sharps/flats, capo, guitar/piano/ukelele.
+- **Audio pitch** for uploaded files and temporary YouTube audio (±12 semitones) without
+  changing the tempo.
 - **Simplify / reduce chords** for simpler accompaniment.
 - **Local library** stored in the browser, with folders to group songs, JSON backups,
   **ChordPro import/export** and print/PDF.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
-- **Analysis cache manager** in the library, with storage size and a clear button.
+- **Cache manager** in the library: analysis cache and temporary YouTube audio, with their
+  storage size and clear buttons.
 - **English and Spanish interface**, English by default.
 
 ## Local development
@@ -117,7 +120,8 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `RATE_LIMIT_MAX` | `60` | Analysis requests per window and IP |
 | `RATE_LIMIT_WINDOW_MS` | `3600000` | Rate-limit window |
 | `TRUST_PROXY` | `0` | Trusted reverse-proxy hops; set `1` behind nginx/Caddy |
-| `TEMP_DIR` | `./.tmp` | Temporary audio directory |
+| `TEMP_DIR` | `./.tmp` | Temporary audio and analysis working directory |
+| `AUDIO_CACHE_TTL_MINUTES` | `60` | How long the temporary YouTube audio is kept for pitch shifting |
 | `YTDLP_PATH` | `yt-dlp` | yt-dlp binary |
 | `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
 | `FFPROBE_PATH` | `ffprobe` | ffprobe binary |
@@ -134,7 +138,8 @@ Browser (React + Vite)
 ```
 
 - `apps/web`: React SPA, local library, lyrics alignment, practice tools.
-- `apps/server`: Express API, upload handling, YouTube download, job queue.
+- `apps/server`: Express API, upload handling, YouTube download, temporary audio cache,
+  job queue.
 - `services/analyzer`: FastAPI + Essentia + NNLSChroma + YAMNet/voice ONNX models.
 - `packages/chords`: chord model, notation, transposition and reduction.
 

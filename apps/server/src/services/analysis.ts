@@ -6,12 +6,14 @@ import type { AppConfig } from '../config';
 import { ApiError } from '../errors';
 import type { AnalysisResult, RawAnalysis, RawSegment } from '../types';
 import type { AnalyzerClient } from './analyzer';
+import type { TemporaryAudioCache } from './audio-cache';
 import { removeDirectory, type MediaTools } from './media';
 
 export interface AnalysisDeps {
   config: AppConfig;
   tools: MediaTools;
   analyzer: AnalyzerClient;
+  audioCache: TemporaryAudioCache;
 }
 
 export type ProgressReporter = (progress: number) => void;
@@ -90,6 +92,10 @@ export async function analyzeYoutube(
     report(45);
     const wav = join(workspace, 'audio.wav');
     await deps.tools.convertToWav(downloaded, wav);
+
+    // Keep the downloaded audio for the temporary pitch-shifted player. It is
+    // optional: a failure here must not fail the analysis.
+    await deps.audioCache.store(videoId, downloaded).catch(() => undefined);
 
     report(65);
     const raw = await deps.analyzer.analyze(wav);

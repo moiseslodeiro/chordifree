@@ -77,6 +77,43 @@ export async function searchYoutube(
   return Array.isArray(body.results) ? body.results : [];
 }
 
+export interface AudioCacheStats {
+  entries: number;
+  bytes: number;
+  ttlMinutes: number;
+}
+
+/** Disk usage of the temporary audio kept for the YouTube pitch player. */
+export async function getAudioCacheStats(signal?: AbortSignal): Promise<AudioCacheStats> {
+  const response = await fetch('/api/youtube/audio-cache', { signal });
+  return parseResponse<AudioCacheStats>(response);
+}
+
+/** Removes every temporary audio file from the server cache. */
+export async function clearAudioCache(): Promise<{ removed: number }> {
+  const response = await fetch('/api/youtube/audio-cache', { method: 'DELETE' });
+  return parseResponse<{ removed: number }>(response);
+}
+
+/**
+ * Asks the server for the temporary audio of a YouTube video. The response is
+ * ready to be used as the `src` of an audio element.
+ */
+export async function prepareYoutubeAudio(
+  videoId: string,
+  signal?: AbortSignal,
+): Promise<{ url: string; expiresAt?: string }> {
+  const response = await fetch(`/api/youtube/${encodeURIComponent(videoId)}/audio`, {
+    method: 'POST',
+    signal,
+  });
+  const body = await parseResponse<{ url?: string; expiresAt?: string }>(response);
+  if (!body.url) {
+    throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), response.status);
+  }
+  return { url: body.url, ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}) };
+}
+
 export async function fetchLyrics(
   params: { title: string; artist?: string; duration?: number },
   signal?: AbortSignal,

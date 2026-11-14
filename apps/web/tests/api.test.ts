@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiClientError,
+  clearAudioCache,
   createUploadAnalysis,
   createYoutubeAnalysis,
   fetchLyrics,
   getAnalysis,
+  getAudioCacheStats,
   getHealth,
   pollAnalysis,
+  prepareYoutubeAudio,
 } from '../src/lib/api';
 
 function response(body: unknown, status = 200): Response {
@@ -65,6 +68,45 @@ describe('HTTP client', () => {
     expect(url).toBe('/api/analyses');
     expect(options.body).toBeInstanceOf(FormData);
     expect((options.body as FormData).get('file')).toBe(file);
+  });
+
+  it('prepares the temporary audio of a YouTube video', async () => {
+    const fetchMock = vi.fn(async () =>
+      response({ url: '/api/youtube/dQw4w9WgXcQ/audio', expiresAt: '2026-01-01T01:00:00.000Z' }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(prepareYoutubeAudio('dQw4w9WgXcQ')).resolves.toEqual({
+      url: '/api/youtube/dQw4w9WgXcQ/audio',
+      expiresAt: '2026-01-01T01:00:00.000Z',
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/youtube/dQw4w9WgXcQ/audio', {
+      method: 'POST',
+      signal: undefined,
+    });
+  });
+
+  it('reads and clears the temporary audio cache', async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === 'DELETE'
+        ? response({ removed: 2 })
+        : response({ entries: 2, bytes: 2048, ttlMinutes: 60 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getAudioCacheStats()).resolves.toEqual({
+      entries: 2,
+      bytes: 2048,
+      ttlMinutes: 60,
+    });
+    await expect(clearAudioCache()).resolves.toEqual({ removed: 2 });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/youtube/audio-cache', {
+      signal: undefined,
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/youtube/audio-cache', {
+      method: 'DELETE',
+    });
   });
 
   it('requests lyrics with title, artist, and duration', async () => {

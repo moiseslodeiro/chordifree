@@ -13,6 +13,7 @@ const EnvSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   TEMP_DIR: z.string().default('./.tmp'),
+  AUDIO_CACHE_TTL_MINUTES: z.coerce.number().int().positive().default(60),
   YTDLP_PATH: z.string().default('yt-dlp'),
   FFMPEG_PATH: z.string().default('ffmpeg'),
   FFPROBE_PATH: z.string().default('ffprobe'),
@@ -32,6 +33,7 @@ export interface AppConfig {
   rateLimitWindowMs: number;
   trustProxy: number;
   tempDir: string;
+  audioCacheTtlMinutes: number;
   ytdlpPath: string;
   ffmpegPath: string;
   ffprobePath: string;
@@ -53,6 +55,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     rateLimitWindowMs: parsed.RATE_LIMIT_WINDOW_MS,
     trustProxy: parsed.TRUST_PROXY,
     tempDir: parsed.TEMP_DIR,
+    audioCacheTtlMinutes: parsed.AUDIO_CACHE_TTL_MINUTES,
     ytdlpPath: parsed.YTDLP_PATH,
     ffmpegPath: parsed.FFMPEG_PATH,
     ffprobePath: parsed.FFPROBE_PATH,
