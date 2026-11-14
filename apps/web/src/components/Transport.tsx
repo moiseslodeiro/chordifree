@@ -77,7 +77,7 @@ export function Transport({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm">
       <button
         type="button"
-        className="btn btn-primary min-h-0 w-28 py-2 font-mono text-[0.66rem] uppercase tracking-[0.12em]"
+        className="btn btn-primary min-h-0 w-28 py-2 font-mono text-[0.7rem] uppercase tracking-[0.12em]"
         onClick={toggle}
         aria-label={playing ? t('transport.pause') : t('transport.play')}
       >

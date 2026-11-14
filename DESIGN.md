@@ -30,17 +30,40 @@ typography:
     fontWeight: 700
     lineHeight: 1.08
     letterSpacing: "-0.03em"
+  title-sm:
+    fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "-0.03em"
   body:
     fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.55
+  body-sm:
+    fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  label-lg:
+    fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.7rem"
+    fontWeight: 500
+    lineHeight: 1
+    letterSpacing: "0.12em"
   label:
     fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
     fontSize: "0.62rem"
     fontWeight: 500
     lineHeight: 1
     letterSpacing: "0.14em"
+  label-sm:
+    fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.56rem"
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: "0.08em"
 rounded:
   sm: "6px"
   md: "8px"
@@ -171,8 +194,10 @@ chord figures are set in it so they read as data, not prose.
 - **Title** (700, 1.5625rem / 1.08, -0.03em): section and card headings.
 - **Body** (400, 1rem / 1.55): lyrics, help text and notices. Keep the measure between 60
   and 75 characters.
-- **Label** (500, 0.62–0.7rem, 0.12–0.14em uppercase): tool labels, tabs, badges, times and
-  keyboard hints.
+- **Label LG** (500, 0.7rem, 0.12em uppercase): tabs, times and navigational labels.
+- **Label** (500, 0.62rem, 0.14em uppercase): the default eyebrow, badge and tool label.
+- **Label SM** (600, 0.56rem, 0.08em uppercase): the smallest loop and measure marks.
+- **Body SM** (400, 0.875rem / 1.5): dense menu items, toasts and lyric chord chips.
 
 ### Named Rules
 **The Mono Means Data Rule.** IBM Plex Mono is for figures, chord symbols, commands and

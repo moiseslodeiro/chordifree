@@ -18,7 +18,7 @@ interface SongDetailsProps {
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline">
-      <dt className="shrink-0 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink3">
+      <dt className="shrink-0 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
         {label}
       </dt>
       <span className="leader" aria-hidden="true" />

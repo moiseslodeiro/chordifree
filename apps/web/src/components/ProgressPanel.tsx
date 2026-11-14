@@ -25,7 +25,7 @@ export function ProgressPanel({ state, onCancel }: ProgressPanelProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="font-display text-lg font-semibold leading-tight text-ink">{t(PHASE_LABEL[state.phase])}</p>
-          <p className="mt-1 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink3">
+          <p className="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
             {status ? t('progress.serverStatus', { status }) : t('progress.contacting')}
           </p>
         </div>

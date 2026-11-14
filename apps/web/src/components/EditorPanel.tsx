@@ -72,7 +72,7 @@ function TimeField({ value, label, onCommit }: TimeFieldProps) {
   };
 
   return (
-    <label className="flex items-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink3">
+    <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
       {label}
       <input
         type="number"
@@ -299,7 +299,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
         })}
       </ol>
 
-      <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
+      <p className="mt-3 font-mono text-[0.62rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
         {t('editor.minDuration', { seconds: MIN_SEGMENT_SECONDS })}{' '}
         {t('editor.minDurationTail')}
       </p>

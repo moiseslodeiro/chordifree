@@ -310,7 +310,7 @@ export function BeatGrid({
             data-testid={`beat-row-${row.index}`}
             className="flex items-stretch"
           >
-            <div className="flex w-16 shrink-0 flex-col justify-center gap-0.5 border-r border-line px-2 py-1 font-mono text-[0.6rem] uppercase leading-tight tracking-[0.1em] text-ink3">
+            <div className="flex w-16 shrink-0 flex-col justify-center gap-0.5 border-r border-line px-2 py-1 font-mono text-[0.62rem] uppercase leading-tight tracking-[0.1em] text-ink3">
               <span className="tabular-nums">{formatTime(row.start)}</span>
               <span>C{(row.bars[0]?.index ?? row.index * 2) + 1}</span>
             </div>

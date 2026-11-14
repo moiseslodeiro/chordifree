@@ -83,7 +83,7 @@ const ChordRow = memo(function ChordRow({
           }
         }}
       >
-        <span className="font-mono text-[0.68rem] tabular-nums text-ink3">
+        <span className="font-mono text-[0.7rem] tabular-nums text-ink3">
           {formatTime(segment.start)}
         </span>
         <span className="truncate font-display text-xl font-bold leading-tight text-ink">{label}</span>
@@ -417,7 +417,7 @@ export function ChordGrid({
         {liveMessage}
       </p>
 
-      <p className="mt-3 font-mono text-[0.6rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
+      <p className="mt-3 font-mono text-[0.62rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
         {markMode !== null
           ? t(markMode === 'a' ? 'grid.markAHelp' : 'grid.markBHelp')
           : effectiveView === 'beats'

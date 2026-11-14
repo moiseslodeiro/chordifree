@@ -353,7 +353,7 @@ export function Home({
                 <input
                   id="audio-file"
                   type="file"
-                  className="field file:mr-4 file:border file:border-line-strong file:bg-panel-2 file:px-3 file:py-1.5 file:font-mono file:text-[0.68rem] file:uppercase file:tracking-[0.12em] file:text-ink2"
+                  className="field file:mr-4 file:border file:border-line-strong file:bg-panel-2 file:px-3 file:py-1.5 file:font-mono file:text-[0.7rem] file:uppercase file:tracking-[0.12em] file:text-ink2"
                   accept=".mp3,.wav,.m4a,.ogg,.flac,.webm,.mp4,audio/*"
                   onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                   disabled={busy}

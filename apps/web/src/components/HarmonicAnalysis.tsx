@@ -126,7 +126,7 @@ export function HarmonicAnalysis({
                         {item.chord}
                       </span>
                       {item.count > 1 ? (
-                        <span className="ml-auto font-mono text-[0.6rem] tabular-nums text-ink3">
+                        <span className="ml-auto font-mono text-[0.62rem] tabular-nums text-ink3">
                           ×{item.count}
                         </span>
                       ) : null}
