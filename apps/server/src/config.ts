@@ -4,7 +4,7 @@ const EnvSchema = z.object({
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(3001),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  ANALYZER_URL: z.string().url().default('http://localhost:8000'),
+  ANALYZER_URL: z.string().url().default('http://localhost:8001'),
   ANALYZER_TOKEN: z.string().default(''),
   WEB_DIST: z.string().optional(),
   MAX_DURATION_SECONDS: z.coerce.number().positive().default(900),

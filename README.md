@@ -88,7 +88,7 @@ cp .env.example .env
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r services/analyzer/requirements.txt
-uvicorn app.main:app --app-dir services/analyzer --port 8000
+uvicorn app.main:app --app-dir services/analyzer --port 8001
 
 # Terminal 2: web + API
 pnpm dev
@@ -109,7 +109,7 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `PORT` | `3001` | Express API port |
 | `HOST` | `127.0.0.1` | Bind address; use `0.0.0.0` only inside a container or behind a proxy |
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
-| `ANALYZER_URL` | `http://localhost:8000` | Internal analyzer URL |
+| `ANALYZER_URL` | `http://localhost:8001` | Internal analyzer URL |
 | `MAX_DURATION_SECONDS` | `900` | Maximum audio/video length |
 | `MAX_UPLOAD_BYTES` | `26214400` | Maximum upload size (25 MB) |
 | `RATE_LIMIT_MAX` | `60` | Analysis requests per window and IP |
@@ -255,6 +255,10 @@ requires a plan that includes it.
 - **`KeyError: ContainerConfig` with `docker-compose` 1.29**: this is a known bug in the old
   standalone Compose with recent Docker versions. Run `docker-compose down` and then
   `docker-compose up -d`, or install Compose v2 and use `docker compose`.
+- **`GET /v1/models` 404 lines in the analyzer log**: a local tool expects an OpenAI-compatible
+  server on port 8000, which is the vLLM default. The development analyzer listens on 8001 for
+  that reason; the Docker analyzer keeps 8000 inside the Compose network, where it is not
+  reachable from the host.
 
 ## Licenses and commercial use
 

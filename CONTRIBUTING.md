@@ -20,7 +20,7 @@ cp .env.example .env
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r services/analyzer/requirements.txt
-uvicorn app.main:app --app-dir services/analyzer --port 8000
+uvicorn app.main:app --app-dir services/analyzer --port 8001
 
 # Web + API
 pnpm dev

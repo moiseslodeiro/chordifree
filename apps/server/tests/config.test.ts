@@ -6,6 +6,7 @@ describe('config defaults', () => {
     const config = loadConfig({});
     expect(config.host).toBe('127.0.0.1');
     expect(config.trustProxy).toBe(0);
+    expect(config.analyzerUrl).toBe('http://localhost:8001');
   });
 
   it('still allows an explicit container or proxy configuration', () => {
