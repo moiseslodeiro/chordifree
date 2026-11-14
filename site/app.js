@@ -13,14 +13,14 @@ const spanish = {
 
   'hero.title': 'Acordes que siguen la canción.',
   'hero.lead':
-    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. El análisis se ejecuta en tu equipo.',
+    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo o transpón la canción sin cambiar los acordes. El análisis se ejecuta en tu equipo.',
   'hero.primary': 'Consigue la app',
   'hero.secondary': 'Verla en acción',
   'hero.proofOpen': 'Gratis y de código abierto',
   'hero.proofLanguages': 'Inglés y español',
   'hero.windowTag': 'Vista por compases',
   'hero.caption':
-    'La canción de demostración, analizada en compases, acordes y una línea de tiempo reproducible.',
+    'La canción de demostración, con una sola barra de reproducción, la vista de compases y el diagrama del acorde activo.',
 
   'sheet.one': 'Toma el',
   'sheet.two': 'siguiente compás,',
@@ -47,11 +47,11 @@ const spanish = {
   'feature.2.tag': 'Regiones vocales',
   'feature.3.title': 'Practica',
   'feature.3.body':
-    'Marca A y B en la rejilla, previsualiza un compás al pasar el ratón y reproduce el rango o ponlo en bucle. Baja el tempo y cuenta antes de empezar.',
+    'Marca A y B en la rejilla, previsualiza un compás al pasar el ratón y reproduce el rango o ponlo en bucle. Baja el tempo, transpón la canción y cuenta antes de empezar.',
   'feature.3.tag': 'Bucle A–B',
   'feature.4.title': 'Ajusta',
   'feature.4.body':
-    'Transpone, añade cejilla, simplifica o reduce acordes. Cambia entre diagramas de guitarra, piano y ukelele, con sostenidos, bemoles o solfeo.',
+    'Transpone los acordes, añade cejilla, simplifica o redúcelos. Cambia entre diagramas de guitarra, piano y ukelele, con sostenidos, bemoles o solfeo.',
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
@@ -65,9 +65,9 @@ const spanish = {
   'product.eyebrow': 'La línea de tiempo',
   'product.title': 'Mira cada compás antes de tocarlo.',
   'product.lead':
-    'La rejilla da una celda a cada pulso y una fila a cada compás. El pulso activo sigue la reproducción para que siempre sepas dónde estás.',
+    'La rejilla da una celda a cada pulso y agrupa los compases en filas. El pulso activo sigue la reproducción para que siempre sepas dónde estás.',
   'product.windowTag': 'Rejilla de pulsos',
-  'product.caption1': 'Una fila por compás',
+  'product.caption1': 'Dos compases por fila',
   'product.caption2': 'El pulso activo sigue la reproducción',
   'product.caption3': 'Haz clic en un compás para saltar o repetir',
   'product.caption4': 'Diagrama del acorde actual',
