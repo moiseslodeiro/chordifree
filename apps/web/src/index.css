@@ -412,7 +412,7 @@ p {
   }
 
   .range {
-    @apply h-5 w-full min-w-[8rem] flex-1 cursor-pointer appearance-none bg-transparent;
+    @apply h-10 w-full min-w-[8rem] flex-1 cursor-pointer appearance-none bg-transparent;
   }
 
   .range::-webkit-slider-runnable-track {
@@ -607,6 +607,19 @@ p {
   .tool {
     min-width: calc(50% - 1px);
     padding: var(--space-2xs) var(--space-xs);
+  }
+}
+
+/* Coarse pointers get a full touch target on secondary controls. */
+@media (pointer: coarse) {
+  .song-crumb {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .transpose-reset {
+    min-height: 44px;
   }
 }
 

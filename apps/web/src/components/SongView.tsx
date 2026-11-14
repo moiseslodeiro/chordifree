@@ -711,14 +711,14 @@ export function SongView({
         <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
           <button
             type="button"
-            className="font-mono text-[0.66rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
+            className="song-crumb font-mono text-[0.66rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
             onClick={onBack}
           >
             {t('song.back')}
           </button>
           <button
             type="button"
-            className="font-mono text-[0.66rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
+            className="song-crumb font-mono text-[0.66rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
             onClick={onOpenLibrary}
           >
             {t('song.library')}
