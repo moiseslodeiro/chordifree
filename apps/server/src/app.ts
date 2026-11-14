@@ -13,6 +13,10 @@ import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
+import {
+  audioCacheDirectory,
+  TemporaryAudioCache,
+} from './services/audio-cache';
 import { createLyricsClient, type LyricsClient } from './services/lyrics';
 import { createMediaTools, type MediaTools } from './services/media';
 
@@ -25,6 +29,7 @@ export interface AppDependencies {
   tools: MediaTools;
   analyzer: AnalyzerClient;
   lyrics: LyricsClient;
+  audioCache: TemporaryAudioCache;
   webDist: string;
 }
 
@@ -67,14 +72,23 @@ function sameOriginWriteGuard(config: AppConfig) {
 
 export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
+  const tools = options.tools ?? createMediaTools(config);
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
     queue: options.queue ?? new JobQueue(2),
-    tools: options.tools ?? createMediaTools(config),
+    tools,
     analyzer:
       options.analyzer ?? createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken),
     lyrics: options.lyrics ?? createLyricsClient(fetch),
+    audioCache:
+      options.audioCache ??
+      new TemporaryAudioCache({
+        directory: audioCacheDirectory(config.tempDir),
+        workspaceRoot: config.tempDir,
+        ttlMs: config.audioCacheTtlMinutes * 60_000,
+        tools,
+      }),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -119,7 +133,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
 
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
-  app.use('/api/youtube', createYoutubeRouter(deps.tools));
+  app.use('/api/youtube', createYoutubeRouter({ tools: deps.tools, audioCache: deps.audioCache }));
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));

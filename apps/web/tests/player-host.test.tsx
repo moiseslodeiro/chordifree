@@ -1,7 +1,14 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerHost } from '../src/components/PlayerHost';
+import { prepareYoutubeAudio } from '../src/lib/api';
 import type { Song } from '../src/types';
+
+vi.mock('../src/lib/api', () => ({
+  prepareYoutubeAudio: vi.fn(),
+}));
+
+const prepareMock = vi.mocked(prepareYoutubeAudio);
 
 function song(source: Song['source']): Song {
   return {
@@ -20,39 +27,93 @@ function song(source: Song['source']): Song {
   };
 }
 
-describe('PlayerHost', () => {
-  it('limits video width in the compact variant without distorting the aspect ratio', () => {
-    render(
-      <PlayerHost
-        song={song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' })}
-        audioUrl={null}
-        forceFake={false}
-        variant="compact"
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
-    );
+function renderHost(overrides: Partial<Parameters<typeof PlayerHost>[0]> = {}) {
+  const props: Parameters<typeof PlayerHost>[0] = {
+    song: song({ type: 'youtube', videoId: 'dQw4w9WgXcQ' }),
+    audioUrl: null,
+    forceFake: false,
+    pitch: 0,
+    onAdapter: vi.fn(),
+    onPlaybackError: vi.fn(),
+    ...overrides,
+  };
+  return { ...render(<PlayerHost {...props} />), props };
+}
 
-    const video = screen.getByTestId('player-video');
-    expect(video).toHaveAttribute('data-variant', 'compact');
-    expect(video.className).toContain('w-full');
-    expect(video.className).toContain('aspect-video');
+describe('PlayerHost', () => {
+  beforeEach(() => {
+    prepareMock.mockReset();
+    prepareMock.mockResolvedValue({ url: '/api/youtube/dQw4w9WgXcQ/audio' });
   });
 
-  it('keeps the audio player working in the compact variant', () => {
-    render(
-      <PlayerHost
-        song={song({ type: 'upload', filename: 'demo.mp3' })}
-        audioUrl="blob:demo"
-        forceFake={false}
-        variant="compact"
-        onAdapter={vi.fn()}
-        onPlaybackError={vi.fn()}
-      />,
+  it('shows the YouTube thumbnail instead of the video', () => {
+    prepareMock.mockReturnValue(new Promise(() => undefined));
+    renderHost({ variant: 'compact' });
+
+    const thumbnail = screen.getByTestId('player-thumbnail');
+    expect(thumbnail).toHaveAttribute('data-variant', 'compact');
+    expect(thumbnail.className).toContain('max-w-[22rem]');
+    expect(thumbnail.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
     );
+    expect(thumbnail.querySelector('img')).toHaveClass('aspect-video');
+  });
+
+  it('prepares the temporary audio when a YouTube song opens', async () => {
+    renderHost();
+
+    expect(prepareMock).toHaveBeenCalledWith('dQw4w9WgXcQ', expect.any(AbortSignal));
+    await waitFor(() => {
+      expect(document.querySelector('audio')).toHaveAttribute(
+        'src',
+        '/api/youtube/dQw4w9WgXcQ/audio',
+      );
+    });
+    expect(screen.getByText(/YouTube audio is played from a temporary copy|El audio de YouTube/))
+      .toBeInTheDocument();
+  });
+
+  it('does not request the audio again when the pitch changes', async () => {
+    const { rerender, props } = renderHost();
+    await waitFor(() => expect(document.querySelector('audio')).not.toBeNull());
+
+    rerender(<PlayerHost {...props} pitch={4} />);
+    expect(prepareMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the preparation state before the audio is ready', () => {
+    prepareMock.mockReturnValue(new Promise(() => undefined));
+    renderHost({ pitch: 4 });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Preparando el audio de YouTube');
+  });
+
+  it('keeps the thumbnail and reports a problem when the audio cannot be prepared', async () => {
+    prepareMock.mockRejectedValue(new Error('download failed'));
+    renderHost();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'No se pudo preparar el audio de YouTube',
+      );
+    });
+    expect(screen.getByTestId('player-thumbnail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    expect(document.querySelector('audio')).toBeNull();
+  });
+
+  it('hides the audio element and delegates playback to the top bar', () => {
+    renderHost({
+      song: song({ type: 'upload', filename: 'demo.mp3' }),
+      audioUrl: 'blob:demo',
+    });
 
     const audio = document.querySelector('audio');
-    expect(audio).not.toBeNull();
     expect(audio).toHaveAttribute('src', 'blob:demo');
+    expect(audio).toHaveClass('hidden');
+    expect(audio).not.toHaveAttribute('controls');
+    expect(screen.getByText(/Usa la barra de reproducción superior/)).toBeInTheDocument();
+    expect(prepareMock).not.toHaveBeenCalled();
   });
 });

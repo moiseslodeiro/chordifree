@@ -19,6 +19,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     rateLimitWindowMs: 60_000,
     trustProxy: 1,
     tempDir: join(tmpdir(), 'chordifree-test'),
+    audioCacheTtlMinutes: 60,
     ytdlpPath: 'yt-dlp',
     ffmpegPath: 'ffmpeg',
     ffprobePath: 'ffprobe',

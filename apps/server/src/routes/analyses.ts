@@ -9,6 +9,7 @@ import type { JobQueue } from '../jobs/queue';
 import type { Job, JobStore } from '../jobs/store';
 import { analyzeUpload, analyzeYoutube } from '../services/analysis';
 import type { AnalyzerClient } from '../services/analyzer';
+import type { TemporaryAudioCache } from '../services/audio-cache';
 import { isAllowedAudioExtension, looksLikeAudio } from '../services/audio-signature';
 import type { MediaTools } from '../services/media';
 import type { AnalysisResult } from '../types';
@@ -26,6 +27,7 @@ export interface AnalysesRouterDeps {
   queue: JobQueue;
   tools: MediaTools;
   analyzer: AnalyzerClient;
+  audioCache: TemporaryAudioCache;
 }
 
 function startJob(

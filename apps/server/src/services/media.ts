@@ -148,7 +148,7 @@ export function createMediaTools(
             '--match-filter',
             `duration <= ${config.maxDurationSeconds}`,
             '-f',
-            'bestaudio',
+            'bestaudio[ext=m4a]/bestaudio',
             '-o',
             join(directory, `${videoId}.%(ext)s`),
             canonicalUrl(videoId),

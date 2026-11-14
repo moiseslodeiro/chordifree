@@ -22,6 +22,7 @@ describe('persisted practice', () => {
       loopEnabled: true,
       rate: 1.25,
       bpm: 120,
+      pitch: 0,
     });
     savePractice(storage, 'song-2', {
       loopA: 0,
@@ -29,6 +30,7 @@ describe('persisted practice', () => {
       loopEnabled: false,
       rate: 0.75,
       bpm: 80,
+      pitch: 0,
     });
 
     expect(loadPractice(storage, 'song-1')).toEqual({
@@ -37,6 +39,7 @@ describe('persisted practice', () => {
       loopEnabled: true,
       rate: 1.25,
       bpm: 120,
+      pitch: 0,
     });
     expect(loadPractice(storage, 'song-2')).toEqual({
       loopA: 0,
@@ -44,6 +47,7 @@ describe('persisted practice', () => {
       loopEnabled: false,
       rate: 0.75,
       bpm: 80,
+      pitch: 0,
     });
   });
 
@@ -62,6 +66,7 @@ describe('persisted practice', () => {
       loopEnabled: false,
       rate: 1,
       bpm: 240,
+      pitch: 0,
     });
 
     expect(
@@ -78,7 +83,17 @@ describe('persisted practice', () => {
       loopEnabled: false,
       rate: 1.25,
       bpm: DEFAULT_BPM,
+      pitch: 0,
     });
+  });
+
+  it('clamps the audio pitch to twelve semitones', () => {
+    expect(normalizePractice({ pitch: 12 }).pitch).toBe(12);
+    expect(normalizePractice({ pitch: -12 }).pitch).toBe(-12);
+    expect(normalizePractice({ pitch: 30 }).pitch).toBe(12);
+    expect(normalizePractice({ pitch: -30 }).pitch).toBe(-12);
+    expect(normalizePractice({ pitch: 2.6 }).pitch).toBe(3);
+    expect(normalizePractice({ pitch: 'alta' }).pitch).toBe(0);
   });
 
   it('discards unreadable data and quarantines it', () => {
