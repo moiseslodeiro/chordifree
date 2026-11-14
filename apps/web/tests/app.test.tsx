@@ -4,7 +4,8 @@ import App from '../src/App';
 import { createDemoSong } from '../src/demo';
 import { setLanguage } from '../src/i18n';
 import { encodeSongForShare } from '../src/lib/share';
-import { KEYS } from '../src/storage/keys';
+import { getStorage, KEYS } from '../src/storage/keys';
+import { createSetlist, loadSetlists, saveSetlists } from '../src/storage/setlists';
 import { DEFAULT_PREFERENCES } from '../src/storage/preferences';
 
 function response(body: unknown, status = 200): Response {
@@ -594,6 +595,42 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByRole('button', { name: 'Guardar en biblioteca' })).toBeInTheDocument();
+  });
+
+  it('shows save changes only after modifying a saved song', async () => {
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument(),
+    );
+  });
+
+  it('adds the current song to a setlist from More actions', async () => {
+    const setlist = createSetlist('Ensayo');
+    saveSetlists(getStorage(), [setlist]);
+    stubApi();
+    await analyze();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
+    expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Más acciones' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Añadir a lista' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Añadir a una lista' });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Ensayo/ }));
+
+    expect(await screen.findByText('Canción añadida a «Ensayo».')).toBeInTheDocument();
+    expect(loadSetlists(getStorage())[0]?.songIds).toHaveLength(1);
   });
 
   it('creates a setlist, adds a song, and opens it', async () => {

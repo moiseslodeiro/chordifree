@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearAudioCache,
   createYoutubeAnalysis,
@@ -70,6 +70,28 @@ function audioUrlForSong(song: Song): string | null {
     : null;
 }
 
+/** Stable comparison that ignores timestamps and object key order. */
+function comparableSong(song: Song): string {
+  const stable = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(stable);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, entry]) => [key, stable(entry)]),
+      );
+    }
+    return value;
+  };
+  const { updatedAt: _updatedAt, ...rest } = song;
+  return JSON.stringify(stable(rest));
+}
+
+function songIsDirty(current: Song | null, saved: Song | null): boolean {
+  if (!current || !saved) return false;
+  return comparableSong(current) !== comparableSong(saved);
+}
+
 function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
   return listKeys(storage, `${PREFIX}:corrupt:`).length > 0;
 }
@@ -105,6 +127,8 @@ export default function App() {
   });
   const [route, setRoute] = useState<Route>(initial.route);
   const [song, setSong] = useState<Song | null>(initial.song);
+  const [savedSong, setSavedSong] = useState<Song | null>(initial.song);
+  const dirty = useMemo(() => songIsDirty(song, savedSong), [song, savedSong]);
   useEffect(() => {
     if (route.name !== 'library') return;
     const controller = new AbortController();
@@ -250,6 +274,7 @@ export default function App() {
     (next: Song, nextAudioUrl: string | null) => {
       songRef.current = next;
       setSong(next);
+      setSavedSong(next);
       resetGridView();
       recordOpen(next.id);
       replaceAudioUrl(nextAudioUrl);
@@ -269,6 +294,7 @@ export default function App() {
         if (found) {
           songRef.current = found;
           setSong(found);
+          setSavedSong(found);
           resetGridView();
           recordOpen(found.id);
           replaceAudioUrl(audioUrlForSong(found));
@@ -375,6 +401,26 @@ export default function App() {
     );
   };
 
+  const addCurrentSongToSetlist = (setlistId: string, song: Song) => {
+    const target = setlists.find((setlist) => setlist.id === setlistId);
+    if (!target) return;
+    if (target.songIds.includes(song.id)) {
+      setNotice({
+        message: t('setlists.songAlreadyIn', { name: target.name }),
+        tone: 'info',
+      });
+      return;
+    }
+    handleAddSongToSetlist(setlistId, song.id);
+    setNotice({ message: t('setlists.songAdded', { name: target.name }), tone: 'success' });
+  };
+
+  const createSetlistWithSong = (name: string, song: Song) => {
+    const created = addSongToSetlist(createSetlist(name), song.id);
+    updateSetlists((current) => [...current, created]);
+    setNotice({ message: t('setlists.songAdded', { name: created.name }), tone: 'success' });
+  };
+
   const handleRemoveSongFromSetlist = (id: string, songId: string) => {
     updateSetlists((current) =>
       current.map((setlist) =>
@@ -414,6 +460,7 @@ export default function App() {
       library.save(target);
       songRef.current = target;
       setSong(target);
+      setSavedSong(target);
       refreshLibrary();
       setNotice({ message: t('app.songSaved'), tone: 'success' });
     } catch (error) {
@@ -434,6 +481,7 @@ export default function App() {
     if (songRef.current?.id === id) {
       songRef.current = null;
       setSong(null);
+      setSavedSong(null);
       replaceAudioUrl(null);
     }
     setNotice({ message: t('app.songDeleted'), tone: 'info' });
@@ -483,6 +531,7 @@ export default function App() {
     }
     try {
       library.save(updated);
+      setSavedSong(updated);
       refreshLibrary();
       setNotice({ message: t('app.reanalyzed'), tone: 'success' });
     } catch {
@@ -723,6 +772,7 @@ export default function App() {
             audioUrl={audioUrl}
             forceFake={forceFake}
             saved={songs.some((item) => item.id === song.id)}
+            dirty={dirty}
             simplifyChords={preferences.simplifyChords}
             reduceChords={preferences.reduceChords}
             reduceChordsMax={preferences.reduceChordsMax}
@@ -735,6 +785,9 @@ export default function App() {
               setSong(next);
             }}
             onSave={saveSong}
+            setlists={setlists}
+            onAddToSetlist={(setlistId) => addCurrentSongToSetlist(setlistId, song)}
+            onCreateSetlistWithSong={(name) => createSetlistWithSong(name, song)}
             onReanalyze={() => void reanalyzeSong(song)}
             reanalyzing={reanalyzingId === song.id}
             reanalyzeProgress={

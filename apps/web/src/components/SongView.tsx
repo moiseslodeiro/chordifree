@@ -20,6 +20,7 @@ import {
   type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
+import type { Setlist } from '../types';
 import { useT } from '../i18n';
 import { fetchLyrics } from '../lib/api';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
@@ -50,6 +51,7 @@ import {
   type Song,
 } from '../types';
 import { ActionMenu, type ActionMenuItem } from './ActionMenu';
+import { AddToSetlistDialog } from './AddToSetlistDialog';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
 import { DisplayControls } from './DisplayControls';
@@ -69,6 +71,7 @@ interface SongViewProps {
   audioUrl: string | null;
   forceFake: boolean;
   saved: boolean;
+  dirty: boolean;
   simplifyChords: boolean;
   reduceChords: boolean;
   reduceChordsMax: boolean;
@@ -78,6 +81,9 @@ interface SongViewProps {
   onDismissNotice: () => void;
   onChange: (song: Song) => void;
   onSave: (song: Song) => void;
+  setlists: Setlist[];
+  onAddToSetlist: (setlistId: string) => void;
+  onCreateSetlistWithSong: (name: string) => void;
   onReanalyze: () => void;
   reanalyzing: boolean;
   reanalyzeProgress: number | null;
@@ -91,6 +97,7 @@ export function SongView({
   audioUrl,
   forceFake,
   saved,
+  dirty,
   simplifyChords,
   reduceChords,
   reduceChordsMax,
@@ -100,6 +107,9 @@ export function SongView({
   onDismissNotice,
   onChange,
   onSave,
+  setlists,
+  onAddToSetlist,
+  onCreateSetlistWithSong,
   onReanalyze,
   reanalyzing,
   reanalyzeProgress,
@@ -119,6 +129,7 @@ export function SongView({
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     message: string;
     tone: 'success' | 'warning';
@@ -764,6 +775,14 @@ export function SongView({
                 ...(!editing && !editingLyrics
                   ? ([
                       { label: t('song.editDetails'), onSelect: openDetails },
+                      ...(saved
+                        ? [
+                            {
+                              label: t('song.addToSetlist'),
+                              onSelect: () => setAddToSetlistOpen(true),
+                            },
+                          ]
+                        : []),
                       {
                         label: performance ? t('song.exitPerformance') : t('song.performance'),
                         onSelect: togglePerformance,
@@ -802,7 +821,7 @@ export function SongView({
                   : []),
               ]}
             />
-            {!editingLyrics ? (
+            {!editingLyrics && (!saved || dirty) ? (
               <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
                 {saved ? t('song.save') : t('song.saveToLibrary')}
               </button>
@@ -1113,6 +1132,17 @@ export function SongView({
         >
           {t('song.exitPerformance')}
         </button>
+      ) : null}
+
+      {addToSetlistOpen ? (
+        <AddToSetlistDialog
+          songId={song.id}
+          songTitle={song.title}
+          setlists={setlists}
+          onAdd={onAddToSetlist}
+          onCreate={onCreateSetlistWithSong}
+          onClose={() => setAddToSetlistOpen(false)}
+        />
       ) : null}
 
       {shareOpen ? (
