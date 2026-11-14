@@ -24,7 +24,7 @@ export function NotationControls({
   const t = useT();
   return (
     <section className="contents" aria-label={t('notation.aria')}>
-      <Tool label={t('notation.notation')} icon={<IconNote />}>
+      <Tool label={t('notation.notation')} icon={<IconNote />} className="border-l-0">
         <div className="flex items-center gap-1">
           <button
             type="button"
