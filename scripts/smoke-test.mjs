@@ -39,80 +39,80 @@ async function request(path, options) {
 }
 
 async function main() {
-  console.log(`Smoke test contra ${apiUrl}`);
+  console.log(`Smoke test against ${apiUrl}`);
   console.log(`Fixture: ${fixturePath}`);
 
   const health = await request('/api/health').catch((error) => {
-    fail(`No se pudo contactar con la API: ${error.message}`);
+    fail(`Could not reach the API: ${error.message}`);
   });
-  assert(health.response.ok, `GET /api/health devolvió ${health.response.status}`);
-  assert(health.body?.status === 'ok', 'La API no se declara sana');
-  console.log(`✓ API sana (analyzer: ${health.body.analyzer})`);
-  assert(health.body.analyzer === 'ok', 'El analizador no está disponible');
+  assert(health.response.ok, `GET /api/health returned ${health.response.status}`);
+  assert(health.body?.status === 'ok', 'The API does not report itself healthy');
+  console.log(`✓ API healthy (analyzer: ${health.body.analyzer})`);
+  assert(health.body.analyzer === 'ok', 'The analyzer is not available');
 
   const bytes = await readFile(fixturePath).catch(() => {
-    fail(`No se encontró el fixture. Genera uno con scripts/fixtures/make-fixture.sh`);
+    fail(`Fixture not found. Generate one with scripts/fixtures/make-fixture.sh`);
   });
-  assert(bytes.length > 0, 'El fixture está vacío');
+  assert(bytes.length > 0, 'The fixture is empty');
 
   const form = new FormData();
   form.append('file', new Blob([bytes], { type: 'audio/wav' }), 'chords.wav');
   const created = await request('/api/analyses', { method: 'POST', body: form });
   assert(
     created.response.status === 202,
-    `POST /api/analyses devolvió ${created.response.status}: ${JSON.stringify(created.body)}`,
+    `POST /api/analyses returned ${created.response.status}: ${JSON.stringify(created.body)}`,
   );
-  assert(typeof created.body?.id === 'string', 'La respuesta no incluye un id de trabajo');
+  assert(typeof created.body?.id === 'string', 'The response does not include a job id');
   const jobId = created.body.id;
-  console.log(`✓ Trabajo creado: ${jobId}`);
+  console.log(`✓ Job created: ${jobId}`);
 
   const deadline = Date.now() + timeoutMs;
   let job = created.body;
   while (job.status !== 'done' && job.status !== 'error') {
-    if (Date.now() > deadline) fail(`El análisis no terminó en ${timeoutMs / 1000} s`);
+    if (Date.now() > deadline) fail(`The analysis did not finish within ${timeoutMs / 1000} s`);
     await new Promise((resolvePromise) => setTimeout(resolvePromise, pollMs));
     const polled = await request(`/api/analyses/${jobId}`);
-    assert(polled.response.ok, `GET /api/analyses/${jobId} devolvió ${polled.response.status}`);
+    assert(polled.response.ok, `GET /api/analyses/${jobId} returned ${polled.response.status}`);
     job = polled.body;
-    process.stdout.write(`  estado: ${job.status} (${job.progress ?? 0}%)\r`);
+    process.stdout.write(`  status: ${job.status} (${job.progress ?? 0}%)\r`);
   }
   process.stdout.write('\n');
 
   if (job.status === 'error') {
-    fail(`El análisis falló: ${job.error?.code ?? 'UNKNOWN'} — ${job.error?.message ?? ''}`);
+    fail(`The analysis failed: ${job.error?.code ?? 'UNKNOWN'} — ${job.error?.message ?? ''}`);
   }
 
   const result = job.result;
-  assert(result && typeof result === 'object', 'El trabajo terminado no incluye resultado');
+  assert(result && typeof result === 'object', 'The finished job does not include a result');
   assert(
     typeof result.duration === 'number' && result.duration > 0,
-    'La duración del análisis no es válida',
+    'The analysis duration is not valid',
   );
-  assert(Array.isArray(result.segments) && result.segments.length > 0, 'No hay segmentos');
+  assert(Array.isArray(result.segments) && result.segments.length > 0, 'There are no segments');
 
   let previousEnd = 0;
   let previousStart = -Infinity;
   for (const [index, segment] of result.segments.entries()) {
     assert(
       typeof segment.start === 'number' && typeof segment.end === 'number',
-      `El segmento ${index} no tiene tiempos numéricos`,
+      `Segment ${index} has no numeric times`,
     );
-    assert(segment.end > segment.start, `El segmento ${index} no tiene duración positiva`);
+    assert(segment.end > segment.start, `Segment ${index} has no positive duration`);
     assert(
       segment.start >= previousEnd - 1e-3,
-      `El segmento ${index} solapa con el anterior`,
+      `Segment ${index} overlaps the previous one`,
     );
-    assert(segment.start >= previousStart, `El segmento ${index} rompe el orden`);
+    assert(segment.start >= previousStart, `Segment ${index} breaks the order`);
     if (segment.chord !== null) {
       assert(
         Number.isInteger(segment.chord?.root) &&
           segment.chord.root >= 0 &&
           segment.chord.root <= 11,
-        `El acorde del segmento ${index} no tiene una fundamental válida`,
+        `Segment ${index} chord has no valid root`,
       );
       assert(
         typeof segment.chord?.quality === 'string' && segment.chord.quality.length > 0,
-        `El acorde del segmento ${index} no tiene cualidad`,
+        `Segment ${index} chord has no quality`,
       );
     }
     previousEnd = segment.end;
@@ -122,7 +122,7 @@ async function main() {
   const lastEnd = result.segments.at(-1).end;
   assert(
     Math.abs(result.duration - lastEnd) <= 1,
-    `La línea de tiempo termina en ${lastEnd}s y el audio dura ${result.duration}s`,
+    `The timeline ends at ${lastEnd}s but the audio lasts ${result.duration}s`,
   );
 
   if (Array.isArray(result.beats)) {
@@ -130,18 +130,18 @@ async function main() {
     for (const beat of result.beats) {
       assert(
         Number.isFinite(beat) && beat >= 0 && beat <= result.duration,
-        `Pulso fuera de rango: ${beat}`,
+        `Beat out of range: ${beat}`,
       );
-      assert(beat > previousBeat, 'Los pulsos no están ordenados y sin duplicados');
+      assert(beat > previousBeat, 'Beats are not sorted or contain duplicates');
       previousBeat = beat;
     }
   }
 
   console.log(
-    `✓ ${result.segments.length} segmentos válidos, ${result.beats?.length ?? 0} pulsos, ` +
-      `duración ${result.duration.toFixed(2)} s, analizador ${result.analyzerVersion}`,
+    `✓ ${result.segments.length} valid segments, ${result.beats?.length ?? 0} beats, ` +
+      `duration ${result.duration.toFixed(2)} s, analyzer ${result.analyzerVersion}`,
   );
-  console.log('✓ Smoke test completado');
+  console.log('✓ Smoke test completed');
 }
 
 main().catch((error) => fail(error instanceof Error ? error.message : String(error)));

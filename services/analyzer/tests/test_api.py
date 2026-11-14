@@ -17,23 +17,23 @@ def test_health() -> None:
     assert body["analyzerVersion"]
 
 
-def test_rechaza_extension_no_admitida() -> None:
+def test_rejects_unsupported_extension() -> None:
     response = client.post(
         "/analyze",
-        files={"file": ("notas.txt", b"no soy audio", "text/plain")},
+        files={"file": ("notes.txt", b"not audio", "text/plain")},
     )
     assert response.status_code == 422
 
 
-def test_rechaza_archivo_vacio() -> None:
+def test_rejects_empty_file() -> None:
     response = client.post(
         "/analyze",
-        files={"file": ("vacio.wav", b"", "audio/wav")},
+        files={"file": ("empty.wav", b"", "audio/wav")},
     )
     assert response.status_code == 422
 
 
-def test_analiza_wav_valido(chord_wav: Path) -> None:
+def test_analyzes_valid_wav(chord_wav: Path) -> None:
     with chord_wav.open("rb") as handle:
         response = client.post(
             "/analyze",
@@ -45,7 +45,7 @@ def test_analiza_wav_valido(chord_wav: Path) -> None:
     assert body["segments"]
 
 
-def test_token_local(monkeypatch, chord_wav: Path) -> None:
+def test_local_token(monkeypatch, chord_wav: Path) -> None:
     monkeypatch.setattr("app.main.ANALYZER_TOKEN", "secret-token")
 
     with chord_wav.open("rb") as handle:

@@ -9,13 +9,13 @@ from app.analysis import analyze_file
 from app.vocals import regions_from_probabilities
 
 
-def test_analyze_devuelve_segmentos_que_cubren_el_audio(chord_wav: Path) -> None:
+def test_analyze_returns_segments_covering_the_audio(chord_wav: Path) -> None:
     result = analyze_file(str(chord_wav))
 
     assert result["analyzerVersion"]
     assert result["duration"] == pytest.approx(6.0, abs=0.25)
     segments = result["segments"]
-    assert segments, "El analizador debe devolver al menos un segmento"
+    assert segments, "The analyzer must return at least one segment"
 
     previous_end = 0.0
     for segment in segments:
@@ -27,7 +27,7 @@ def test_analyze_devuelve_segmentos_que_cubren_el_audio(chord_wav: Path) -> None
     assert previous_end == pytest.approx(result["duration"], abs=0.25)
 
 
-def test_analyze_devuelve_pulsos_y_compas(chord_wav: Path) -> None:
+def test_analyze_returns_beats_and_time_signature(chord_wav: Path) -> None:
     result = analyze_file(str(chord_wav))
 
     assert result["beatsPerBar"] == 4
@@ -38,14 +38,14 @@ def test_analyze_devuelve_pulsos_y_compas(chord_wav: Path) -> None:
     assert all(0.0 <= beat <= result["duration"] for beat in result["beats"])
 
 
-def test_analyze_pulsos_cubren_la_duracion(chord_wav: Path) -> None:
+def test_analyze_beats_cover_the_duration(chord_wav: Path) -> None:
     result = analyze_file(str(chord_wav))
 
     if len(result["beats"]) >= 2:
         assert result["beats"][-1] > result["duration"] * 0.6
 
 
-def test_extract_beats_sanea_valores_invalidos() -> None:
+def test_extract_beats_sanitizes_invalid_values() -> None:
     class FakeRhythm:
         def __call__(self, _audio: object):
             return 120.0, [1.0, 0.5, 0.5, 2.0, -1.0, float("nan"), 9.0], None, None, None
@@ -58,7 +58,7 @@ def test_extract_beats_sanea_valores_invalidos() -> None:
     assert analysis._extract_beats(essentia, object(), 3.0) == [0.5, 1.0, 2.0]
 
 
-def test_extract_beats_remuestrea_a_44100_antes_del_ritmo() -> None:
+def test_extract_beats_resamples_to_44100_before_rhythm() -> None:
     captured: dict[str, object] = {}
 
     class FakeResample:
@@ -83,9 +83,9 @@ def test_extract_beats_remuestrea_a_44100_antes_del_ritmo() -> None:
     assert captured["outputSampleRate"] == 44100
 
 
-def test_extract_beats_devuelve_vacio_si_falla_el_ritmo() -> None:
+def test_extract_beats_returns_empty_when_rhythm_fails() -> None:
     def broken(_method: str):
-        raise RuntimeError("sin ritmo")
+        raise RuntimeError("no rhythm")
 
     essentia = {
         "Resample": lambda **_kwargs: (lambda audio: audio),
@@ -95,12 +95,12 @@ def test_extract_beats_devuelve_vacio_si_falla_el_ritmo() -> None:
     assert analysis._extract_beats(essentia, object(), 3.0) == []
 
 
-def test_fallback_conserva_los_pulsos(monkeypatch: pytest.MonkeyPatch, chord_wav: Path) -> None:
+def test_fallback_keeps_the_beats(monkeypatch: pytest.MonkeyPatch, chord_wav: Path) -> None:
     monkeypatch.setattr(analysis, "_extract_beats", lambda *_args: [0.5, 1.5])
     monkeypatch.setattr(
         analysis,
         "_detect_with_beats",
-        lambda *_args: (_ for _ in ()).throw(ValueError("sin segmentos")),
+        lambda *_args: (_ for _ in ()).throw(ValueError("no segments")),
     )
     monkeypatch.setattr(analysis, "_detect_fixed_frame", lambda *_args: [])
 
@@ -110,14 +110,14 @@ def test_fallback_conserva_los_pulsos(monkeypatch: pytest.MonkeyPatch, chord_wav
     assert result["beatsPerBar"] == 4
 
 
-def test_analyze_etiqueta_acordes_conocidos(chord_wav: Path) -> None:
+def test_analyze_labels_known_chords(chord_wav: Path) -> None:
     result = analyze_file(str(chord_wav))
     labels = {segment["label"] for segment in result["segments"] if segment["label"]}
-    assert labels, "Debe detectar al menos una etiqueta"
+    assert labels, "It must detect at least one label"
     assert {"C", "F", "G"} <= labels
 
 
-def test_analyze_detecta_progresion_f_g_am(fga_wav: Path) -> None:
+def test_analyze_detects_f_g_am_progression(fga_wav: Path) -> None:
     result = analyze_file(str(fga_wav))
     labels = [segment["label"] for segment in result["segments"]]
     assert "F" in labels
@@ -125,13 +125,13 @@ def test_analyze_detecta_progresion_f_g_am(fga_wav: Path) -> None:
     assert "Am" in labels
 
 
-def test_analyze_acepta_audio_estereo(stereo_wav: Path) -> None:
+def test_analyze_accepts_stereo_audio(stereo_wav: Path) -> None:
     result = analyze_file(str(stereo_wav))
     assert result["duration"] > 0
     assert result["segments"]
 
 
-def test_apply_silence_marca_tramos_sin_energia() -> None:
+def test_apply_silence_marks_sections_without_energy() -> None:
     import numpy as np
 
     rate = 100
@@ -149,7 +149,7 @@ def test_apply_silence_marca_tramos_sin_energia() -> None:
     assert result[1]["label"] == "C"
 
 
-def test_smooth_chords_elimina_un_parpadeo_aislado() -> None:
+def test_smooth_chords_removes_an_isolated_flicker() -> None:
     segments = [
         {"start": 0, "end": 1, "label": "C", "confidence": 0.9},
         {"start": 1, "end": 2, "label": "A", "confidence": 0.3},
@@ -161,7 +161,7 @@ def test_smooth_chords_elimina_un_parpadeo_aislado() -> None:
     assert [segment["label"] for segment in result] == ["C", "C", "C"]
 
 
-def test_smooth_chords_conserva_cambios_reales() -> None:
+def test_smooth_chords_keeps_real_changes() -> None:
     segments = [
         {"start": 0, "end": 1, "label": "C", "confidence": 0.9},
         {"start": 1, "end": 2, "label": "A", "confidence": 0.9},
@@ -173,12 +173,12 @@ def test_smooth_chords_conserva_cambios_reales() -> None:
     assert [segment["label"] for segment in result] == ["C", "A", "G"]
 
 
-def test_detecta_regiones_vocales_y_descarta_parpadeos_cortos() -> None:
+def test_detects_vocal_regions_and_discards_short_flickers() -> None:
     import numpy as np
 
     probabilities = np.zeros(20, dtype="float64")
-    probabilities[2:6] = 1.0  # 1,9 s: parpadeo corto, se descarta
-    probabilities[10:20] = 1.0  # 4,8 s: región vocal válida
+    probabilities[2:6] = 1.0  # 1.9 s: short flicker, discarded
+    probabilities[10:20] = 1.0  # 4.8 s: valid vocal region
 
     regions = regions_from_probabilities(
         probabilities, hop=0.48, smooth_frames=1, close_gap_frames=3, duration=10.0
@@ -187,12 +187,12 @@ def test_detecta_regiones_vocales_y_descarta_parpadeos_cortos() -> None:
     assert regions == [{"start": 4.8, "end": 9.6}]
 
 
-def test_cierra_huecos_breves_entre_regiones_vocales() -> None:
+def test_closes_short_gaps_between_vocal_regions() -> None:
     import numpy as np
 
     probabilities = np.zeros(20, dtype="float64")
     probabilities[4:8] = 1.0
-    probabilities[10:16] = 1.0  # hueco de 2 frames (0,96 s)
+    probabilities[10:16] = 1.0  # 2-frame gap (0.96 s)
 
     regions = regions_from_probabilities(
         probabilities, hop=0.48, smooth_frames=1, duration=10.0

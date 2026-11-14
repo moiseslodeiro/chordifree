@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Genera un fixture WAV con una progresión C - F - G de dos segundos por acorde.
-# Se usa en el smoke test para comprobar la línea de tiempo de extremo a extremo.
+# Generate a WAV fixture with a C - F - G progression, two seconds per chord.
+# Used by the smoke test to check the timeline end to end.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,7 +18,7 @@ mix_chord() {
     -map "[a]" -ac 1 -ar 22050 -c:a pcm_s16le "$work/${name}.wav"
 }
 
-# Do mayor, Fa mayor y Sol mayor.
+# C major, F major and G major.
 mix_chord c 261.63 329.63 392.00
 mix_chord f 349.23 440.00 523.25
 mix_chord g 392.00 493.88 587.33
@@ -27,4 +27,4 @@ printf "file '%s'\n" "$work/c.wav" "$work/f.wav" "$work/g.wav" > "$work/list.txt
 ffmpeg -hide_banner -loglevel error -y \
   -f concat -safe 0 -i "$work/list.txt" -c copy "$output"
 
-echo "Fixture generado en $output"
+echo "Fixture written to $output"

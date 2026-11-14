@@ -8,7 +8,7 @@ function segment(start: number, end: number, chord: string | null): ChordSegment
 const beats = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 describe('reduceChordSegments', () => {
-  it('simplifica la calidad y agrupa acordes consecutivos iguales', () => {
+  it('simplifies the quality and groups consecutive equal chords', () => {
     const result = reduceChordSegments(
       [segment(0, 2, 'Cmaj7'), segment(2, 4, 'C'), segment(4, 8, 'Am7')],
       beats,
@@ -21,7 +21,7 @@ describe('reduceChordSegments', () => {
     expect(result[1]?.chord?.quality).toBe('minor');
   });
 
-  it('absorbe un acorde de paso más breve que medio pulso', () => {
+  it('absorbs a passing chord shorter than half a beat', () => {
     const result = reduceChordSegments(
       [segment(0, 4, 'C'), segment(4, 4.4, 'G'), segment(4.4, 8, 'Am')],
       beats,
@@ -33,7 +33,7 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
-  it('absorbe un acorde de paso que dura una pulsación entre acordes más largos', () => {
+  it('absorbs a passing chord that lasts one beat between longer chords', () => {
     const result = reduceChordSegments(
       [segment(0, 4, 'C'), segment(4, 5, 'G'), segment(5, 9, 'Am')],
       beats,
@@ -45,7 +45,7 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
-  it('conserva los acordes que duran más de una pulsación', () => {
+  it('keeps chords that last more than one beat', () => {
     const result = reduceChordSegments(
       [segment(0, 4, 'C'), segment(4, 5.5, 'G'), segment(5.5, 9, 'Am')],
       beats,
@@ -54,7 +54,7 @@ describe('reduceChordSegments', () => {
     expect(result.map((item) => item.chord?.root)).toEqual([0, 7, 9]);
   });
 
-  it('conserva una progresión con cambios en cada pulsación', () => {
+  it('keeps a progression with changes on every beat', () => {
     const result = reduceChordSegments(
       [segment(0, 1, 'C'), segment(1, 2, 'G'), segment(2, 3, 'Am'), segment(3, 4, 'F')],
       beats,
@@ -63,7 +63,7 @@ describe('reduceChordSegments', () => {
     expect(result.map((item) => item.chord?.root)).toEqual([0, 7, 9, 5]);
   });
 
-  it('absorbe en el siguiente cuando es el vecino más largo', () => {
+  it('absorbs into the next chord when it is the longer neighbour', () => {
     const result = reduceChordSegments(
       [segment(0, 1, 'C'), segment(1, 1.4, 'G'), segment(1.4, 10, 'Am')],
       beats,
@@ -75,14 +75,14 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
-  it('conserva un acorde breve si no tiene vecinos estables', () => {
+  it('keeps a short chord when it has no stable neighbours', () => {
     const result = reduceChordSegments([segment(0, 0.5, 'G')], beats);
 
     expect(result).toHaveLength(1);
     expect(result[0]?.chord?.root).toBe(7);
   });
 
-  it('usa un pulso de reserva cuando no hay pulsos', () => {
+  it('uses a fallback beat when there are no beats', () => {
     const result = reduceChordSegments(
       [segment(0, 4, 'C'), segment(4, 4.5, 'G'), segment(4.5, 9, 'Am')],
       [],
@@ -94,7 +94,7 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
-  it('conserva los silencios explícitos', () => {
+  it('keeps explicit silences', () => {
     const result = reduceChordSegments(
       [segment(0, 4, 'C'), segment(4, 8, null), segment(8, 12, 'G')],
       beats,
@@ -103,7 +103,7 @@ describe('reduceChordSegments', () => {
     expect(result.map((item) => item.chord?.root ?? null)).toEqual([0, null, 7]);
   });
 
-  it('es idempotente y no muta la entrada', () => {
+  it('is idempotent and does not mutate the input', () => {
     const input = [segment(0, 4, 'Cmaj7'), segment(4, 4.5, 'G'), segment(4.5, 8, 'Am7')];
     const snapshot = JSON.parse(JSON.stringify(input)) as ChordSegment[];
 
@@ -114,11 +114,11 @@ describe('reduceChordSegments', () => {
     expect(input).toEqual(snapshot);
   });
 
-  it('devuelve una lista vacía sin segmentos', () => {
+  it('returns an empty list without segments', () => {
     expect(reduceChordSegments([], beats)).toEqual([]);
   });
 
-  it('en modo máximo deja un acorde por compás', () => {
+  it('in maximum mode leaves one chord per bar', () => {
     const result = reduceChordSegments(
       [segment(0, 2, 'C'), segment(2, 4, 'G'), segment(4, 6, 'Am'), segment(6, 8, 'F')],
       beats,
@@ -131,7 +131,7 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
-  it('en modo máximo fusiona compases consecutivos con el mismo acorde', () => {
+  it('in maximum mode merges consecutive bars with the same chord', () => {
     const result = reduceChordSegments(
       [segment(0, 2, 'C'), segment(2, 4, 'G'), segment(4, 6, 'C')],
       beats,
@@ -141,7 +141,7 @@ describe('reduceChordSegments', () => {
     expect(result.map((item) => [item.start, item.end, item.chord?.root])).toEqual([[0, 6, 0]]);
   });
 
-  it('en modo máximo respeta compases distintos de 4/4', () => {
+  it('in maximum mode respects time signatures other than 4/4', () => {
     const threeFour = [0, 1, 2, 3, 4, 5];
     const result = reduceChordSegments(
       [
@@ -161,7 +161,7 @@ describe('reduceChordSegments', () => {
     ]);
   });
 
-  it('en modo máximo conserva el inicio real del acorde dominante', () => {
+  it('in maximum mode keeps the real start of the dominant chord', () => {
     const result = reduceChordSegments(
       [segment(0, 1.6, 'C'), segment(1.6, 4, 'G')],
       [0, 1, 2, 3],
