@@ -17,6 +17,10 @@ colors:
   positive: "#0C7A4A"
   warning: "#A65408"
   danger: "#BE2D26"
+  print-ink: "#555"
+  print-ink-soft: "#666"
+  print-ink-faint: "#888"
+  print-rule: "#DDD"
 typography:
   display:
     fontFamily: "Manrope, Avenir Next, Segoe UI, sans-serif"
@@ -65,10 +69,12 @@ typography:
     lineHeight: 1
     letterSpacing: "0.08em"
 rounded:
+  xs: "3px"
   sm: "6px"
   md: "8px"
   lg: "10px"
   xl: "14px"
+  pill: "999px"
 spacing:
   3xs: "4px"
   2xs: "8px"
@@ -171,6 +177,11 @@ only when something needs attention.
 - **Rehearsal Amber** (#A65408): warnings and destructive-range hints.
 - **Take Red** (#BE2D26): errors and destructive actions.
 
+### Print
+- **Print Ink** (#555), **Print Ink Soft** (#666) and **Print Ink Faint** (#888): the grayscale
+  ramp for metadata, section labels and the footer of the printed sheet.
+- **Print Rule** (#DDD): the only rule colour in print.
+
 ### Named Rules
 **The One Blue Rule.** Electric blue covers at most a tenth of any screen. It means action,
 selection or the current position, never decoration.
@@ -231,9 +242,10 @@ a surface genuinely leaves the page.
 
 ## Shapes
 
-Corners are soft but not friendly: 6px for badges and chips, 8px for buttons and fields,
-10px for cards and panels, 14px for large windows. Full-round is reserved for status dots
-and the play control. Borders are always complete rectangles; no coloured side stripes.
+Corners are soft but not friendly: 3px for the smallest loop marks, 6px for badges and chips,
+8px for buttons and fields, 10px for cards and panels, 14px for large windows. Full-round
+(`999px`) is reserved for status dots, the play control, slider tracks and their thumbs.
+Borders are always complete rectangles; no coloured side stripes.
 
 ## Components
 

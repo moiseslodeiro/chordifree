@@ -26,6 +26,7 @@
   --color-positive: 12 122 74;
   --color-warning: 166 84 8;
   --color-danger: 190 45 38;
+  --color-shadow: 0 0 0;
 }
 
 :root[data-theme='dark'] {
@@ -504,7 +505,7 @@ p {
   font-weight: 600;
   line-height: 1rem;
   letter-spacing: 0.06em;
-  color: #fff;
+  color: rgb(var(--color-on-accent));
   pointer-events: none;
 }
 
@@ -535,7 +536,7 @@ p {
   justify-content: center;
   border-radius: 999px;
   background: rgb(var(--color-warning));
-  color: #fff;
+  color: rgb(var(--color-on-accent));
   font-family: var(--font-mono);
   font-size: 0.62rem;
   font-weight: 700;
@@ -1104,7 +1105,7 @@ body.performance-mode .song-view {
   border: 1px solid rgb(var(--color-line));
   border-radius: var(--radius-md);
   background: rgb(var(--color-panel));
-  box-shadow: 0 12px 30px rgb(0 0 0 / 0.14);
+  box-shadow: 0 12px 30px rgb(var(--color-shadow) / 0.14);
 }
 
 .action-menu-item {
@@ -1153,7 +1154,7 @@ body.performance-mode .song-view {
   border: 1px solid rgb(var(--color-line));
   border-radius: var(--radius-md);
   background: rgb(var(--color-panel));
-  box-shadow: 0 16px 40px rgb(0 0 0 / 0.16);
+  box-shadow: 0 16px 40px rgb(var(--color-shadow) / 0.16);
   color: rgb(var(--color-ink));
   font-size: 0.875rem;
   line-height: 1.4;
