@@ -51,23 +51,42 @@ export function NotationControls({
           <span className="tool-icon" aria-hidden="true">
             <IconAccidental />
           </span>
-          <label htmlFor="accidental-preference" className="tool-label">
-            {t('notation.accidentals')}
-          </label>
+          <span className="tool-label">{t('notation.accidentals')}</span>
         </span>
-        <div className="tool-value">
-          <select
-            id="accidental-preference"
-            className="tool-select"
-            value={accidentalPreference}
-            onChange={(event) =>
-              onChange({ accidentalPreference: event.target.value as AccidentalPreference })
-            }
+        <div
+          className="flex items-center gap-0.5"
+          role="group"
+          aria-label={t('notation.accidentals')}
+        >
+          <button
+            type="button"
+            className="tool-chip px-2 text-xs"
+            aria-pressed={accidentalPreference === 'auto'}
+            title={t('notation.auto')}
+            onClick={() => onChange({ accidentalPreference: 'auto' })}
           >
-            <option value="auto">{t('notation.auto')}</option>
-            <option value="sharp">{t('notation.sharp')} ♯</option>
-            <option value="flat">{t('notation.flat')} ♭</option>
-          </select>
+            {t('notation.autoShort')}
+          </button>
+          <button
+            type="button"
+            className="tool-chip min-w-8 px-1.5 text-center text-lg leading-none"
+            aria-pressed={accidentalPreference === 'sharp'}
+            aria-label={t('notation.sharp')}
+            title={t('notation.sharp')}
+            onClick={() => onChange({ accidentalPreference: 'sharp' })}
+          >
+            ♯
+          </button>
+          <button
+            type="button"
+            className="tool-chip min-w-8 px-1.5 text-center text-lg leading-none"
+            aria-pressed={accidentalPreference === 'flat'}
+            aria-label={t('notation.flat')}
+            title={t('notation.flat')}
+            onClick={() => onChange({ accidentalPreference: 'flat' })}
+          >
+            ♭
+          </button>
         </div>
       </div>
       )}
