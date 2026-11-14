@@ -28,8 +28,10 @@ export function sanitizeBeats(beats: number[] | undefined, duration: number): nu
   return values.filter((value, index) => index === 0 || value > values[index - 1]!);
 }
 
-export function sanitizeBeatsPerBar(_value: number | undefined): number {
-  return DEFAULT_BEATS_PER_BAR;
+export function sanitizeBeatsPerBar(value: number | undefined): number {
+  if (!Number.isFinite(value)) return DEFAULT_BEATS_PER_BAR;
+  const meter = Math.floor(value as number);
+  return meter >= 2 && meter <= 12 ? meter : DEFAULT_BEATS_PER_BAR;
 }
 
 /** Valid vocal regions, sorted and within the duration. */
