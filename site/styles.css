@@ -582,7 +582,9 @@ p {
   width: 100%;
 }
 
-.hero-visual figcaption {
+.hero-visual figcaption,
+.wide-visual figcaption,
+.feature-visual figcaption {
   margin-top: var(--space-3);
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -741,6 +743,20 @@ p {
   margin: 0;
 }
 
+.feature-visual {
+  margin: var(--space-8) 0 0;
+}
+
+.feature-visual .window {
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
+.feature-visual figcaption {
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
 .wide-visual .window {
   max-width: 1120px;
   margin-inline: auto;
@@ -851,8 +867,7 @@ p {
   margin-top: var(--space-3);
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.01em;
   color: var(--ink-3);
 }
 
@@ -990,8 +1005,7 @@ p {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.7;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1083,6 +1097,19 @@ p {
   margin-top: var(--space-6);
 }
 
+.finale p.finale-signature {
+  margin-top: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+}
+
+.finale p.finale-signature span {
+  display: block;
+}
+
 /* ---------------------------------------------------------------------------
    Footer
 --------------------------------------------------------------------------- */
@@ -1138,6 +1165,11 @@ p {
 
 .footer-bottom p {
   max-width: 70ch;
+}
+
+.footer-bottom p:first-child {
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 /* ---------------------------------------------------------------------------

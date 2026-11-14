@@ -8,6 +8,8 @@ inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`). También puedes busc
 YouTube: cada resultado muestra la miniatura, el canal y la duración, y el botón **Chordifree**
 analiza la canción al momento.
 
+Hecho por [Moisés Lodeiro](https://github.com/moiseslodeiro), de un músico para músicos y músicas.
+
 > **Aviso legal**: descargar audio de YouTube puede contravenir sus Términos de Servicio.
 > Usa la vía de subida de audio cuando no tengas derechos sobre el contenido. Este proyecto
 > no elude restricciones técnicas ni usa cookies de sesión.
@@ -279,4 +281,4 @@ subida de audio como vía alternativa. Revisa los términos antes de desplegar e
 
 ---
 
-<sub>Chordifree · AGPL-3.0 · Hecho con [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [English documentation](README.md)</sub>
+<sub>Chordifree · AGPL-3.0 · Hecho por [Moisés Lodeiro](https://github.com/moiseslodeiro) · Hecho con [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [English documentation](README.md)</sub>
