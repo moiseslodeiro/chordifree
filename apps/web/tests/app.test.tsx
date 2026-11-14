@@ -568,9 +568,7 @@ describe('App', () => {
     render(<App />);
 
     const footer = screen.getByTestId('site-footer');
-    expect(footer).toHaveTextContent(
-      'De un músico para músicos y músicas. Hecho por Moisés Lodeiro.',
-    );
+    expect(footer).toHaveTextContent('De un músico para músicos y músicas.');
     expect(footer).toHaveTextContent('GitHub');
     expect(footer).toHaveTextContent('AGPL-3.0');
     expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
