@@ -193,9 +193,9 @@ To publish a GitHub release, dispatch the same workflow on a version tag; the
 release job only runs for `refs/tags/v*`:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
-gh workflow run desktop-builds.yml --ref v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
+gh workflow run desktop-builds.yml --ref v0.3.0
 ```
 
 The executable is unsigned, so SmartScreen warns on first launch. See
