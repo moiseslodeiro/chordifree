@@ -4,6 +4,8 @@ Turn a YouTube video or your own audio file into a synchronized chord timeline y
 practice with. Chordifree estimates the key, beats, bars and chords, aligns lyrics with the
 sung sections, and lets you correct everything in the browser.
 
+Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to musicians.
+
 ![Chordifree](apps/web/public/og-image.png)
 
 > **Legal notice**: downloading YouTube audio may violate its Terms of Service. Use the
@@ -282,4 +284,4 @@ Spanish documentation: [`README.es.md`](README.es.md).
 
 ---
 
-<sub>Chordifree · AGPL-3.0 · Built with [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [Documentación en español](README.es.md)</sub>
+<sub>Chordifree · AGPL-3.0 · Built by [Moisés Lodeiro](https://github.com/moiseslodeiro) · Built with [Essentia](https://essentia.upf.edu/) · [GitHub](https://github.com/moiseslodeiro/chordifree) · [Documentación en español](README.es.md)</sub>

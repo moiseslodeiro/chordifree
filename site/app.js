@@ -11,10 +11,9 @@ const spanish = {
   'nav.closeMenu': 'Cerrar menú',
   'nav.menuNote': 'Local first · código abierto',
 
-  'hero.eyebrow': 'Práctica de acordes local',
   'hero.title': 'Acordes que siguen la canción.',
   'hero.lead':
-    'Convierte un enlace de YouTube o tu propio audio en una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. El análisis se ejecuta en tu equipo.',
+    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. El análisis se ejecuta en tu equipo.',
   'hero.primary': 'Consigue la app',
   'hero.secondary': 'Verla en acción',
   'hero.proofOpen': 'Gratis y de código abierto',
@@ -35,12 +34,16 @@ const spanish = {
   'features.title': 'Una hoja de acordes, no una adivinanza.',
   'features.lead':
     'Todas las vistas salen del mismo análisis: tonalidad, rejilla de pulsos, compases, acordes y las partes donde alguien canta.',
+  'feature.find.title': 'Encuentra',
+  'feature.find.body':
+    'Busca en YouTube por nombre. Cada resultado muestra la miniatura, el canal y la duración, y un clic en Chordifree analiza la canción.',
+  'feature.find.tag': 'Un clic',
   'feature.1.title': 'Detecta',
   'feature.1.body':
     'Essentia lee el audio, estima la tonalidad y encuentra los cambios de acorde. El suavizado de Viterbi evita que la hoja parpadee entre acordes parecidos.',
   'feature.2.title': 'Alinea',
   'feature.2.body':
-    'La letra se ajusta a las partes donde alguien canta. Cuando una línea se desvía, mueve un ancla y el resto la sigue.',
+    'Busca la letra por título y artista, o pega la tuya. Se ajusta a las partes donde alguien canta; cuando una línea se desvía, mueve un ancla y el resto la sigue.',
   'feature.2.tag': 'Regiones vocales',
   'feature.3.title': 'Practica',
   'feature.3.body':
@@ -52,8 +55,12 @@ const spanish = {
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
-    'Guarda canciones y repertorios en una biblioteca local con historial de práctica. Exporta ChordPro, imprime un PDF, haz una copia en JSON o envía la hoja por WhatsApp, Telegram o correo.',
+    'Guarda canciones y repertorios en una biblioteca local con carpetas e historial de práctica. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o envía la hoja por WhatsApp, Telegram o correo.',
   'feature.5.tag': 'Biblioteca local',
+
+  'features.searchTag': 'Búsqueda en YouTube',
+  'features.searchCaption':
+    'Busca por nombre, revisa el canal y carga un resultado con un clic.',
 
   'product.eyebrow': 'La línea de tiempo',
   'product.title': 'Mira cada compás antes de tocarlo.',
@@ -71,7 +78,7 @@ const spanish = {
     'Trae un enlace o un archivo. El analizador se encarga del tiempo y tú tomas las decisiones musicales.',
   'how.1.title': 'Añade una fuente',
   'how.1.body':
-    'Pega un enlace de YouTube o elige un archivo de audio. Se admiten MP3, WAV, M4A, OGG, FLAC, WebM y MP4.',
+    'Busca en YouTube por nombre, pega un enlace o elige un archivo de audio. Se admiten MP3, WAV, M4A, OGG, FLAC, WebM y MP4.',
   'how.2.title': 'Deja trabajar al analizador',
   'how.2.body':
     'Los pulsos, compases, la tonalidad y los acordes se detectan en local. La primera ejecución carga los modelos y tarda un poco más.',
@@ -158,6 +165,9 @@ const spanish = {
   'faq.5.q': '¿Funciona con YouTube?',
   'faq.5.a':
     'Sí, mediante yt-dlp. Descargar audio de YouTube puede contravenir sus Términos de Servicio, así que usa tus propios archivos cuando no tengas derechos.',
+  'faq.12.q': '¿Puedo buscar en YouTube por nombre?',
+  'faq.12.a':
+    'Sí. Escribe una canción o un artista en el buscador, revisa la miniatura y el canal, y pulsa Chordifree para analizar ese video. Pegar un enlace sigue funcionando.',
   'faq.6.q': '¿Dónde se guardan mis canciones?',
   'faq.6.a':
     'En el almacenamiento local de tu navegador para la app web, y en tu equipo para la versión de escritorio. Exporta JSON para copias o ChordPro para otras herramientas.',
@@ -176,9 +186,11 @@ const spanish = {
     'Descarga la vista previa para Windows o arranca el stack de Docker. La biblioteca es tuya.',
   'finale.primary': 'Consigue la app',
   'finale.secondary': 'Ver en GitHub',
+  'finale.slogan': 'De un músico para músicos y músicas.',
+  'finale.author': 'Hecho por Moisés Lodeiro.',
 
   'footer.tagline':
-    'Acordes sincronizados desde YouTube o tu audio. Local first y código abierto.',
+    'Busca en YouTube por nombre o trae tu propio audio. Local first y código abierto.',
   'footer.github': 'GitHub',
   'footer.readme': 'README',
   'footer.privacy': 'Privacidad',
@@ -192,12 +204,12 @@ const meta = {
   en: {
     title: 'Chordifree — synchronized chords from YouTube or your audio',
     description:
-      'Turn a YouTube link or your own audio into a synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first.',
+      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first.',
   },
   es: {
     title: 'Chordifree — acordes sincronizados desde YouTube o tu audio',
     description:
-      'Convierte un enlace de YouTube o tu propio audio en una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Gratis, código abierto y local first.',
+      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Gratis, código abierto y local first.',
   },
 };
 
