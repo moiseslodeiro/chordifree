@@ -336,40 +336,6 @@ export function PracticeBar({
         {t('practice.repeatBar')}
       </button>
 
-      <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-        {t('practice.rate')}
-        <select
-          className="tool-select font-mono text-xs normal-case tracking-normal"
-          value={rate}
-          onChange={(event) => onRateChange(Number(event.target.value))}
-          aria-label={t('practice.rateLabel')}
-        >
-          {SPEEDS.map((speed) => (
-            <option key={speed.value} value={speed.value}>
-              {speed.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-        {t('practice.pitch')}
-        <select
-          className="tool-select font-mono text-xs tabular-nums normal-case tracking-normal"
-          value={pitch}
-          onChange={(event) => onPitchChange(Number(event.target.value))}
-          aria-label={t('practice.pitchLabel')}
-          disabled={!pitchAvailable}
-          title={pitchAvailable ? t('practice.pitchTitle') : t('practice.pitchUnavailable')}
-        >
-          {PITCHES.map((value) => (
-            <option key={value} value={value}>
-              {value > 0 ? `+${value}` : value}
-            </option>
-          ))}
-        </select>
-      </label>
-
       {beats.length === 0 ? (
         <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
           {t('practice.bpm')}
@@ -413,6 +379,49 @@ export function PracticeBar({
       >
         {countingIn ? t('practice.counting') : t('practice.countIn')}
       </button>
+      <div
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-line pl-0 sm:border-l sm:pl-3"
+        role="group"
+        aria-label={t('practice.songAudioAria')}
+      >
+        <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          {t('practice.songAudio')}
+        </span>
+        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          {t('practice.rate')}
+          <select
+            className="tool-select font-mono text-xs normal-case tracking-normal"
+            value={rate}
+            onChange={(event) => onRateChange(Number(event.target.value))}
+            aria-label={t('practice.rateLabel')}
+          >
+            {SPEEDS.map((speed) => (
+              <option key={speed.value} value={speed.value}>
+                {speed.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+          {t('practice.pitch')}
+          <select
+            className="tool-select font-mono text-xs tabular-nums normal-case tracking-normal"
+            value={pitch}
+            onChange={(event) => onPitchChange(Number(event.target.value))}
+            aria-label={t('practice.pitchLabel')}
+            disabled={!pitchAvailable}
+            title={pitchAvailable ? t('practice.pitchTitle') : t('practice.pitchUnavailable')}
+          >
+            {PITCHES.map((value) => (
+              <option key={value} value={value}>
+                {value > 0 ? `+${value}` : value}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
     </section>
   );
 }

@@ -18,7 +18,7 @@ import { SetlistView } from './components/SetlistView';
 import { SongView } from './components/SongView';
 import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
 import { listKeys } from './storage/envelope';
-import { BackupError, downloadBackupSnapshot, parseBackupSnapshot } from './storage/backup';
+import { BackupError, downloadBackup, parseBackupSnapshot } from './storage/backup';
 import { decodeSongFromToken } from './lib/share';
 import { ChordProError, parseChordPro } from './lib/chordpro';
 import { Library, analysisCacheStats, clearAnalysisCache } from './storage/library';
@@ -34,7 +34,7 @@ import {
   saveSetlists,
 } from './storage/setlists';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
-import type { AppNotice, Folder, Preferences, Setlist, Song } from './types';
+import type { AppNotice, Preferences, Setlist, Song } from './types';
 
 type Route =
   | { name: 'home' }
@@ -79,7 +79,10 @@ export default function App() {
   const desktop = isDesktopApp();
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
-  const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences(storage));
+  const [preferences, setPreferences] = useState<Preferences>(() => {
+    const loaded = loadPreferences(storage);
+    return parseHash().name === 'song' ? { ...loaded, gridView: 'beats' } : loaded;
+  });
   const analysisRunner = useAnalysisRunner();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [audioCache, setAudioCache] = useState<AudioCacheStats | null>(null);
@@ -121,7 +124,6 @@ export default function App() {
     initial.song ? audioUrlForSong(initial.song) : null,
   );
   const [songs, setSongs] = useState(() => library.list());
-  const [folders, setFolders] = useState(() => library.listFolders());
   const [notice, setNotice] = useState<AppNotice | null>(() =>
     hasQuarantinedData(storage)
       ? {
@@ -211,9 +213,22 @@ export default function App() {
     });
   }, []);
 
+  /** Every song opens in the chord grid; the view can still change afterwards. */
+  const resetGridView = useCallback(() => {
+    setPreferences((current) => {
+      if (current.gridView === 'beats') return current;
+      const next: Preferences = { ...current, gridView: 'beats' };
+      try {
+        savePreferences(storage, next);
+      } catch {
+        // The in-memory preference is still reset.
+      }
+      return next;
+    });
+  }, [storage]);
+
   const refreshLibrary = useCallback(() => {
     setSongs(library.list());
-    setFolders(library.listFolders());
   }, [library]);
 
   const recordOpen = useCallback(
@@ -235,6 +250,7 @@ export default function App() {
     (next: Song, nextAudioUrl: string | null) => {
       songRef.current = next;
       setSong(next);
+      resetGridView();
       recordOpen(next.id);
       replaceAudioUrl(nextAudioUrl);
       const nextRoute: Route = { name: 'song', id: next.id };
@@ -243,7 +259,7 @@ export default function App() {
         window.location.hash = hashFor(nextRoute);
       }
     },
-    [recordOpen, replaceAudioUrl],
+    [recordOpen, replaceAudioUrl, resetGridView],
   );
 
   const applyRoute = useCallback(
@@ -253,12 +269,14 @@ export default function App() {
         if (found) {
           songRef.current = found;
           setSong(found);
+          resetGridView();
           recordOpen(found.id);
           replaceAudioUrl(audioUrlForSong(found));
           setRoute(next);
           return;
         }
         if (songRef.current?.id === next.id) {
+          resetGridView();
           setRoute(next);
           return;
         }
@@ -282,7 +300,7 @@ export default function App() {
       }
       setRoute(next);
     },
-    [library, recordOpen, refreshLibrary, replaceAudioUrl, setlists, t],
+    [library, recordOpen, refreshLibrary, replaceAudioUrl, resetGridView, setlists, t],
   );
 
   useEffect(() => {
@@ -470,7 +488,7 @@ export default function App() {
       setNotice({ message: t('app.exportEmpty'), tone: 'warning' });
       return;
     }
-    downloadBackupSnapshot(snapshot.songs, snapshot.folders);
+    downloadBackup(snapshot.songs);
     setNotice({
       message: t('app.exported', {
         count: snapshot.songs.length,
@@ -539,49 +557,6 @@ export default function App() {
             : t('app.backupImportFailed'),
         tone: 'warning',
       });
-    }
-  };
-
-  const createFolder = (name: string) => {
-    if (!name.trim()) return;
-    try {
-      library.createFolder(name);
-      refreshLibrary();
-      setNotice({ message: t('library.folderCreated'), tone: 'success' });
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-    }
-  };
-
-  const renameFolder = (folder: Folder, name: string) => {
-    if (!name.trim() || name.trim() === folder.name) return;
-    try {
-      if (library.renameFolder(folder.id, name.trim())) {
-        refreshLibrary();
-        setNotice({ message: t('library.folderRenamed'), tone: 'success' });
-      }
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-    }
-  };
-
-  const deleteFolder = (folder: Folder) => {
-    if (!window.confirm(t('library.folderDeleteConfirm', { name: folder.name }))) return;
-    try {
-      if (library.deleteFolder(folder.id)) {
-        refreshLibrary();
-        setNotice({ message: t('library.folderDeleted'), tone: 'info' });
-      }
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-    }
-  };
-
-  const moveSongToFolder = (id: string, folderId: string | null) => {
-    try {
-      if (library.moveSong(id, folderId)) refreshLibrary();
-    } catch {
-      setNotice({ message: t('app.saveFailed'), tone: 'warning' });
     }
   };
 
@@ -688,7 +663,6 @@ export default function App() {
         {route.name === 'library' ? (
           <LibraryList
             songs={songs}
-            folders={folders}
             history={history}
             notice={notice}
             onDismissNotice={() => setNotice(null)}
@@ -700,10 +674,6 @@ export default function App() {
             onClearAudioCache={clearAudioCacheAndNotify}
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
-            onCreateFolder={createFolder}
-            onRenameFolder={renameFolder}
-            onDeleteFolder={deleteFolder}
-            onMoveSong={moveSongToFolder}
             onBack={() => navigate({ name: 'home' })}
             onHome={() => navigate({ name: 'home' })}
           />
@@ -773,7 +743,7 @@ export default function App() {
         data-testid="site-footer"
         className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink3"
       >
-        <span>{t(desktop ? 'footer.desktopTagline' : 'footer.tagline')}</span>
+        <span>{t('app.tagline')}</span>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
           {desktop ? (
             <button

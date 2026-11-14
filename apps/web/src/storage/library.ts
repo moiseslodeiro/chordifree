@@ -1,17 +1,15 @@
 import type { Chord, ChordSegment } from '@chordifree/chords';
-import type { AnalysisResult, Folder, Song, SongSummary } from '../types';
+import type { AnalysisResult, Song, SongSummary } from '../types';
 import { sourceKey } from '../types';
 import { listKeys, readEnvelope, removeKey, writeEnvelope } from './envelope';
 import { KEYS, PREFIX, StorageQuotaError, type StorageLike } from './keys';
 
 interface LibraryData {
   songs: SongSummary[];
-  folders: Folder[];
 }
 
 export interface LibrarySnapshot {
   songs: Song[];
-  folders: Folder[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -49,23 +47,12 @@ function isVocalRegion(value: unknown): boolean {
   );
 }
 
-export function isFolder(value: unknown): value is Folder {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    typeof value.createdAt === 'string' &&
-    typeof value.updatedAt === 'string'
-  );
-}
-
 export function isSong(value: unknown): value is Song {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === 'string' &&
     typeof value.title === 'string' &&
     (value.artist === undefined || typeof value.artist === 'string') &&
-    (value.folderId === undefined || typeof value.folderId === 'string') &&
     isSource(value.source) &&
     typeof value.duration === 'number' &&
     Array.isArray(value.segments) &&
@@ -98,19 +85,21 @@ export function isSong(value: unknown): value is Song {
 
 function isLibraryData(value: unknown): value is LibraryData {
   if (!isRecord(value) || !Array.isArray(value.songs)) return false;
-  if (value.folders !== undefined && (!Array.isArray(value.folders) || !value.folders.every(isFolder))) {
-    return false;
-  }
   return value.songs.every(
     (song) =>
       isRecord(song) &&
       typeof song.id === 'string' &&
       typeof song.title === 'string' &&
-      (song.folderId === undefined || typeof song.folderId === 'string') &&
       typeof song.updatedAt === 'string' &&
       typeof song.duration === 'number' &&
       isSource(song.source),
   );
+}
+
+/** Drops the folder assignment left by older library versions. */
+function withoutLegacyFolder(song: Song): Song {
+  const { folderId: _legacyFolder, ...rest } = song as Song & { folderId?: string };
+  return rest;
 }
 
 function summaryOf(song: Song): SongSummary {
@@ -119,17 +108,12 @@ function summaryOf(song: Song): SongSummary {
     title: song.title,
     source: song.source,
     duration: song.duration,
-    ...(song.folderId ? { folderId: song.folderId } : {}),
     updatedAt: song.updatedAt,
   };
 }
 
 function sortSummaries(songs: SongSummary[]): SongSummary[] {
   return [...songs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-}
-
-function sortFolders(folders: Folder[]): Folder[] {
-  return [...folders].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Purges the oldest analysis cache entries. */
@@ -180,13 +164,9 @@ export class Library {
     return sortSummaries(data?.songs ?? []);
   }
 
-  listFolders(): Folder[] {
-    const data = readEnvelope(this.storage, KEYS.library, isLibraryData);
-    return sortFolders(data?.folders ?? []);
-  }
-
   get(id: string): Song | null {
-    return readEnvelope(this.storage, KEYS.song(id), isSong);
+    const song = readEnvelope(this.storage, KEYS.song(id), isSong);
+    return song ? withoutLegacyFolder(song) : null;
   }
 
   /** All complete songs, in the same order as the library. */
@@ -197,85 +177,13 @@ export class Library {
   }
 
   exportSnapshot(): LibrarySnapshot {
-    return { songs: this.exportSongs(), folders: this.listFolders() };
-  }
-
-  createFolder(name: string): Folder {
-    const clean = name.trim();
-    if (!clean) throw new Error('Folder name is required');
-    const timestamp = new Date().toISOString();
-    const folder: Folder = {
-      id: crypto.randomUUID(),
-      name: clean,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
-    this.writeLibrary(this.list(), [...this.listFolders(), folder]);
-    return folder;
-  }
-
-  renameFolder(id: string, name: string): Folder | null {
-    const clean = name.trim();
-    if (!clean) return null;
-    const folders = this.listFolders();
-    const current = folders.find((folder) => folder.id === id);
-    if (!current) return null;
-    const next: Folder = { ...current, name: clean, updatedAt: new Date().toISOString() };
-    this.writeLibrary(
-      this.list(),
-      folders.map((folder) => (folder.id === id ? next : folder)),
-    );
-    return next;
-  }
-
-  /** Removes a folder and moves its songs to the unfiled group. */
-  deleteFolder(id: string): boolean {
-    const folders = this.listFolders();
-    if (!folders.some((folder) => folder.id === id)) return false;
-
-    const summaries = this.list();
-    for (const summary of summaries) {
-      if (summary.folderId !== id) continue;
-      const song = this.get(summary.id);
-      if (!song) continue;
-      const { folderId: _folderId, ...rest } = song;
-      writeEnvelope(this.storage, KEYS.song(song.id), {
-        ...rest,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    this.writeLibrary(
-      summaries.map((summary) =>
-        summary.folderId === id ? { ...summary, folderId: undefined } : summary,
-      ),
-      folders.filter((folder) => folder.id !== id),
-    );
-    return true;
-  }
-
-  moveSong(id: string, folderId: string | null): boolean {
-    const song = this.get(id);
-    if (!song) return false;
-    const target = folderId && this.listFolders().some((folder) => folder.id === folderId)
-      ? folderId
-      : undefined;
-    const { folderId: _folderId, ...rest } = song;
-    const next: Song = {
-      ...rest,
-      ...(target ? { folderId: target } : {}),
-      updatedAt: new Date().toISOString(),
-    };
-    writeEnvelope(this.storage, KEYS.song(id), next);
-    const others = this.list().filter((summary) => summary.id !== id);
-    this.writeLibrary([summaryOf(next), ...others], this.listFolders());
-    return true;
+    return { songs: this.exportSongs() };
   }
 
   /** Adds a shared song as a new entry; it never overwrites by source. */
   add(song: Song): Song {
     const stored: Song = {
-      ...song,
+      ...withoutLegacyFolder(song),
       id: crypto.randomUUID(),
       updatedAt: new Date().toISOString(),
     };
@@ -289,47 +197,27 @@ export class Library {
    * added. If an id conflicts with another song, a new one is generated.
    */
   importSongs(songs: Song[]): ImportResult {
-    return this.writeImported(songs, this.listFolders());
+    return this.writeImported(songs);
   }
 
-  /** Restores a backup, including its folders. */
   importSnapshot(snapshot: LibrarySnapshot): ImportResult {
-    const foldersById = new Map(this.listFolders().map((folder) => [folder.id, folder] as const));
-    for (const folder of snapshot.folders) {
-      if (!isFolder(folder)) continue;
-      const existing = foldersById.get(folder.id);
-      foldersById.set(
-        folder.id,
-        existing
-          ? { ...existing, name: folder.name, updatedAt: folder.updatedAt }
-          : folder,
-      );
-    }
-
-    const folders = [...foldersById.values()];
-    const songs = snapshot.songs.map((song) =>
-      song.folderId && foldersById.has(song.folderId)
-        ? song
-        : { ...song, folderId: undefined },
-    );
-    return this.writeImported(songs, folders);
+    return this.writeImported(snapshot.songs);
   }
 
-  private writeImported(songs: Song[], folders: Folder[]): ImportResult {
+  private writeImported(songs: Song[]): ImportResult {
     const unique = new Map<string, Song>();
     for (const song of songs) unique.set(sourceKey(song.source), song);
 
     try {
-      return this.writeImportedOnce([...unique.values()], folders);
+      return this.writeImportedOnce([...unique.values()]);
     } catch (error) {
       if (!(error instanceof StorageQuotaError)) throw error;
       purgeAnalysisCache(this.storage);
-      return this.writeImportedOnce([...unique.values()], folders);
+      return this.writeImportedOnce([...unique.values()]);
     }
   }
 
-  private writeImportedOnce(songs: Song[], folders: Folder[]): ImportResult {
-    const folderIds = new Set(folders.map((folder) => folder.id));
+  private writeImportedOnce(songs: Song[]): ImportResult {
     const summaries = new Map(this.list().map((summary) => [summary.id, summary] as const));
     const bySource = new Map(
       [...summaries.values()].map((summary) => [sourceKey(summary.source), summary] as const),
@@ -344,13 +232,8 @@ export class Library {
       let id = match?.id ?? song.id;
       if (!id) id = crypto.randomUUID();
       if (!match && ids.has(id)) id = crypto.randomUUID();
-      const folderId = song.folderId && folderIds.has(song.folderId) ? song.folderId : undefined;
 
-      const stored: Song = {
-        ...song,
-        id,
-        ...(folderId ? { folderId } : { folderId: undefined }),
-      };
+      const stored: Song = { ...withoutLegacyFolder(song), id };
       writeEnvelope(this.storage, KEYS.song(id), stored);
 
       const summary = summaryOf(stored);
@@ -361,25 +244,17 @@ export class Library {
       else added += 1;
     }
 
-    this.writeLibrary([...summaries.values()], folders);
+    this.writeLibrary([...summaries.values()]);
     return { added, updated };
   }
 
-  private writeLibrary(songs: SongSummary[], folders: Folder[]): void {
-    writeEnvelope(this.storage, KEYS.library, {
-      songs: sortSummaries(songs),
-      folders: sortFolders(folders),
-    });
+  private writeLibrary(songs: SongSummary[]): void {
+    writeEnvelope(this.storage, KEYS.library, { songs: sortSummaries(songs) });
   }
 
   save(song: Song): void {
-    const folderId =
-      song.folderId && this.listFolders().some((folder) => folder.id === song.folderId)
-        ? song.folderId
-        : undefined;
     const normalized: Song = {
-      ...song,
-      ...(folderId ? { folderId } : { folderId: undefined }),
+      ...withoutLegacyFolder(song),
       updatedAt: new Date().toISOString(),
     };
     const write = () => {
@@ -387,7 +262,7 @@ export class Library {
       const others = this.list().filter((summary) => summary.id !== normalized.id);
       // The new summary goes first so that, if two saves share the
       // same millisecond, the stable order keeps the most recent on top.
-      this.writeLibrary([summaryOf(normalized), ...others], this.listFolders());
+      this.writeLibrary([summaryOf(normalized), ...others]);
     };
 
     try {
@@ -402,7 +277,7 @@ export class Library {
   remove(id: string): void {
     removeKey(this.storage, KEYS.song(id));
     const remaining = this.list().filter((summary) => summary.id !== id);
-    this.writeLibrary(remaining, this.listFolders());
+    this.writeLibrary(remaining);
   }
 }
 
