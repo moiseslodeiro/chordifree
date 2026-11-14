@@ -6,6 +6,7 @@ interface NotationControlsProps {
   notation: Notation;
   accidentalPreference: AccidentalPreference;
   transpose: number;
+  hideAdvanced?: boolean;
   onChange: (patch: {
     notation?: Notation;
     accidentalPreference?: AccidentalPreference;
@@ -17,6 +18,7 @@ export function NotationControls({
   notation,
   accidentalPreference,
   transpose,
+  hideAdvanced = false,
   onChange,
 }: NotationControlsProps) {
   const t = useT();
@@ -43,6 +45,7 @@ export function NotationControls({
         </div>
       </Tool>
 
+      {hideAdvanced ? null : (
       <div className="tool">
         <span className="tool-head">
           <span className="tool-icon" aria-hidden="true">
@@ -67,6 +70,7 @@ export function NotationControls({
           </select>
         </div>
       </div>
+      )}
 
       <Tool label={t('notation.transpose')} icon={<IconTranspose />}>
         <div className="flex items-center gap-0.5">

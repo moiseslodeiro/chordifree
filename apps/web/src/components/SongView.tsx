@@ -38,6 +38,7 @@ import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
 import { usePracticeSession } from '../practice/usePracticeSession';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
 import {
@@ -56,6 +57,7 @@ import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
 import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
+import { MoreSettings } from './MoreSettings';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
@@ -106,6 +108,7 @@ export function SongView({
   onPreferences,
 }: SongViewProps) {
   const t = useT();
+  const mobile = useIsMobile();
   const [adapter, setAdapter] = useState<PlayerAdapter | null>(null);
   const [clock, setClock] = useState<PlaybackClock | null>(null);
   const [editing, setEditing] = useState(false);
@@ -890,6 +893,7 @@ export function SongView({
           notation={song.notation}
           accidentalPreference={song.accidentalPreference}
           transpose={song.transpose}
+          hideAdvanced={mobile}
           onChange={changePreferences}
         />
         <DisplayControls
@@ -898,9 +902,19 @@ export function SongView({
           reduceChordsMax={reduceChordsMax}
           instrument={instrument}
           capo={capo}
+          hideAdvanced={mobile}
           onChange={changePreferences}
         />
       </section>
+
+      {mobile ? (
+        <MoreSettings
+          accidentalPreference={song.accidentalPreference}
+          instrument={instrument}
+          capo={capo}
+          onChange={changePreferences}
+        />
+      ) : null}
 
       {playbackError ? (
         <ErrorBanner
