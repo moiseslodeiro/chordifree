@@ -133,7 +133,7 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-cell-0')).toContainText('Do');
     await expect(page.getByTestId('beat-cell-8')).toContainText('Sol');
 
-    await page.getByLabel('Alteraciones').selectOption('sharp');
+    await page.getByRole('button', { name: 'Sostenidos' }).click();
     await page.getByRole('button', { name: 'Subir un semitono' }).click();
     await expect(page.getByTestId('beat-cell-0')).toContainText('Do♯');
     await expect(page.getByTestId('beat-cell-8')).toContainText('Sol♯');

@@ -114,7 +114,7 @@ describe('App', () => {
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol');
 
     // Automatic accidentals choose flats for the resulting key.
-    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sostenidos' }));
     fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
     expect(screen.getByTestId('chord-row-0')).toHaveTextContent('Do♯');
     expect(screen.getByTestId('chord-row-1')).toHaveTextContent('Sol♯');
@@ -252,7 +252,7 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^Do en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Lam en/ })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'sharp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sostenidos' }));
     fireEvent.click(screen.getByRole('button', { name: 'Subir un semitono' }));
     expect(grid.getByRole('button', { name: /^Do♯ en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^La♯m en/ })).toBeInTheDocument();

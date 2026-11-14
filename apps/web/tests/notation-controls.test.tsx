@@ -42,9 +42,13 @@ describe('NotationControls', () => {
     expect(screen.getByRole('button', { name: 'Subir un semitono' })).toBeDisabled();
   });
 
-  it('changes the enharmonic preference', () => {
+  it('changes the enharmonic preference with symbol buttons', () => {
     const { onChange } = renderControls();
-    fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'flat' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Bemoles' }));
     expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'flat' });
+    fireEvent.click(screen.getByRole('button', { name: 'Sostenidos' }));
+    expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'sharp' });
+    fireEvent.click(screen.getByRole('button', { name: 'Auto' }));
+    expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'auto' });
   });
 });

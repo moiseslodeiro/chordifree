@@ -45,16 +45,16 @@ export function DisplayControls({
 
   return (
     <section className="contents" aria-label={t('display.aria')}>
-      <Tool label={t('display.presentation')} icon={<IconSliders />} className="sm:min-w-[21rem]">
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-start">
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-ink2">
+      <Tool label={t('display.presentation')} icon={<IconSliders />} className="sm:min-w-[22rem]">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1">
+            <span className="tool-label">{t('display.simplify')}</span>
             <input
               type="checkbox"
-              className="size-3.5 accent-accent"
+              className="mt-1 size-4 accent-accent"
               checked={simplifyChords}
               onChange={(event) => onChange({ simplifyChords: event.target.checked })}
             />
-            {t('display.simplify')}
           </label>
           <label className="flex flex-col gap-1">
             <span className="tool-label">{t('display.reduction')}</span>
@@ -68,7 +68,6 @@ export function DisplayControls({
                   reduceChordsMax: value === 'max',
                 });
               }}
-              aria-label={t('display.reduction')}
             >
               <option value="none">{t('display.reductionNone')}</option>
               <option value="normal">{t('display.reductionNormal')}</option>
