@@ -75,8 +75,9 @@ const en = {
   'home.searchRequired': 'Type something to search.',
   'home.searchFailed': 'Could not search YouTube. Try again.',
   'home.orPasteLink': 'Or paste a link',
-  'home.loadWithChordifree': 'Chordifree',
-  'home.loadVideo': 'Load {title} with Chordifree',
+  'home.analyzeResult': 'Analyze',
+  'home.analyzeVideo': 'Analyze {title}',
+  'home.analyzingVideo': 'Analyzing {title}',
   'home.uploadLabel': 'Audio file',
   'home.uploadHelp':
     'MP3, WAV, M4A, OGG, FLAC, WebM or MP4 · max 25 MB and 15 minutes. Audio is not saved to the library.',
@@ -646,8 +647,9 @@ const es: Record<MessageKey, string> = {
   'home.searchRequired': 'Escribe algo para buscar.',
   'home.searchFailed': 'No se pudo buscar en YouTube. Inténtalo de nuevo.',
   'home.orPasteLink': 'O pega un enlace',
-  'home.loadWithChordifree': 'Chordifree',
-  'home.loadVideo': 'Cargar {title} con Chordifree',
+  'home.analyzeResult': 'Analizar',
+  'home.analyzeVideo': 'Analizar {title}',
+  'home.analyzingVideo': 'Analizando {title}',
   'home.uploadLabel': 'Archivo de audio',
   'home.uploadHelp':
     'MP3, WAV, M4A, OGG, FLAC, WebM o MP4 · máximo 25 MB y 15 minutos. El audio no se guarda en la biblioteca.',

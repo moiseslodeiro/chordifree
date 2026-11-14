@@ -190,7 +190,7 @@ describe('Home', () => {
     });
   });
 
-  it('searches YouTube and loads a result with the Chordifree button', async () => {
+  it('searches YouTube and analyzes a result with the Analyze button', async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.startsWith('/api/youtube/search')) {
         return response({
@@ -235,7 +235,7 @@ describe('Home', () => {
     ).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Cargar Never Gonna Give You Up con Chordifree' }),
+      screen.getByRole('button', { name: 'Analizar Never Gonna Give You Up' }),
     );
 
     await waitFor(() => expect(onAnalyzed).toHaveBeenCalledTimes(1));
@@ -247,6 +247,63 @@ describe('Home', () => {
       '/api/youtube/search?q=rick+astley',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it('shows the analyzing state on the result while the job starts', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/youtube/search')) {
+        return response({
+          results: [
+            {
+              videoId: 'dQw4w9WgXcQ',
+              title: 'Never Gonna Give You Up',
+              uploader: 'Rick Astley',
+              duration: 213,
+              thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+            },
+          ],
+        });
+      }
+      if (init?.method === 'POST') {
+        await gate;
+        return response({
+          id: 'job-5',
+          status: 'queued',
+          progress: 0,
+          source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+        });
+      }
+      return response({
+        id: 'job-5',
+        status: 'done',
+        progress: 100,
+        result: analysisResult(),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { onAnalyzed } = renderHome();
+
+    fireEvent.change(screen.getByLabelText('Buscar en YouTube'), {
+      target: { value: 'rick astley' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Analizar Never Gonna Give You Up' }),
+    );
+
+    const analyzing = await screen.findByRole('button', {
+      name: 'Analizando Never Gonna Give You Up',
+    });
+    expect(analyzing).toHaveTextContent('Analizando…');
+    expect(analyzing).toHaveAttribute('aria-busy', 'true');
+
+    release();
+    await waitFor(() => expect(onAnalyzed).toHaveBeenCalledTimes(1));
   });
 
   it('requires a query before searching', async () => {

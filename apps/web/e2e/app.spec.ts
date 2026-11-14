@@ -88,7 +88,7 @@ test.describe('full flow', () => {
     await expect(page.getByRole('button', { name: 'Detectar acordes' })).toBeVisible();
   });
 
-  test('searches YouTube and loads a result with the Chordifree button', async ({ page }) => {
+  test('searches YouTube and analyzes a result with the Analyze button', async ({ page }) => {
     await page.route('**/api/youtube/search**', (route) =>
       route.fulfill({
         status: 200,
@@ -115,7 +115,7 @@ test.describe('full flow', () => {
     await expect(page.getByText('Rick Astley · 3:33')).toBeVisible();
 
     await page
-      .getByRole('button', { name: 'Cargar Never Gonna Give You Up con Chordifree' })
+      .getByRole('button', { name: 'Analizar Never Gonna Give You Up' })
       .click();
 
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();

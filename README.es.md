@@ -5,8 +5,8 @@
 Convierte un video musical de YouTube (o un audio propio) en una línea de tiempo de acordes
 sincronizada con la reproducción. Permite trasponer ±11 semitonos y cambiar entre notación
 inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`). También puedes buscar por nombre en
-YouTube: cada resultado muestra la miniatura, el canal y la duración, y el botón **Chordifree**
-analiza la canción al momento.
+YouTube: cada resultado muestra la miniatura, el canal y la duración, y un clic analiza la
+canción al momento.
 
 Hecho por [Moisés Lodeiro](https://github.com/moiseslodeiro), de un músico para músicos y músicas.
 
