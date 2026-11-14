@@ -9,7 +9,6 @@ function renderControls(overrides: Partial<Parameters<typeof NotationControls>[0
       notation="english"
       accidentalPreference="auto"
       transpose={0}
-      keyLabel="C mayor"
       onChange={onChange}
       {...overrides}
     />,
@@ -47,10 +46,5 @@ describe('NotationControls', () => {
     const { onChange } = renderControls();
     fireEvent.change(screen.getByLabelText('Alteraciones'), { target: { value: 'flat' } });
     expect(onChange).toHaveBeenCalledWith({ accidentalPreference: 'flat' });
-  });
-
-  it('shows the estimated key', () => {
-    renderControls({ keyLabel: 'Fa mayor' });
-    expect(screen.getByText('Tonalidad estimada: Fa mayor')).toBeInTheDocument();
   });
 });

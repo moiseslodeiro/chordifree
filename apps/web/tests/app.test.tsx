@@ -245,7 +245,7 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^C en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^Am en/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'normal' } });
     expect(grid.queryByRole('button', { name: /^G en/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Española' }));
@@ -291,8 +291,8 @@ describe('App', () => {
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'normal' } });
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'max' } });
 
     expect(grid.getByRole('button', { name: /^G en/ })).toBeInTheDocument();
     expect(grid.getByRole('button', { name: /^F en/ })).toBeInTheDocument();
@@ -313,8 +313,8 @@ describe('App', () => {
     });
     await analyze();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'normal' } });
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'max' } });
 
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByTestId('beat-cell-1')).not.toHaveTextContent('G');
@@ -408,7 +408,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(3);
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'normal' } });
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.queryByText('G')).not.toBeInTheDocument();
@@ -436,10 +436,10 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'normal' } });
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reducir al máximo' }));
+    fireEvent.change(screen.getByLabelText('Reducción'), { target: { value: 'max' } });
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
     const grid = within(screen.getByTestId('song-grid-column'));
     expect(grid.getByText('C')).toBeInTheDocument();
@@ -568,7 +568,7 @@ describe('App', () => {
     render(<App />);
 
     const footer = screen.getByTestId('site-footer');
-    expect(footer).toHaveTextContent('De un músico para músicos y músicas.');
+    expect(footer).toHaveTextContent('Musica laetitiae comes, medicina dolorum');
     expect(footer).toHaveTextContent('GitHub');
     expect(footer).toHaveTextContent('AGPL-3.0');
     expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute(

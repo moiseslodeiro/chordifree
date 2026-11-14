@@ -890,7 +890,6 @@ export function SongView({
           notation={song.notation}
           accidentalPreference={song.accidentalPreference}
           transpose={song.transpose}
-          keyLabel={keyLabel}
           onChange={changePreferences}
         />
         <DisplayControls

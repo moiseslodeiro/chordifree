@@ -27,25 +27,24 @@ describe('DisplayControls', () => {
     expect(onChange).toHaveBeenCalledWith({ simplifyChords: true });
   });
 
-  it('toggles chord reduction independently', () => {
+  it('chooses the chord reduction level', () => {
     const { onChange } = renderControls();
-    const button = screen.getByRole('button', { name: /Reducir acordes/ });
-    expect(button).toHaveAttribute('aria-pressed', 'false');
-    fireEvent.click(button);
-    expect(onChange).toHaveBeenCalledWith({ reduceChords: true });
-  });
+    const select = screen.getByLabelText('Reducción');
+    expect(select).toHaveValue('none');
 
-  it('enables maximum reduction on top of normal reduction', () => {
-    const { onChange } = renderControls({ reduceChords: true });
-    const button = screen.getByRole('button', { name: 'Reducir al máximo' });
-    expect(button).toHaveAttribute('aria-pressed', 'false');
-    fireEvent.click(button);
+    fireEvent.change(select, { target: { value: 'normal' } });
+    expect(onChange).toHaveBeenCalledWith({ reduceChords: true, reduceChordsMax: false });
+
+    fireEvent.change(select, { target: { value: 'max' } });
     expect(onChange).toHaveBeenCalledWith({ reduceChords: true, reduceChordsMax: true });
   });
 
-  it('also disables maximum reduction when turning reduction off', () => {
+  it('shows the current reduction level and can turn it off', () => {
     const { onChange } = renderControls({ reduceChords: true, reduceChordsMax: true });
-    fireEvent.click(screen.getByRole('button', { name: /Reducir acordes/ }));
+    const select = screen.getByLabelText('Reducción');
+    expect(select).toHaveValue('max');
+
+    fireEvent.change(select, { target: { value: 'none' } });
     expect(onChange).toHaveBeenCalledWith({ reduceChords: false, reduceChordsMax: false });
   });
 

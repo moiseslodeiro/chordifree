@@ -38,14 +38,13 @@ export function DisplayControls({
   const instrumentLabel = t(
     INSTRUMENTS.find((item) => item.value === instrument)?.label ?? 'instrument.guitar',
   );
-  const maxActive = reduceChords && reduceChordsMax;
   /** The capo only makes sense on string instruments. */
   const capoAvailable = supportsCapo(instrument);
 
   return (
     <section className="contents" aria-label={t('display.aria')}>
-      <Tool label={t('display.presentation')} icon={<IconSliders />}>
-        <div className="flex flex-wrap items-center gap-0.5">
+      <Tool label={t('display.presentation')} icon={<IconSliders />} className="sm:min-w-[13.5rem]">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             aria-pressed={simplifyChords}
@@ -56,43 +55,34 @@ export function DisplayControls({
           >
             {t('display.simplify')}
           </button>
-          <button
-            type="button"
-            aria-pressed={reduceChords}
-            aria-label={t('display.reduceAria')}
-            title={t('display.reduceTitle')}
-            className="tool-chip"
-            onClick={() =>
-              onChange(
-                reduceChords
-                  ? { reduceChords: false, reduceChordsMax: false }
-                  : { reduceChords: true },
-              )
-            }
+          <select
+            className="tool-select w-24"
+            value={reduceChords ? (reduceChordsMax ? 'max' : 'normal') : 'none'}
+            onChange={(event) => {
+              const value = event.target.value;
+              onChange({
+                reduceChords: value !== 'none',
+                reduceChordsMax: value === 'max',
+              });
+            }}
+            aria-label={t('display.reduction')}
           >
-            {t('display.reduce')}
-          </button>
-          <button
-            type="button"
-            aria-pressed={maxActive}
-            aria-label={t('display.reduceMaxAria')}
-            title={t('display.reduceMaxTitle')}
-            disabled={!reduceChords}
-            className="tool-chip disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => onChange({ reduceChords: true, reduceChordsMax: !reduceChordsMax })}
-          >
-            {t('display.reduceMax')}
-          </button>
+            <option value="none">{t('display.reductionNone')}</option>
+            <option value="normal">{t('display.reductionNormal')}</option>
+            <option value="max">{t('display.reductionMax')}</option>
+          </select>
         </div>
       </Tool>
 
       <div className="tool">
-        <span className="tool-icon" aria-hidden="true">
-          <IconGuitar />
+        <span className="tool-head">
+          <span className="tool-icon" aria-hidden="true">
+            <IconGuitar />
+          </span>
+          <label htmlFor="instrument-select" className="tool-label">
+            {t('display.instrument')}
+          </label>
         </span>
-        <label htmlFor="instrument-select" className="tool-label">
-          {t('display.instrument')}
-        </label>
         <div className="tool-value">
           <select
             id="instrument-select"
@@ -111,12 +101,14 @@ export function DisplayControls({
 
       {capoAvailable ? (
         <div className="tool">
-          <span className="tool-icon" aria-hidden="true">
-            <IconCapo />
+          <span className="tool-head">
+            <span className="tool-icon" aria-hidden="true">
+              <IconCapo />
+            </span>
+            <label htmlFor="capo-select" className="tool-label">
+              Capo
+            </label>
           </span>
-          <label htmlFor="capo-select" className="tool-label">
-            Capo
-          </label>
           <div className="tool-value">
             <select
               id="capo-select"
