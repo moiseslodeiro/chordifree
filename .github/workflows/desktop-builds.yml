@@ -18,8 +18,11 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
     runs-on: windows-latest
     timeout-minutes: 180
+    permissions:
+      contents: write
     env:
       VCPKG_DEFAULT_BINARY_CACHE: C:/vcpkg-cache
+      VCPKG_BINARY_SOURCES: 'clear;files,C:/vcpkg-cache,readwrite'
       VCPKG_BUILD_TYPE: release
     steps:
       # Our repository is checked out at the workspace root so the patch script
@@ -43,6 +46,16 @@ jobs:
 
       - name: Apply the Essentia build patches
         run: python packaging/analyzer/patch_essentia.py essentia-src
+
+      - name: Compute the cached wheel key
+        id: essentia-key
+        shell: bash
+        run: |
+          sha=$(git -C essentia-src rev-parse HEAD)
+          patch=$(git hash-object packaging/analyzer/patch_essentia.py)
+          workflow=$(git hash-object .github/workflows/desktop-builds.yml)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "wheel_key=essentia-${sha}-${patch}-${workflow}-cp311-win_amd64.whl" >> "$GITHUB_OUTPUT"
 
       - name: Check the resolved version
         working-directory: essentia-src
@@ -73,9 +86,29 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-${{ runner.os }}-v1-${{ hashFiles('essentia-src/cibuildwheel.toml') }}
+          key: vcpkg-${{ runner.os }}-v2-${{ steps.essentia-key.outputs.sha }}-${{ hashFiles('essentia-src/cibuildwheel.toml', 'packaging/analyzer/patch_essentia.py', '.github/workflows/desktop-builds.yml') }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-v1-
+            vcpkg-${{ runner.os }}-v2-
+
+      - name: Restore the cached Windows wheel
+        id: wheel-cache
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WHEEL_KEY: ${{ steps.essentia-key.outputs.wheel_key }}
+        run: |
+          mkdir -p essentia-src/wheelhouse
+          if ! gh release view essentia-wheel-cache >/dev/null 2>&1; then
+            gh release create essentia-wheel-cache --prerelease \
+              --title "Essentia Windows wheel cache" \
+              --notes "Automated cache for the Windows Essentia wheel."
+          fi
+          gh release download essentia-wheel-cache --pattern "$WHEEL_KEY" --dir essentia-src/wheelhouse || true
+          if [ -f "essentia-src/wheelhouse/$WHEEL_KEY" ]; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install cibuildwheel
         run: python -m pip install 'cibuildwheel==3.2.1'
@@ -86,14 +119,27 @@ jobs:
           arch: x64
 
       - name: Build the Windows wheel
+        if: steps.wheel-cache.outputs.hit != 'true'
         working-directory: essentia-src
         shell: bash
         env:
           CIBW_BUILD: cp311-win_amd64
           CIBW_ARCHS: AMD64
+          WHEEL_KEY: ${{ steps.essentia-key.outputs.wheel_key }}
         # cibuildwheel only auto-discovers pyproject.toml, so point it at the
         # Windows configuration that ships with the PR (vcpkg deps + env vars).
-        run: python -m cibuildwheel --platform windows --config-file cibuildwheel.toml --output-dir wheelhouse
+        run: |
+          python -m cibuildwheel --platform windows --config-file cibuildwheel.toml --output-dir wheelhouse
+          wheel=$(ls wheelhouse/*.whl | head -n 1)
+          mv "$wheel" "wheelhouse/$WHEEL_KEY"
+
+      - name: Store the Windows wheel in the cache release
+        if: steps.wheel-cache.outputs.hit != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WHEEL_KEY: ${{ steps.essentia-key.outputs.wheel_key }}
+        run: gh release upload essentia-wheel-cache "essentia-src/wheelhouse/$WHEEL_KEY" --clobber
 
       - uses: actions/upload-artifact@v7
         with:
@@ -263,9 +309,6 @@ jobs:
           - os: macos-15
             arch: arm64
             artifact: chordifree-macos-arm64
-          - os: macos-15-intel
-            arch: x64
-            artifact: chordifree-macos-x64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     env:
@@ -483,11 +526,6 @@ jobs:
         with:
           name: chordifree-macos-arm64
           path: artifacts/mac-arm64
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: chordifree-macos-x64
-          path: artifacts/mac-x64
 
       - uses: actions/download-artifact@v8
         with:
