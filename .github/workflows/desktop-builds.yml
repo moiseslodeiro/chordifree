@@ -54,8 +54,10 @@ jobs:
           sha=$(git -C essentia-src rev-parse HEAD)
           patch=$(git hash-object packaging/analyzer/patch_essentia.py)
           workflow=$(git hash-object .github/workflows/desktop-builds.yml)
+          key="${sha:0:16}-${patch:0:16}-${workflow:0:16}"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "wheel_key=essentia-${sha}-${patch}-${workflow}-cp311-win_amd64.whl" >> "$GITHUB_OUTPUT"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          echo "marker=essentia-wheel-key-${key}.txt" >> "$GITHUB_OUTPUT"
 
       - name: Check the resolved version
         working-directory: essentia-src
@@ -95,17 +97,23 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          WHEEL_KEY: ${{ steps.essentia-key.outputs.wheel_key }}
+          MARKER: ${{ steps.essentia-key.outputs.marker }}
         run: |
-          mkdir -p essentia-src/wheelhouse
+          mkdir -p essentia-src/wheelhouse .wheel-cache
           if ! gh release view essentia-wheel-cache >/dev/null 2>&1; then
             gh release create essentia-wheel-cache --prerelease \
               --title "Essentia Windows wheel cache" \
               --notes "Automated cache for the Windows Essentia wheel."
           fi
-          gh release download essentia-wheel-cache --pattern "$WHEEL_KEY" --dir essentia-src/wheelhouse || true
-          if [ -f "essentia-src/wheelhouse/$WHEEL_KEY" ]; then
-            echo "hit=true" >> "$GITHUB_OUTPUT"
+          gh release download essentia-wheel-cache --pattern "$MARKER" --dir .wheel-cache || true
+          if [ -f ".wheel-cache/$MARKER" ]; then
+            wheel=$(cat ".wheel-cache/$MARKER")
+            gh release download essentia-wheel-cache --pattern "$wheel" --dir essentia-src/wheelhouse || true
+            if [ -f "essentia-src/wheelhouse/$wheel" ]; then
+              echo "hit=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "hit=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "hit=false" >> "$GITHUB_OUTPUT"
           fi
@@ -125,21 +133,20 @@ jobs:
         env:
           CIBW_BUILD: cp311-win_amd64
           CIBW_ARCHS: AMD64
-          WHEEL_KEY: ${{ steps.essentia-key.outputs.wheel_key }}
         # cibuildwheel only auto-discovers pyproject.toml, so point it at the
         # Windows configuration that ships with the PR (vcpkg deps + env vars).
-        run: |
-          python -m cibuildwheel --platform windows --config-file cibuildwheel.toml --output-dir wheelhouse
-          wheel=$(ls wheelhouse/*.whl | head -n 1)
-          mv "$wheel" "wheelhouse/$WHEEL_KEY"
+        run: python -m cibuildwheel --platform windows --config-file cibuildwheel.toml --output-dir wheelhouse
 
       - name: Store the Windows wheel in the cache release
         if: steps.wheel-cache.outputs.hit != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          WHEEL_KEY: ${{ steps.essentia-key.outputs.wheel_key }}
-        run: gh release upload essentia-wheel-cache "essentia-src/wheelhouse/$WHEEL_KEY" --clobber
+          MARKER: ${{ steps.essentia-key.outputs.marker }}
+        run: |
+          wheel=$(basename "$(ls essentia-src/wheelhouse/*.whl | head -n 1)")
+          printf '%s' "$wheel" > ".wheel-cache/$MARKER"
+          gh release upload essentia-wheel-cache "essentia-src/wheelhouse/$wheel" ".wheel-cache/$MARKER" --clobber
 
       - uses: actions/upload-artifact@v7
         with:
