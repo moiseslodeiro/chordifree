@@ -44,15 +44,9 @@ The web app is available at <https://moiseslodeiro.github.io/chordifree/>.
 
 ## Desktop
 
-The installers are built manually from the tagged commit. They bundle the local analyzer,
-ffmpeg and the ONNX models. Version 0.3.0 is published as a pre-release while the installers
-are prepared; use the Desktop builds workflow on `v0.3.0` to generate them:
-
-```bash
-git tag v0.3.0
-git push origin v0.3.0
-gh workflow run desktop-builds.yml --ref v0.3.0
-```
+The installers are built from the tagged commit. They bundle the local analyzer, ffmpeg
+and the ONNX models. The Windows, Linux and Apple Silicon macOS installers are attached to
+this release. The Intel macOS build is not included yet.
 
 ### Windows
 
@@ -64,7 +58,7 @@ gh workflow run desktop-builds.yml --ref v0.3.0
 ### macOS
 
 - Apple Silicon: `chordifree-0.3.0-arm64.dmg`
-- Intel: `chordifree-0.3.0-x64.dmg` when the Intel build is available.
+- Intel: not included in 0.3.0 yet.
 - Verify `SHA256SUMS.txt` before opening it.
 - The app is ad-hoc signed, not notarized. If Gatekeeper blocks it, open **System
   Settings → Privacy & Security → Open Anyway**.
