@@ -85,7 +85,7 @@ jobs:
         shell: bash
         run: mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-${{ runner.os }}-v2-${{ steps.essentia-key.outputs.sha }}-${{ hashFiles('essentia-src/cibuildwheel.toml', 'packaging/analyzer/patch_essentia.py', '.github/workflows/desktop-builds.yml') }}
@@ -122,9 +122,16 @@ jobs:
         run: python -m pip install 'cibuildwheel==3.2.1'
 
       - name: Set up the MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installationPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $vcvars = Join-Path $installationPath "VC\Auxiliary\Build\vcvars64.bat"
+          cmd /c "call `"$vcvars`" >nul && set" | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') {
+              Add-Content -Path $env:GITHUB_ENV -Value "$($matches[1])=$($matches[2])"
+            }
+          }
 
       - name: Build the Windows wheel
         if: steps.wheel-cache.outputs.hit != 'true'
