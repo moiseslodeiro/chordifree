@@ -116,11 +116,6 @@ resource "google_cloud_run_v2_service" "server" {
       }
 
       env {
-        name  = "PORT"
-        value = "8080"
-      }
-
-      env {
         name  = "TRUST_PROXY"
         value = "1"
       }
