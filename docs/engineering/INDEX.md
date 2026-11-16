@@ -50,7 +50,7 @@ Marcados `[PENDING]` en los documentos:
 - Persistencia de jobs (RF-023 / RNF-009).
 - Escalado horizontal (RNF-010).
 - División completa de `App.tsx` en páginas (RNF-012, parcial).
-- Métricas, trazas y alertas (RNF-017).
+- Trazas OTLP y alertas base ya existen; falta dashboards/SLOs y alertas de coste (RNF-017 parcial).
 - Roles de administración en Firestore (RF-024).
 - Backend remoto de Terraform (RNF-018).
 - Backup/retención de Firestore (RD-005/RD-006).

@@ -55,7 +55,7 @@ Out of scope:
 - Restrict the OAuth client's authorised JavaScript origins to the Cloud Run URL or custom
   domain.
 - Do not grant broad IAM roles to the runtime service accounts. Terraform creates
-  `datastore.user` and `logging.logWriter` for the server; the analyzer has no project roles.
+  `datastore.user`, `logging.logWriter` and `telemetry.writer` for the server (trace export); the analyzer has no project roles.
 - Keep the Terraform state and `terraform.tfvars` private. They can contain the OAuth client
   ID, administrator emails and the extractor token.
 - Protect the optional extractor with a long `EXTRACTOR_TOKEN`, bind it to `127.0.0.1` and

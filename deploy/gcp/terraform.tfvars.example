@@ -7,3 +7,4 @@ admin_emails       = ["you@example.com"]
 # Optional: residential YouTube extractor (Raspberry Pi + tunnel)
 # youtube_extractor_url   = "https://extractor.example.com"
 # youtube_extractor_token = "change-me"
+# alert_email = "you@example.com"

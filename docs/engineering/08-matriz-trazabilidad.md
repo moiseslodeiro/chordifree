@@ -45,7 +45,7 @@ Cada fila cruza un requerimiento con los casos de uso que lo cubren. `x` = cubie
 | RNF-014 | x | x | x | x | x | x | x | x | x | | | x | x | | | Completa |
 | RNF-015 | | | | | | | | | | | | | | | x | Completa |
 | RNF-016 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | | Completa |
-| RNF-017 | | | | | | | | | | | | | | | | **Sin cubrir** |
+| RNF-017 | | | | | | | | | | | | | | x | | Parcial |
 | RNF-018 | | | | | | | | | | | | | | | | **Sin cubrir** |
 | RNF-019 | | | | | | x | | | | | | | | | | Parcial |
 | RNF-020 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | | Completa |

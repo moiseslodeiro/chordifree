@@ -170,6 +170,8 @@ if you really want to start over.
 | `TEMP_DIR` | `/tmp/chordifree` |
 | `TRUST_PROXY` | `1` |
 | `AUDIO_CACHE_TTL_MINUTES` | `var.audio_cache_ttl_minutes` |
+| `OTEL_ENABLED` | `true` (traces to Google Cloud) |
+| `OTEL_SERVICE_NAME` | `chordifree-server` |
 
 ## Optional: YouTube extractor on a residential IP
 
@@ -242,6 +244,29 @@ exports in a bucket with a lifecycle/retention policy:
 
 This requires the Firestore import/export permissions and write access to the bucket. Restore
 with `gcloud firestore import` from the same prefix.
+
+## Monitoring and traces
+
+Terraform creates:
+
+- an email notification channel for `alert_email` (defaults to the first administrator);
+- a log-based metric and alert for failed analysis jobs (`[analysis] ... failed`);
+- an alert when the Cloud Run server returns 5xx responses;
+- an uptime check and alert for `/api/health`.
+
+Verify the email channel in **Monitoring → Alerting → Notification channels**; Google sends a
+confirmation email before it delivers alerts.
+
+Cloud Run sends OTLP traces to the Google Cloud Telemetry API
+(`telemetry.googleapis.com`). The server service account has `roles/telemetry.writer`, and the
+Terraform stack enables the Telemetry and Cloud Trace APIs. Tracing is optional locally:
+
+```bash
+OTEL_ENABLED=true GOOGLE_CLOUD_PROJECT=your-project pnpm --filter @chordifree/server start
+```
+
+Traces are visible in **Trace Explorer**. OTLP traces through the Telemetry API have a free
+tier; check the current Cloud Trace pricing before sending high volume.
 
 ## Stopping Cloud Run to save cost
 

@@ -152,7 +152,7 @@ Convertir `App.tsx` en una composición pequeña y mover el estado a hooks/pági
 - Persistencia de jobs (RT-001/RT-002).
 - Roles en Firestore (RF-024).
 - Backend GCS de Terraform (RT-009) — hay ejemplo y runbook, pero no está activado.
-- Métricas/tracing (RNF-017).
+- Trazas OTLP y alertas base están implementadas; faltan dashboards/SLOs (RNF-017 parcial).
 - División completa de `App.tsx` en páginas.
 
 ## Orden de ejecución

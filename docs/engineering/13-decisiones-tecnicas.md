@@ -200,3 +200,22 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
 - **Consecuencias:** La UI puede avisar de YouTube bloqueado y priorizar la subida. Los
   límites son por cuenta en modo Google y por usuario local en modo local. No hay cuotas
   persistentes más allá del rate limit en memoria de una instancia.
+
+---
+
+## ADR-018 — Alertas en Cloud Monitoring y trazas OTLP
+
+- **Estado:** Aceptada
+- **Contexto:** Solo había logs y una alerta de presupuesto; no había avisos de fallos de
+  análisis, 5xx, caída del health check ni trazas distribuidas.
+- **Decisión:** Terraform crea un canal de email, una métrica basada en logs para fallos de
+  análisis, una alerta de 5xx, un uptime check de `/api/health` y sus alertas. El servidor
+  exporta trazas OTLP a `telemetry.googleapis.com` cuando `OTEL_ENABLED=true`, con
+  `roles/telemetry.writer`. El exportador de Google Cloud Trace específico se descartó por
+  estar deprecado.
+- **Alternativas:** `@google-cloud/opentelemetry-cloud-trace-exporter` (deprecado), Sentry,
+  Prometheus/GMP, no instrumentar.
+- **Consecuencias:** Trazas y alertas dentro de GCP, sin agente adicional. El canal de email
+  requiere verificación. El SDK de OpenTelemetry solo se carga si `OTEL_ENABLED=true`; en
+  local/escritorio queda desactivado. El volumen de trazas y la retención dependen del
+  proyecto y del free tier.

@@ -62,6 +62,28 @@ gcloud logging read \
   --limit=50 --format='value(timestamp,textPayload)'
 ```
 
+## Metrics, traces and alerts
+
+Terraform creates an email channel, a log-based analysis-failure alert, a Cloud Run 5xx alert
+and an uptime check for `/api/health`. Verify the email channel in **Monitoring → Alerting →
+Notification channels**.
+
+The server sends OTLP traces to `telemetry.googleapis.com` when `OTEL_ENABLED=true` (the
+Terraform default). The service account needs `roles/telemetry.writer`; the stack enables the
+Telemetry and Cloud Trace APIs. Open **Trace Explorer** to inspect requests to the API and
+outbound calls to the analyzer/extractor.
+
+Useful commands:
+
+```bash
+# Active alert policies
+gcloud monitoring policies list --project "$(terraform output -raw project_id)" \
+  --format='table(displayName,enabled)'
+
+# Recent traces (Trace Explorer link)
+echo "https://console.cloud.google.com/traces/list?project=$(terraform output -raw project_id)"
+```
+
 ## Firestore backup and restore
 
 ```bash

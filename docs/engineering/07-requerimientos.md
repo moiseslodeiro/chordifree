@@ -50,7 +50,7 @@
 | RNF-014 | Privacidad | El modo local no envía datos a terceros salvo YouTube/LRCLIB | Sin cuentas ni analytics | Implementado |
 | RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | Implementado |
 | RNF-016 | Observabilidad | Logs operativos y errores estructurados | Cloud Logging + envelope de error | Implementado |
-| RNF-017 | Observabilidad | Métricas, trazas y alertas de error | Cloud Monitoring / Sentry | **Pendiente** |
+| RNF-017 | Observabilidad | Métricas, trazas y alertas de error | Cloud Monitoring / Cloud Trace / alertas | **Parcial** |
 | RNF-018 | Operación | Estado de Terraform duradero | Backend GCS | **Pendiente** |
 | RNF-019 | Accesibilidad | Sin violaciones críticas en las vistas principales | Axe E2E | Implementado |
 | RNF-020 | Compatibilidad | Node 22.22+/24.15+, Python 3.11+, navegadores modernos | CI + E2E Chromium | Implementado |

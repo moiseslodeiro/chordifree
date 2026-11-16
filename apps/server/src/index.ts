@@ -1,3 +1,4 @@
+import { shutdownTracing } from './tracing';
 import { mkdir } from 'node:fs/promises';
 import { createApp } from './app';
 import { JobStore } from './jobs/store';
@@ -30,7 +31,11 @@ const shutdown = (signal: string) => {
   console.log(`Received ${signal}, shutting down...`);
   clearInterval(sweeper);
   clearInterval(storeSweeper);
-  server.close(() => process.exit(0));
+  server.close(() => {
+    void shutdownTracing()
+      .catch(() => undefined)
+      .finally(() => process.exit(0));
+  });
 };
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
