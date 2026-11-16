@@ -27,7 +27,56 @@ downloads the audio; the heavy analysis remains on Cloud Run.
 - A tunnel that exposes HTTPS: Cloudflare Tunnel or Tailscale Funnel.
 - No ffmpeg needed: the service downloads a single audio stream and Cloud Run converts it.
 
-## Install
+## Quick install (systemd)
+
+From this directory, on Raspberry Pi OS/Debian:
+
+```bash
+sudo ./install.sh
+```
+
+The script is idempotent. It installs the system packages, creates the `chordifree` user,
+sets up the virtualenv, downloads the correct `yt-dlp` binary for the CPU, generates a token,
+installs the systemd unit and starts it. It keeps an existing token if
+`/etc/chordifree-extractor.env` already exists.
+
+Useful commands:
+
+```bash
+sudo systemctl status chordifree-extractor
+sudo journalctl -u chordifree-extractor -f
+curl http://127.0.0.1:8010/health
+```
+
+The systemd unit has `Restart=on-failure`, so the service comes back if it crashes. If you
+change `app.py`, run `sudo ./install.sh` again (or copy it and restart the unit).
+
+## Docker (alternative)
+
+Docker Compose gives you the same service with `restart: unless-stopped`. It is convenient on
+a Pi 4/5 or an x86 machine; on a Pi 2 the native systemd install is lighter.
+
+```bash
+cp .env.example .env
+# edit .env and set EXTRACTOR_TOKEN (openssl rand -hex 32)
+docker compose up -d --build
+docker compose logs -f
+```
+
+Or, with the standalone binary:
+
+```bash
+docker-compose up -d --build
+```
+
+The compose file publishes the service only on `127.0.0.1:8010`, runs it read-only with a
+temporary `/tmp`, drops capabilities and adds a healthcheck. `docker compose ps` should show
+`healthy`.
+
+If you use cookies in Docker, mount the file and set `YTDLP_COOKIES_FILE` to the path inside
+the container.
+
+## Manual install (systemd)
 
 ```bash
 sudo apt-get update
@@ -149,6 +198,33 @@ Errors use `{ "error": { "code": "...", "message": "..." } }`.
 - `YOUTUBE_BLOCKED` (422): YouTube still challenged the home IP.
 - `EXTRACTOR_UNAVAILABLE` (502): `yt-dlp` missing or the service is offline.
 - `EXTRACTOR_TIMEOUT` (504): `yt-dlp` exceeded `EXTRACTOR_TIMEOUT_SECONDS`.
+
+## Update
+
+Native install:
+
+```bash
+git pull
+sudo ./install.sh
+```
+
+Docker:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+The native script updates the virtualenv, `yt-dlp` and the systemd unit, and keeps the token.
+The Docker build replaces the image and restarts the container.
+
+## Security
+
+- The service listens on `127.0.0.1:8010`; do **not** open that port on the router.
+- Expose it only through Cloudflare Tunnel or Tailscale Funnel.
+- Keep `EXTRACTOR_TOKEN` secret and rotate it if it leaks.
+- Do not run the service as root; the systemd unit uses an unprivileged user.
+- The service validates `videoId` and uses argument arrays (no shell interpolation).
 
 ## Notes for a Raspberry Pi 2
 

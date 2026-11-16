@@ -95,6 +95,8 @@ jobs:
         working-directory: services/youtube-extractor
       - run: python -m pytest -q
         working-directory: services/youtube-extractor
+      - run: bash -n install.sh
+        working-directory: services/youtube-extractor
 
   docker:
     name: Docker build
