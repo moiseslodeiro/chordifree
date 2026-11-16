@@ -2,7 +2,9 @@
 
 Turn a YouTube video or your own audio file into a synchronized chord timeline you can
 practice with. Chordifree estimates the key, beats, bars and chords, aligns lyrics with the
-sung sections, and lets you correct everything in the browser.
+sung sections, and lets you correct everything in the browser. Run it locally, or deploy a
+private online instance where only approved Google accounts can sign in and each user's
+library is stored in their account.
 
 Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to musicians.
 
@@ -11,6 +13,16 @@ Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to
 > **Legal notice**: downloading YouTube audio may violate its Terms of Service. Use the
 > audio-upload option when you do not own the content. Chordifree does not bypass technical
 > restrictions or use session cookies.
+
+## Two ways to run it
+
+| Mode | Sign-in | Library | Best for |
+|---|---|---|---|
+| Local / desktop | None | Browser local storage or the desktop app | Practice on one machine, offline use |
+| Private online (GCP) | Google, restricted to an allowlist | Firestore, per user | A small multi-device instance you host |
+
+Local mode is the default and stays account-free. The online mode is opt-in: it does not
+remove the local library or the desktop workflow.
 
 ## Quick start with Docker
 
@@ -60,11 +72,31 @@ When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for exam
 
 ### Private hosted instance on GCP
 
-The [`deploy/gcp`](deploy/gcp/README.md) stack runs the app on Cloud Run, keeps the analyzer
-private and stores the Google account allowlist plus each user's library in Firestore.
-Access is restricted to accounts an administrator adds from the web UI. It is designed to
-stay inside the GCP free tier for personal use; see the
-[deployment guide](deploy/gcp/README.md) for cost notes, OAuth setup and Terraform commands.
+The [`deploy/gcp`](deploy/gcp/README.md) stack adds an optional online mode:
+
+- **Google sign-in** verified server-side with `google-auth-library`.
+- **Admin-managed allowlist** in Firestore. `ADMIN_EMAILS` bootstraps the administrators and
+  they are always allowed; everyone else must be added from the web UI (`#/admin`).
+- **Per-user cloud library** under `chordifree_users/{uid}`. Songs and setlists merge with
+  the local copy by song source and `updatedAt`.
+- **Private analyzer** on Cloud Run. Only the server service account can invoke it, using a
+  Cloud Run ID token.
+- **Scale to zero** and a free-tier-friendly shape: no load balancer, no IAP, no always-on
+  VM. Cloud Run, Firestore and Artifact Registry are provisioned by Terraform.
+
+Quick start (the full guide covers OAuth, origins, cost and troubleshooting):
+
+```bash
+cd deploy/gcp
+cp terraform.tfvars.example terraform.tfvars
+# fill in project_id, google_client_id and admin_emails
+gcloud auth login
+gcloud auth application-default login
+./deploy.sh
+```
+
+Set `AUTH_MODE=google` for the online mode. The default `AUTH_MODE=none` keeps local and
+desktop behaviour unchanged.
 
 ## Features
 
@@ -81,8 +113,11 @@ stay inside the GCP free tier for personal use; see the
 - **Audio pitch** for uploaded files and temporary YouTube audio (±12 semitones) without
   changing the tempo. YouTube songs show the thumbnail and play from the main player bar.
 - **Simplify / reduce chords** for simpler accompaniment.
-- **Local library** stored in the browser, with setlists to group songs, JSON backups,
+- **Local or private cloud library**: keep songs and setlists in the browser, on the
+  desktop, or per-user in Firestore on the optional online instance. Setlists, JSON backups,
   **ChordPro import/export** and print/PDF.
+- **Private online access** with Google sign-in, a Firestore allowlist and an admin page;
+  only approved accounts can enter.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
@@ -147,10 +182,17 @@ Copy `.env.example` to `.env` and adjust as needed.
 ## Architecture
 
 ```text
-Browser (React + Vite)
-  -> nginx / Express API
-       -> FastAPI analyzer (Essentia + ONNX Runtime)
-       -> yt-dlp + ffmpeg (YouTube or upload)
+Local / Docker
+  Browser (React + Vite)
+    -> nginx / Express API
+         -> FastAPI analyzer (Essentia + ONNX Runtime)
+         -> yt-dlp + ffmpeg (YouTube or upload)
+
+Private online (GCP, optional)
+  Browser
+    -> Cloud Run: Express API + SPA
+         -> Cloud Run: private analyzer (ID-token auth)
+         -> Firestore: allowlist + per-user libraries
 ```
 
 - `apps/web`: React SPA, local library, lyrics alignment, practice tools.

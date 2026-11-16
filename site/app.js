@@ -13,7 +13,7 @@ const spanish = {
 
   'hero.title': 'Acordes que siguen la canción.',
   'hero.lead':
-    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo o transpón la canción sin cambiar los acordes. El análisis se ejecuta en tu equipo.',
+    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo o transpón la canción sin cambiar los acordes. Ejecútala en local o aloja una instancia privada para cuentas aprobadas.',
   'hero.primary': 'Consigue la app',
   'hero.secondary': 'Verla en acción',
   'hero.proofOpen': 'Gratis y de código abierto',
@@ -55,8 +55,8 @@ const spanish = {
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
-    'Guarda canciones y repertorios en una biblioteca local con historial de práctica. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o envía la hoja por WhatsApp, Telegram o correo.',
-  'feature.5.tag': 'Biblioteca local',
+    'Guarda canciones y repertorios en tu navegador, en tu equipo o en una instancia online privada vinculada a tu cuenta de Google. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o comparte la hoja.',
+  'feature.5.tag': 'Local o nube privada',
 
   'features.searchTag': 'Búsqueda en YouTube',
   'features.searchCaption':
@@ -73,23 +73,23 @@ const spanish = {
   'product.caption4': 'Diagrama del acorde actual',
 
   'how.eyebrow': 'Del audio a la práctica',
-  'how.title': 'Tres pasos, sin cuenta.',
+  'how.title': 'Tres pasos, sin cuenta obligatoria.',
   'how.lead':
-    'Trae un enlace o un archivo. El analizador se encarga del tiempo y tú tomas las decisiones musicales.',
+    'Trae un enlace o un archivo. El analizador se encarga del tiempo y tú tomas las decisiones musicales. El modo local sigue sin cuentas; la instancia online añade inicio de sesión con Google y sincronización.',
   'how.1.title': 'Añade una fuente',
   'how.1.body':
     'Busca en YouTube por nombre, pega un enlace o elige un archivo de audio. Se admiten MP3, WAV, M4A, OGG, FLAC, WebM y MP4.',
   'how.2.title': 'Deja trabajar al analizador',
   'how.2.body':
-    'Los pulsos, compases, la tonalidad y los acordes se detectan en local. La primera ejecución carga los modelos y tarda un poco más.',
+    'Los pulsos, compases, la tonalidad y los acordes los detecta el analizador. La primera ejecución carga los modelos y tarda un poco más.',
   'how.3.title': 'Corrige, guarda, practica',
   'how.3.body':
-    'Corrige cualquier acorde en el editor, añade la letra y guarda en tu biblioteca o repertorios. Nada sale de tu equipo.',
+    'Corrige cualquier acorde en el editor, añade la letra y guarda en tu biblioteca o repertorios. En una instancia online privada, la biblioteca también se sincroniza con tu cuenta.',
 
   'run.eyebrow': 'Ejecútalo a tu manera',
   'run.title': 'Una app de escritorio, o tu propio servidor.',
   'run.lead':
-    'La versión de escritorio incluye el analizador. El stack de Docker pone la misma app en un portátil, un servidor doméstico o un VPS.',
+    'La versión de escritorio incluye el analizador. El stack de Docker pone la misma app en un portátil, un servidor doméstico o un VPS. Terraform despliega una instancia online privada en Cloud Run.',
   'run.windows.title': 'Vista previa para Windows',
   'run.windows.badge': 'Sin firma',
   'run.windows.body':
@@ -125,31 +125,53 @@ const spanish = {
   'run.pwa.body':
     'Pon la app web detrás de HTTPS para instalarla como PWA. La API y el analizador siguen ejecutándose en el mismo host.',
   'run.pwa.cta': 'Notas de despliegue',
+  'run.gcp.title': 'Nube privada en GCP',
+  'run.gcp.badge': 'Terraform',
+  'run.gcp.body':
+    'Despliega la app web y un analizador privado en Cloud Run, guarda la lista de acceso y la biblioteca de cada usuario en Firestore y deja entrar solo a cuentas de Google aprobadas. Ambos servicios escalan a cero y caben en el free tier para uso personal.',
+  'run.gcp.note':
+    'Inicio de sesión con Google, una página de administración para los accesos y un solo servicio de Cloud Run para la app. Sin balanceador ni IAP.',
+  'run.gcp.cta': 'Guía de despliegue en GCP',
+  'run.gcp.guide': 'Código Terraform',
 
-  'privacy.eyebrow': 'Local por diseño',
+  'privacy.eyebrow': 'Local first',
   'privacy.title': 'Tus canciones se quedan contigo.',
   'privacy.lead':
-    'Chordifree no tiene cuentas ni seguimiento. La biblioteca vive en tu navegador y la versión de escritorio mantiene el analizador en tu equipo.',
-  'privacy.1.title': 'Sin cuentas',
-  'privacy.1.body': 'Abre la app y empieza. No hay registro.',
-  'privacy.2.title': 'Biblioteca local',
+    'Las versiones de escritorio y web local no tienen cuentas ni seguimiento: la biblioteca vive en tu equipo. La instancia online opcional usa Google solo para decidir quién puede entrar y guarda la biblioteca de cada usuario en el proyecto de Firestore que despliegues.',
+  'privacy.1.title': 'Sin cuentas por defecto',
+  'privacy.1.body':
+    'Abre la app local y empieza. El inicio de sesión con Google solo aparece en una instancia online privada.',
+  'privacy.2.title': 'Local o tu nube',
   'privacy.2.body':
-    'Las canciones, los repertorios y el historial de práctica se quedan en el almacenamiento local. Exporta cuando quieras.',
+    'Las canciones, los repertorios y el historial de práctica se quedan en el almacenamiento local por defecto. La instancia online los guarda bajo tu usuario en Firestore y los sincroniza entre dispositivos.',
   'privacy.3.title': 'Tu audio',
   'privacy.3.body':
-    'Los archivos se analizan y no se guardan en la biblioteca. Los archivos temporales se eliminan.',
+    'Los archivos se analizan y no se guardan en la biblioteca. Los archivos temporales se eliminan. En Cloud Run se quedan en tu propio proyecto de GCP.',
   'privacy.legal':
     'Descargar audio de YouTube puede contravenir sus Términos de Servicio. Usa la subida de archivo cuando no tengas derechos sobre el contenido.',
 
   'faq.eyebrow': 'Preguntas',
   'faq.title': 'Antes de empezar.',
   'faq.lead':
-    'Las respuestas cortas. El README tiene los detalles, las variables de entorno y la arquitectura.',
+    'Las respuestas cortas. El README tiene los detalles, las variables de entorno, el despliegue privado en GCP y la arquitectura.',
   'faq.1.q': '¿Necesito una cuenta?',
-  'faq.1.a': 'No. No hay registro, ni inicio de sesión, ni seguimiento.',
+  'faq.1.a':
+    'No para las versiones de escritorio y web local. La instancia online privada opcional usa inicio de sesión con Google y solo pueden entrar las cuentas que apruebe un administrador.',
+  'faq.13.q': '¿Puedo ejecutar una instancia online privada?',
+  'faq.13.a':
+    'Sí. El stack de Terraform en deploy/gcp despliega la app en Cloud Run, mantiene el analizador privado y guarda la lista de acceso y las bibliotecas en Firestore. Está pensado para el free tier de GCP.',
+  'faq.14.q': '¿Quién puede acceder a la instancia online?',
+  'faq.14.a':
+    'Solo las cuentas de Google de la lista de acceso. Los administradores siempre tienen acceso y pueden añadir o quitar cuentas desde la página de Administración.',
+  'faq.15.q': '¿Dónde se guarda la biblioteca online?',
+  'faq.15.a':
+    'En la base de datos Firestore de tu propio proyecto de GCP, bajo el ID de cada usuario. El navegador guarda una copia y fusiona las canciones y repertorios más recientes.',
+  'faq.16.q': '¿La instancia online me rastrea?',
+  'faq.16.a':
+    'No hay analítica ni anuncios. El inicio de sesión de Google aporta el correo que se usa para la lista de acceso; no se guarda ningún otro dato del perfil.',
   'faq.2.q': '¿Sube mi audio a un tercero?',
   'faq.2.a':
-    'No. La app web solo envía el audio a la API y al analizador que tú ejecutas. La versión de escritorio lo mantiene todo en tu equipo.',
+    'No. La app web solo envía el audio a la API y al analizador que tú ejecutas. En el despliegue privado de Cloud Run, ese es tu propio proyecto de GCP, no un servicio de terceros.',
   'faq.3.q': '¿Las versiones de escritorio necesitan Docker?',
   'faq.3.a':
     'No. Los instaladores de Windows, macOS y Linux incluyen el analizador, ffmpeg y los modelos ONNX. Docker es la alternativa para la app web y los servidores.',
@@ -170,7 +192,7 @@ const spanish = {
     'Sí. Escribe una canción o un artista en el buscador, revisa la miniatura y el canal, y pulsa Chordifree para analizar ese video. Pegar un enlace sigue funcionando.',
   'faq.6.q': '¿Dónde se guardan mis canciones?',
   'faq.6.a':
-    'En el almacenamiento local de tu navegador para la app web, y en tu equipo para la versión de escritorio. Exporta JSON para copias o ChordPro para otras herramientas.',
+    'En el almacenamiento local para las versiones locales, o en tu propia base de datos Firestore en la instancia online privada. Exporta JSON para copias o ChordPro para otras herramientas.',
   'faq.7.q': '¿Puedo usarla sin conexión?',
   'faq.7.a':
     'La app de escritorio instalada funciona sin conexión. La app web necesita la API y el analizador en marcha, pero la interfaz se puede instalar como PWA.',
@@ -178,12 +200,13 @@ const spanish = {
   'faq.8.a':
     'Guitarra, piano y ukelele; inglés y español; sostenidos, bemoles, solfeo, cejilla, transposición y acordes simplificados o reducidos.',
   'faq.9.q': '¿Es gratis?',
-  'faq.9.a': 'Sí. Chordifree es código abierto bajo AGPL-3.0.',
+  'faq.9.a':
+    'Sí. Chordifree es código abierto bajo AGPL-3.0. El autoalojamiento en GCP cabe en el free tier para uso personal, pero Google puede cobrar si lo superas.',
 
   'finale.eyebrow': 'Cuando quieras',
   'finale.title': 'Convierte la próxima canción en una hoja de acordes.',
   'finale.lead':
-    'Descarga la vista previa para Windows o arranca el stack de Docker. La biblioteca es tuya.',
+    'Descarga la vista previa de escritorio, arranca el stack de Docker o despliega tu propia instancia privada en GCP. La biblioteca es tuya.',
   'finale.primary': 'Consigue la app',
   'finale.secondary': 'Ver en GitHub',
   'finale.slogan': 'De un músico para músicos y músicas.',
@@ -203,12 +226,12 @@ const meta = {
   en: {
     title: 'Chordifree — synchronized chords from YouTube or your audio',
     description:
-      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first.',
+      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, or your own private cloud.',
   },
   es: {
     title: 'Chordifree — acordes sincronizados desde YouTube o tu audio',
     description:
-      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Gratis, código abierto y local first.',
+      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Local first, o tu propia nube privada.',
   },
 };
 
