@@ -39,6 +39,12 @@ function startJob(
     deps.queue.add(async () => {
       deps.store.update(job.id, { status: 'processing', progress: 1 });
       const report = (progress: number) => deps.store.update(job.id, { progress });
+      const startedAt = Date.now();
+      const source =
+        job.source.type === 'youtube'
+          ? `youtube ${job.source.videoId}`
+          : `${job.source.type} ${job.source.filename}`;
+      console.info(`[analysis] ${job.id} started (${source})`);
       try {
         const result = await task(report);
         if (!deps.store.get(job.id)) return;
@@ -46,12 +52,17 @@ function startJob(
         if (job.source.type === 'youtube') {
           deps.store.indexVideo(job.source.videoId, job.id, result.analyzerVersion);
         }
+        console.info(`[analysis] ${job.id} done in ${Date.now() - startedAt}ms`);
       } catch (error) {
         const apiError = toApiError(error);
         deps.store.update(job.id, {
           status: 'error',
           error: { code: apiError.code, message: apiError.message },
         });
+        console.error(
+          `[analysis] ${job.id} failed in ${Date.now() - startedAt}ms (${source}): ` +
+            `${apiError.code}: ${apiError.message}`,
+        );
       }
     }),
   ).catch(() => undefined);
