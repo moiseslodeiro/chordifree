@@ -198,6 +198,7 @@ Do not commit `terraform.tfstate`; it is already ignored.
 | Google button does not appear | The Cloud Run URL is missing from **Authorized JavaScript origins**, or the browser blocked `accounts.google.com` (check the CSP). |
 | `Permission denied` calling the analyzer | The server service account is missing `roles/run.invoker` on the analyzer. Re-apply Terraform. |
 | Analysis starts but never finishes | The server must keep CPU allocated. Keep `cpu_idle = false` and `max_instance_count = 1`. |
+| `YOUTUBE_BLOCKED`, or yt-dlp says “Sign in to confirm you're not a bot” | YouTube blocks many datacenter/Cloud Run IP ranges. Use the audio-upload option; cookies or a proxy can work but are fragile and may violate YouTube's terms. |
 | Firestore `RESOURCE_EXHAUSTED` | Daily free-tier quota reached, or a very large import. Wait or raise the quota/billing. |
 | Cloud Run revision fails to start | Check logs. Firestore may not be ready yet; re-run `terraform apply`. |
 

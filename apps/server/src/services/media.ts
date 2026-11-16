@@ -52,6 +52,17 @@ function canonicalUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+/**
+ * YouTube blocks many datacenter IP ranges with a "confirm you're not a bot"
+ * challenge. It is not the same as a missing/private video, so the UI can tell
+ * the user to upload the audio instead.
+ */
+function isYoutubeBlocked(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const stderr = (error as { stderr?: string }).stderr ?? '';
+  return /sign in to confirm|not a bot|LOGIN_REQUIRED/i.test(stderr);
+}
+
 export function createMediaTools(
   config: AppConfig,
   timeouts: Partial<MediaTimeouts> = {},
@@ -81,6 +92,12 @@ export function createMediaTools(
         return metadata;
       } catch (error) {
         if (error instanceof ApiError) throw error;
+        if (isYoutubeBlocked(error)) {
+          throw new ApiError(
+            'YOUTUBE_BLOCKED',
+            'YouTube is blocking this server. Upload the audio file instead.',
+          );
+        }
         throw new ApiError('VIDEO_UNAVAILABLE', 'Could not retrieve video information');
       }
     },
@@ -133,6 +150,12 @@ export function createMediaTools(
         return results;
       } catch (error) {
         if (error instanceof ApiError) throw error;
+        if (isYoutubeBlocked(error)) {
+          throw new ApiError(
+            'YOUTUBE_BLOCKED',
+            'YouTube is blocking this server. Upload the audio file instead.',
+          );
+        }
         throw new ApiError('SEARCH_FAILED', 'Could not search YouTube');
       }
     },
@@ -161,6 +184,12 @@ export function createMediaTools(
         return join(directory, downloaded);
       } catch (error) {
         if (error instanceof ApiError) throw error;
+        if (isYoutubeBlocked(error)) {
+          throw new ApiError(
+            'YOUTUBE_BLOCKED',
+            'YouTube is blocking this server. Upload the audio file instead.',
+          );
+        }
         throw new ApiError('VIDEO_UNAVAILABLE', 'Could not download the video audio');
       }
     },

@@ -546,6 +546,8 @@ const en = {
   'apiError.MISSING_VIDEO_ID': 'The link does not include a video ID.',
   'apiError.VIDEO_UNAVAILABLE':
     'The video is not available. If you pasted a YouTube Mix or radio link, open the individual video and copy its direct link, or upload the audio.',
+  'apiError.YOUTUBE_BLOCKED':
+    'YouTube is blocking this server, so it cannot download the video. Upload the audio file instead, or try again later.',
   'apiError.DURATION_EXCEEDED': 'The audio is too long.',
   'apiError.RATE_LIMITED': 'Too many analyses. Try again later.',
   'apiError.INVALID_AUDIO': 'The audio file is not valid.',
@@ -1178,6 +1180,8 @@ const es: Record<MessageKey, string> = {
   'apiError.MISSING_VIDEO_ID': 'El enlace no incluye un identificador de video.',
   'apiError.VIDEO_UNAVAILABLE':
     'El video no está disponible. Si has pegado un Mix o radio de YouTube, abre el vídeo individual y copia su enlace directo, o sube el archivo de audio.',
+  'apiError.YOUTUBE_BLOCKED':
+    'YouTube está bloqueando este servidor y no puede descargar el video. Sube el archivo de audio o inténtalo más tarde.',
   'apiError.DURATION_EXCEEDED': 'El audio es demasiado largo.',
   'apiError.RATE_LIMITED': 'Demasiados análisis. Inténtalo más tarde.',
   'apiError.INVALID_AUDIO': 'El archivo de audio no es válido.',

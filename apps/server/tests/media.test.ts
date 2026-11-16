@@ -139,6 +139,19 @@ describe('MediaTools with fake binaries', () => {
     });
     await expect(tools.convertToWav('a', 'b')).rejects.toMatchObject({ code: 'ANALYSIS_FAILED' });
     await expect(tools.probeAudio('a')).rejects.toMatchObject({ code: 'INVALID_AUDIO' });
+
+    const blocked = await makeScript(
+      directory,
+      'blocked',
+      `echo "ERROR: [youtube] x: Sign in to confirm you're not a bot." >&2\nexit 1`,
+    );
+    const blockedTools = createMediaTools(makeConfig({ ytdlpPath: blocked }));
+    await expect(blockedTools.probeYoutube('dQw4w9WgXcQ')).rejects.toMatchObject({
+      code: 'YOUTUBE_BLOCKED',
+    });
+    await expect(blockedTools.downloadYoutube('dQw4w9WgXcQ', directory)).rejects.toMatchObject({
+      code: 'YOUTUBE_BLOCKED',
+    });
   });
 
   it('applies timeouts to the binaries', async () => {
