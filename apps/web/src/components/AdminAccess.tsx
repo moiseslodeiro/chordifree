@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { addAccessEntry, listAccessEntries, removeAccessEntry, type AccessEntry } from '../lib/api';
 import { useLanguage, useT } from '../i18n';
 import { useAuth } from '../auth/AuthProvider';
+import { useConfirm } from './ConfirmDialog';
 
 interface AdminAccessProps {
   onBack: () => void;
@@ -21,6 +22,7 @@ export function AdminAccess({ onBack }: AdminAccessProps) {
   const t = useT();
   const language = useLanguage();
   const auth = useAuth();
+  const confirm = useConfirm();
   const [entries, setEntries] = useState<AccessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [problem, setProblem] = useState<string | null>(null);
@@ -60,7 +62,13 @@ export function AdminAccess({ onBack }: AdminAccessProps) {
   };
 
   const remove = async (entry: AccessEntry) => {
-    if (!window.confirm(t('admin.removeConfirm', { email: entry.email }))) return;
+    const accepted = await confirm({
+      title: t('admin.remove'),
+      description: t('admin.removeConfirm', { email: entry.email }),
+      confirmLabel: t('admin.remove'),
+      tone: 'danger',
+    });
+    if (!accepted) return;
     try {
       await removeAccessEntry(entry.email);
       setEntries((current) => current.filter((item) => item.email !== entry.email));
@@ -102,17 +110,25 @@ export function AdminAccess({ onBack }: AdminAccessProps) {
             <span className="tool-label block">{t('admin.emailLabel')}</span>
             <input
               type="email"
+              name="email"
               className="field mt-2 w-full"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
             />
           </label>
-          <button type="submit" className="btn btn-primary" disabled={saving || !email.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
             {t('admin.add')}
           </button>
         </form>
-        {problem ? <p className="note note-warning mt-3 text-sm">{problem}</p> : null}
+        {problem ? (
+          <p className="note note-warning mt-3 text-sm" role="alert">
+            {problem}
+          </p>
+        ) : null}
       </div>
 
       {loading ? (

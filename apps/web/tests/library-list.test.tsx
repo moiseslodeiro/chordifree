@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LibraryList } from '../src/components/LibraryList';
+import { ConfirmProvider } from '../src/components/ConfirmDialog';
 import type { SongSummary } from '../src/types';
 
 const songs: SongSummary[] = [
@@ -28,16 +29,18 @@ function renderLibrary(overrides: Partial<Parameters<typeof LibraryList>[0]> = {
   const onExport = vi.fn();
   const onImport = vi.fn();
   render(
-    <LibraryList
-      songs={songs}
-      onOpen={onOpen}
-      onDelete={onDelete}
-      onBack={onBack}
-      onHome={onHome}
-      onExport={onExport}
-      onImport={onImport}
-      {...overrides}
-    />,
+    <ConfirmProvider>
+      <LibraryList
+        songs={songs}
+        onOpen={onOpen}
+        onDelete={onDelete}
+        onBack={onBack}
+        onHome={onHome}
+        onExport={onExport}
+        onImport={onImport}
+        {...overrides}
+      />
+    </ConfirmProvider>,
   );
   return { onOpen, onDelete, onBack, onHome, onExport, onImport };
 }
@@ -90,18 +93,19 @@ describe('LibraryList', () => {
     expect(onOpen).toHaveBeenCalledWith('a');
   });
 
-  it('deletes only after confirmation', () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('deletes only after confirmation', async () => {
     const { onDelete } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
-    expect(confirm).toHaveBeenCalled();
-    expect(onDelete).toHaveBeenCalledWith('a');
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith('a'));
   });
 
-  it('does not delete when confirmation is cancelled', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('does not delete when confirmation is cancelled', async () => {
     const { onDelete } = renderLibrary();
     fireEvent.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
     expect(onDelete).not.toHaveBeenCalled();
   });
 
@@ -188,7 +192,6 @@ describe('LibraryList', () => {
     expect(search).toHaveValue('');
   });
 
-
   it('combines search and source and clears them with a single button', () => {
     renderLibrary();
     const search = screen.getByRole('searchbox', { name: 'Buscar canciones' });
@@ -200,9 +203,6 @@ describe('LibraryList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Limpiar' }));
     expect(screen.getByText('Primera canción')).toBeInTheDocument();
     expect(screen.getByText('Audio local')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
   });
 });

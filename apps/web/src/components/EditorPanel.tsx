@@ -13,6 +13,7 @@ import { useEditor } from '../editor/useEditor';
 import type { Song } from '../types';
 import { ErrorBanner } from './ErrorBanner';
 import { useT } from '../i18n';
+import { useConfirm } from './ConfirmDialog';
 
 interface ChordFieldProps {
   value: string;
@@ -103,6 +104,7 @@ interface EditorPanelProps {
 
 export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: EditorPanelProps) {
   const t = useT();
+  const confirm = useConfirm();
   const editor = useEditor(song.segments, song.duration);
   const [inputError, setInputError] = useState<string | null>(null);
 
@@ -112,9 +114,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
       const target = event.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
       ) {
         return;
       }
@@ -146,10 +146,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
       return false;
     }
     setInputError(null);
-    editor.updateChord(
-      index,
-      parsed.chord ? transposeChord(parsed.chord, -song.transpose) : null,
-    );
+    editor.updateChord(index, parsed.chord ? transposeChord(parsed.chord, -song.transpose) : null);
     return true;
   };
 
@@ -169,9 +166,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
         <div>
           <p className="eyebrow">{t('editor.eyebrow')}</p>
           <h2 className="display mt-2 text-2xl">{t('editor.title')}</h2>
-          <p className="mt-1 max-w-[52ch] text-xs leading-relaxed text-ink3">
-            {t('editor.help')}
-          </p>
+          <p className="mt-1 max-w-[52ch] text-xs leading-relaxed text-ink3">{t('editor.help')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -194,22 +189,18 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
             type="button"
             className="btn min-h-0 px-3 py-1.5 text-xs"
             onClick={() => {
-              if (
-                window.confirm(
-                  t('editor.restoreConfirm'),
-                )
-              ) {
-                editor.restore();
-              }
+              void confirm({
+                title: t('editor.restore'),
+                description: t('editor.restoreConfirm'),
+                confirmLabel: t('editor.restore'),
+              }).then((accepted) => {
+                if (accepted) editor.restore();
+              });
             }}
           >
             {t('editor.restore')}
           </button>
-          <button
-            type="button"
-            className="btn min-h-0 px-3 py-1.5 text-xs"
-            onClick={onDiscard}
-          >
+          <button type="button" className="btn min-h-0 px-3 py-1.5 text-xs" onClick={onDiscard}>
             {t('editor.discard')}
           </button>
           <button
@@ -231,13 +222,14 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
       <ol className="mt-4 border-t border-line" aria-label={t('editor.segmentsAria')}>
         {editor.segments.map((segment, index) => {
           const following = editor.segments[index + 1];
-          const canMerge = Boolean(
-            following && Math.abs(segment.end - following.start) < 0.001,
-          );
+          const canMerge = Boolean(following && Math.abs(segment.end - following.start) < 0.001);
           const canSplit = segment.end - segment.start >= MIN_SEGMENT_SECONDS * 2;
 
           return (
-            <li key={`${index}-${segment.start}-${segment.end}`} className="border-b border-line py-3">
+            <li
+              key={`${index}-${segment.start}-${segment.end}`}
+              className="border-b border-line py-3"
+            >
               <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
                 <span className="hidden w-7 shrink-0 pb-1.5 font-mono text-[0.62rem] tracking-[0.1em] text-ink3 sm:block">
                   {String(index + 1).padStart(2, '0')}
@@ -300,8 +292,7 @@ export function EditorPanel({ song, notation, accidental, onSave, onDiscard }: E
       </ol>
 
       <p className="mt-3 font-mono text-[0.62rem] uppercase leading-relaxed tracking-[0.12em] text-ink3">
-        {t('editor.minDuration', { seconds: MIN_SEGMENT_SECONDS })}{' '}
-        {t('editor.minDurationTail')}
+        {t('editor.minDuration', { seconds: MIN_SEGMENT_SECONDS })} {t('editor.minDurationTail')}
       </p>
     </section>
   );

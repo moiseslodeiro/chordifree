@@ -4,6 +4,7 @@ import { useT } from '../i18n';
 import { emailShareUrl, telegramShareUrl, whatsappShareUrl } from '../lib/share';
 import { NoticeBanner } from './ErrorBanner';
 import type { Setlist, SongSummary } from '../types';
+import { useConfirm } from './ConfirmDialog';
 
 interface SetlistViewProps {
   setlist: Setlist;
@@ -29,6 +30,7 @@ export function SetlistView({
   onBack,
 }: SetlistViewProps) {
   const t = useT();
+  const confirm = useConfirm();
   const [sharing, setSharing] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     message: string;
@@ -106,9 +108,14 @@ export function SetlistView({
             type="button"
             className="btn btn-danger"
             onClick={() => {
-              if (window.confirm(t('setlists.deleteConfirm', { name: setlist.name }))) {
-                onDelete();
-              }
+              void confirm({
+                title: t('common.delete'),
+                description: t('setlists.deleteConfirm', { name: setlist.name }),
+                confirmLabel: t('common.delete'),
+                tone: 'danger',
+              }).then((accepted) => {
+                if (accepted) onDelete();
+              });
             }}
           >
             {t('common.delete')}
@@ -132,11 +139,7 @@ export function SetlistView({
             <button type="button" className="btn" onClick={() => shareSetlist('email')}>
               {t('share.email')}
             </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setSharing(false)}
-            >
+            <button type="button" className="btn btn-ghost" onClick={() => setSharing(false)}>
               {t('common.close')}
             </button>
           </div>

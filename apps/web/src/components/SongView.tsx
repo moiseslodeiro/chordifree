@@ -22,6 +22,7 @@ import {
 import type { PlayerAdapter } from '../player/types';
 import type { Setlist } from '../types';
 import { useT } from '../i18n';
+import { useConfirm } from './ConfirmDialog';
 import { fetchLyrics } from '../lib/api';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
 import {
@@ -118,6 +119,7 @@ export function SongView({
   onPreferences,
 }: SongViewProps) {
   const t = useT();
+  const confirm = useConfirm();
   const mobile = useIsMobile();
   const [adapter, setAdapter] = useState<PlayerAdapter | null>(null);
   const [clock, setClock] = useState<PlaybackClock | null>(null);
@@ -278,12 +280,7 @@ export function SongView({
           }))
         : shapeSegments;
     if (!reduceChords) return simplified;
-    return reduceChordSegments(
-      simplified,
-      beats,
-      reduceChordsMax ? 'max' : 'normal',
-      beatsPerBar,
-    );
+    return reduceChordSegments(simplified, beats, reduceChordsMax ? 'max' : 'normal', beatsPerBar);
   }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats, beatsPerBar]);
 
   /** Lyrics keep the real timings: maximum reduction only affects the grid. */
@@ -341,9 +338,7 @@ export function SongView({
 
   const keyLabel = keyName(estimatedKey);
   const relativeKeyLabel = keyName(estimatedKey ? relativeKey(estimatedKey) : null);
-  const capoKeyLabel = keyName(
-    estimatedKey ? transposeKey(estimatedKey, -effectiveCapo) : null,
-  );
+  const capoKeyLabel = keyName(estimatedKey ? transposeKey(estimatedKey, -effectiveCapo) : null);
 
   const chordList = useMemo(() => {
     const seen = new Set<string>();
@@ -480,10 +475,7 @@ export function SongView({
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
         const delta = event.key === 'ArrowLeft' ? -5 : 5;
-        const next = Math.max(
-          0,
-          Math.min(song.duration, (adapter?.getCurrentTime() ?? 0) + delta),
-        );
+        const next = Math.max(0, Math.min(song.duration, (adapter?.getCurrentTime() ?? 0) + delta));
         adapter?.seekTo(next);
         clock?.tickOnce();
       }
@@ -610,11 +602,7 @@ export function SongView({
   };
 
   const resetLyricChordOffsets = () => {
-    const {
-      lyricChordOffsets: _offsets,
-      lyricChordLines: _lines,
-      ...rest
-    } = song;
+    const { lyricChordOffsets: _offsets, lyricChordLines: _lines, ...rest } = song;
     const updated: Song = { ...rest, updatedAt: new Date().toISOString() };
     onChange(updated);
     if (saved) onSave(updated);
@@ -654,13 +642,15 @@ export function SongView({
 
   const exportScoreFile = () => {
     const content = scoreContent();
-    const base = song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
     downloadMusicXml(`${base}.musicxml`, content);
   };
 
   const exportChordProFile = () => {
     const content = chordProContent();
-    const base = song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
     downloadChordPro(`${base}.cho`, content);
   };
 
@@ -698,9 +688,7 @@ export function SongView({
       return;
     }
     const url =
-      target === 'whatsapp'
-        ? whatsappShareUrl(message)
-        : telegramShareUrl(message, shareLink);
+      target === 'whatsapp' ? whatsappShareUrl(message) : telegramShareUrl(message, shareLink);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -756,9 +744,7 @@ export function SongView({
               <span aria-hidden="true">·</span>
               <span>{t('song.analyzer', { version: song.analyzerVersion })}</span>
               {saved ? null : (
-                <span className="badge border-accent/50 text-accent">
-                  {t('song.unsaved')}
-                </span>
+                <span className="badge border-accent/50 text-accent">{t('song.unsaved')}</span>
               )}
             </p>
           </div>
@@ -813,7 +799,13 @@ export function SongView({
                             }`
                           : t('song.reanalyze'),
                         onSelect: () => {
-                          if (window.confirm(t('song.reanalyzeConfirm'))) onReanalyze();
+                          void confirm({
+                            title: t('song.reanalyze'),
+                            description: t('song.reanalyzeConfirm'),
+                            confirmLabel: t('song.reanalyze'),
+                          }).then((accepted) => {
+                            if (accepted) onReanalyze();
+                          });
                         },
                         disabled: reanalyzing,
                       },
@@ -856,9 +848,7 @@ export function SongView({
               }
             />
           </label>
-          <p className="text-xs leading-relaxed text-ink3 sm:col-span-2">
-            {t('song.detailsHint')}
-          </p>
+          <p className="text-xs leading-relaxed text-ink3 sm:col-span-2">{t('song.detailsHint')}</p>
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <button type="submit" className="btn btn-primary">
               {t('song.detailsApply')}
@@ -1190,18 +1180,10 @@ export function SongView({
                 <h3 className="text-sm font-semibold text-ink">{t('share.quickTitle')}</h3>
                 <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.quickBody')}</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => shareTo('whatsapp')}
-                  >
+                  <button type="button" className="btn" onClick={() => shareTo('whatsapp')}>
                     {t('share.whatsapp')}
                   </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => shareTo('telegram')}
-                  >
+                  <button type="button" className="btn" onClick={() => shareTo('telegram')}>
                     {t('share.telegram')}
                   </button>
                   <button type="button" className="btn" onClick={() => shareTo('email')}>
@@ -1213,9 +1195,7 @@ export function SongView({
 
               <div className="border-t border-line pt-5">
                 <h3 className="text-sm font-semibold text-ink">{t('share.copySheetTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">
-                  {t('share.copySheetBody')}
-                </p>
+                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.copySheetBody')}</p>
                 <button type="button" className="btn mt-3" onClick={() => void copyChordSheet()}>
                   {t('share.copySheetAction')}
                 </button>
