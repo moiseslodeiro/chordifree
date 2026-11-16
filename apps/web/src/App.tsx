@@ -3,7 +3,9 @@ import {
   clearAudioCache,
   createYoutubeAnalysis,
   getAudioCacheStats,
+  getCloudLibrary,
   getHealth,
+  saveCloudLibrary,
   type AudioCacheStats,
 } from './lib/api';
 import { isDesktopApp, type UpdateInfo } from './lib/platform';
@@ -37,7 +39,7 @@ import {
 } from './storage/setlists';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
 import { useAuth } from './auth/AuthProvider';
-import type { AppNotice, Preferences, Setlist, Song } from './types';
+import { sourceKey, type AppNotice, type Preferences, type Setlist, type Song } from './types';
 
 type Route =
   | { name: 'home' }
@@ -98,6 +100,17 @@ function songIsDirty(current: Song | null, saved: Song | null): boolean {
   return comparableSong(current) !== comparableSong(saved);
 }
 
+function mergeSetlists(local: Setlist[], cloud: Setlist[]): Setlist[] {
+  const byId = new Map(local.map((setlist) => [setlist.id, setlist] as const));
+  for (const remote of cloud) {
+    const current = byId.get(remote.id);
+    if (!current || new Date(remote.updatedAt).getTime() >= new Date(current.updatedAt).getTime()) {
+      byId.set(remote.id, remote);
+    }
+  }
+  return [...byId.values()];
+}
+
 function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
   return listKeys(storage, `${PREFIX}:corrupt:`).length > 0;
 }
@@ -116,7 +129,14 @@ export default function App() {
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [audioCache, setAudioCache] = useState<AudioCacheStats | null>(null);
   const [audioCacheRefresh, setAudioCacheRefresh] = useState(0);
+  const [cloudStatus, setCloudStatus] = useState<'idle' | 'syncing' | 'saved' | 'error'>(
+    'idle',
+  );
+  const cloudReady = useRef(false);
+  const cloudErrorNotified = useRef(false);
   const [setlists, setSetlists] = useState<Setlist[]>(() => loadSetlists(storage));
+  const setlistsRef = useRef(setlists);
+  setlistsRef.current = setlists;
   const [history, setHistory] = useState<HistoryMap>(() => loadHistory(storage));
   const [initial] = useState(() => {
     const route = parseHash();
@@ -261,6 +281,103 @@ export default function App() {
   const refreshLibrary = useCallback(() => {
     setSongs(library.list());
   }, [library]);
+
+  const cloudEnabled = auth.mode === 'google' && auth.status === 'authenticated';
+
+  useEffect(() => {
+    if (!cloudEnabled) {
+      cloudReady.current = false;
+      setCloudStatus('idle');
+      return;
+    }
+    let cancelled = false;
+    setCloudStatus('syncing');
+    void (async () => {
+      try {
+        const cloud = await getCloudLibrary();
+        if (cancelled) return;
+        const localSongs = library.exportSongs();
+        const merged = [...cloud.songs];
+        for (const song of localSongs) {
+          const key = sourceKey(song.source);
+          const remote = cloud.songs.find((item) => sourceKey(item.source) === key);
+          const localIsNewer =
+            !remote ||
+            new Date(song.updatedAt).getTime() > new Date(remote.updatedAt).getTime();
+          if (!localIsNewer) continue;
+          const index = merged.findIndex((item) => sourceKey(item.source) === key);
+          if (index >= 0) merged[index] = song;
+          else merged.push(song);
+        }
+        const mergedSetlists = mergeSetlists(setlistsRef.current, cloud.setlists);
+        if (
+          cloud.songs.length > 0 ||
+          cloud.setlists.length > 0 ||
+          localSongs.length > 0 ||
+          setlistsRef.current.length > 0
+        ) {
+          library.importSnapshot({ songs: merged });
+          setSetlists(mergedSetlists);
+          try {
+            saveSetlists(storage, mergedSetlists);
+          } catch {
+            // The local copy remains usable.
+          }
+          refreshLibrary();
+          await saveCloudLibrary({ songs: merged, setlists: mergedSetlists });
+          if (cloud.songs.length > 0 || cloud.setlists.length > 0) {
+            setNotice({ message: t('cloud.loaded'), tone: 'info' });
+          }
+        }
+        cloudReady.current = true;
+        setCloudStatus('saved');
+      } catch {
+        if (!cancelled) {
+          cloudReady.current = false;
+          setCloudStatus('error');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudEnabled]);
+
+  useEffect(() => {
+    if (!cloudEnabled || !cloudReady.current) return;
+    setCloudStatus('syncing');
+    const timer = window.setTimeout(() => {
+      void saveCloudLibrary({ songs: library.exportSongs(), setlists })
+        .then(() => {
+          setCloudStatus('saved');
+          cloudErrorNotified.current = false;
+        })
+        .catch(() => {
+          setCloudStatus('error');
+          if (!cloudErrorNotified.current) {
+            cloudErrorNotified.current = true;
+            setNotice({ message: t('cloud.error'), tone: 'warning' });
+          }
+        });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [cloudEnabled, library, setlists, songs, storage]);
+
+  const syncCloudNow = () => {
+    if (!cloudEnabled) return;
+    cloudReady.current = true;
+    setCloudStatus('syncing');
+    void saveCloudLibrary({ songs: library.exportSongs(), setlists })
+      .then(() => {
+        setCloudStatus('saved');
+        setNotice({ message: t('cloud.saved'), tone: 'success' });
+      })
+      .catch(() => {
+        setCloudStatus('error');
+        setNotice({ message: t('cloud.error'), tone: 'warning' });
+      });
+  };
+
 
   const recordOpen = useCallback(
     (songId: string) => {
@@ -754,6 +871,9 @@ export default function App() {
             onClearCache={clearAnalysisCacheAndNotify}
             audioCache={audioCache ?? undefined}
             onClearAudioCache={clearAudioCacheAndNotify}
+            cloud={
+              cloudEnabled ? { status: cloudStatus, onSync: syncCloudNow } : undefined
+            }
             onOpen={(id) => navigate({ name: 'song', id })}
             onDelete={deleteSong}
             onBack={() => navigate({ name: 'home' })}
