@@ -22,6 +22,7 @@ respuestas no JSON se convierten en `ANALYSIS_FAILED` o en un mensaje genérico.
 | `FILE_TOO_LARGE` | 413 | Multer / analyzer | Archivo demasiado grande | Reducir el archivo | CU-002 | Baja |
 | `INVALID_AUDIO` | 422 | Validación de audio | Formato o firma inválidos | Usar MP3/WAV/M4A/OGG/FLAC/WebM/MP4 | CU-002 | Baja |
 | `VIDEO_UNAVAILABLE` | 422 | yt-dlp | Video no disponible | Probar otro video | CU-001 | Media |
+| `YOUTUBE_BLOCKED` | 422 | yt-dlp | YouTube bloquea este servidor | Subir el audio o reintentar más tarde | CU-001/003 | Media |
 | `SEARCH_FAILED` | 502 | yt-dlp | Búsqueda fallida | Reintentar más tarde | CU-003 | Media |
 | `ANALYSIS_FAILED` | 502 | Analyzer / servidor | No se pudo analizar | Reintentar o revisar logs | CU-001/002 | Alta |
 | `RATE_LIMITED` | 429 | express-rate-limit / LRCLIB | Demasiadas peticiones | Esperar `Retry-After` | CU-001/003/011/012 | Media |
