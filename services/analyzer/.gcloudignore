@@ -1,0 +1,5 @@
+# The Dockerfile downloads the ONNX models during the build.
+models/
+tests/
+__pycache__/
+.pytest_cache/

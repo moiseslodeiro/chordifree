@@ -1,0 +1,34 @@
+# Keep Cloud Build uploads small. This is intentionally a superset of .gitignore
+# because some generated directories live in nested .gitignore files.
+.gcloudignore
+.git/
+node_modules/
+**/node_modules/
+.venv/
+**/__pycache__/
+**/.pytest_cache/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+test-results/
+playwright-report/
+.tmp/
+**/.tmp/
+.env
+.env.local
+*.log
+.opencode/
+.agents/
+skills-lock.json
+deploy/gcp/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+captura.png
+packaging/
+
+# The analyzer image downloads the ONNX models during the build.
+services/analyzer/models/
