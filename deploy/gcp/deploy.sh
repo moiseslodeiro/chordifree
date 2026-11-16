@@ -39,15 +39,14 @@ REGISTRY="$(terraform output -raw artifact_registry)"
 echo "Building server image in $REGISTRY/server:$TAG"
 gcloud builds submit "$ROOT" \
   --project "$PROJECT_ID" \
-  --tag "$REGISTRY/server:$TAG" \
-  --file apps/server/Dockerfile \
+  --config "$ROOT/deploy/gcp/cloudbuild-server.yaml" \
+  --substitutions "_IMAGE=$REGISTRY/server:$TAG" \
   --timeout 45m
 
 echo "Building analyzer image in $REGISTRY/analyzer:$TAG"
 gcloud builds submit "$ROOT/services/analyzer" \
   --project "$PROJECT_ID" \
   --tag "$REGISTRY/analyzer:$TAG" \
-  --file Dockerfile \
   --timeout 45m
 
 terraform apply -input=false -auto-approve \
