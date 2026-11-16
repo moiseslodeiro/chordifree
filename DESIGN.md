@@ -292,6 +292,29 @@ symbol in display weight at the top, and a thin accent underline on the active b
 bars use a 10% accent wash; the A/B practice range uses the same wash with a stronger border.
 Never replace the chord with an icon or a coloured block.
 
+### Authentication and online surfaces
+- **Login gate:** a single centered panel over Cool Paper, widest at 28rem, with the brand,
+  a mono eyebrow ("Private instance"), the title, the Google Identity Services button and a
+  short explanation. Do not restyle the inside of Google's button; give it the standard
+  width and let Google draw it.
+- **States:** `loading` uses a small accent pulse and a status line; `denied` reuses the card
+  with a warning note and a single "Sign out" action; `error` offers "Retry". Never show the
+  app shell until the session is authenticated.
+- **Account menu:** use `ActionMenu` with the signed-in name/email as the label. Items are
+  Administration (admins only), Delete cloud data, and Sign out. Delete cloud data is
+  destructive: confirm first and name the consequence (cloud copy removed, local copy stays,
+  non-admins lose access). The confirmation carries the destructive emphasis; the menu item
+  stays in the normal menu typography.
+- **Administration:** a panel with a header, an add-account form (email field + primary
+  button) and a hairline-separated list of accounts. Each row shows the email, the mono
+  "added" date and a danger "Remove" action. Use the standard empty and loading notes.
+- **Cloud sync:** a hairline-separated footer row in the library with a mono status
+  (Syncing / Saved / Error) and a ghost "Sync now" button. A sync failure is a warning note,
+  never a modal: the local library remains usable and the message must say so.
+- **Rules:** Google is the identity provider, not a second brand; do not add Google colours
+  outside its button. Destructive account actions always confirm. Online surfaces use the
+  same typography, hairlines and radii as the rest of the app, including in dark theme.
+
 ## Do's and Don'ts
 
 ### Do:

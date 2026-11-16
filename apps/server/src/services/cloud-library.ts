@@ -10,6 +10,7 @@ export interface CloudLibraryData {
 export interface CloudLibraryStore {
   load(uid: string): Promise<CloudLibraryData>;
   replace(uid: string, data: CloudLibraryData): Promise<void>;
+  clear(uid: string): Promise<{ songs: number; setlists: number }>;
 }
 
 export class MemoryCloudLibraryStore implements CloudLibraryStore {
@@ -27,6 +28,12 @@ export class MemoryCloudLibraryStore implements CloudLibraryStore {
       songs: [...data.songs],
       setlists: [...data.setlists],
     });
+  }
+
+  async clear(uid: string): Promise<{ songs: number; setlists: number }> {
+    const data = this.users.get(uid);
+    this.users.delete(uid);
+    return { songs: data?.songs.length ?? 0, setlists: data?.setlists.length ?? 0 };
   }
 }
 
@@ -56,6 +63,13 @@ export class FirestoreCloudLibraryStore implements CloudLibraryStore {
     const root = this.firestore.collection(this.collection).doc(uid);
     await this.replaceCollection(root.collection('songs'), data.songs);
     await this.replaceCollection(root.collection('setlists'), data.setlists);
+  }
+
+  async clear(uid: string): Promise<{ songs: number; setlists: number }> {
+    const data = await this.load(uid);
+    await this.replace(uid, { songs: [], setlists: [] });
+    await this.firestore.collection(this.collection).doc(uid).delete().catch(() => undefined);
+    return { songs: data.songs.length, setlists: data.setlists.length };
   }
 
   private async replaceCollection(

@@ -220,6 +220,22 @@ export async function saveCloudLibrary(snapshot: {
   await parseResponse<{ saved: boolean }>(response);
 }
 
+export interface DeleteAccountResult {
+  deleted: boolean;
+  songs: number;
+  setlists: number;
+  accessRemoved: boolean;
+}
+
+/** Deletes the signed-in user's cloud library (and their access if they are not an admin). */
+export async function deleteAccount(): Promise<DeleteAccountResult> {
+  const response = await fetch('/api/account', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  return parseResponse<DeleteAccountResult>(response);
+}
+
 const audioPreparations = new Map<string, Promise<{ url: string; expiresAt?: string }>>();
 
 /** Rejects with AbortError when the caller aborts, without cancelling the shared request. */

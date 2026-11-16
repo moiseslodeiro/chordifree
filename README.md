@@ -79,6 +79,8 @@ The [`deploy/gcp`](deploy/gcp/README.md) stack adds an optional online mode:
   they are always allowed; everyone else must be added from the web UI (`#/admin`).
 - **Per-user cloud library** under `chordifree_users/{uid}`. Songs and setlists merge with
   the local copy by song source and `updatedAt`.
+- **Account deletion:** from the account menu, a user can delete their cloud library. A
+  non-admin also loses allowlist access; the local copy stays on the device.
 - **Private analyzer** on Cloud Run. Only the server service account can invoke it, using a
   Cloud Run ID token.
 - **Scale to zero** and a free-tier-friendly shape: no load balancer, no IAP, no always-on

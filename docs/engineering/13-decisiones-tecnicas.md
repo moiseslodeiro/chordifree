@@ -156,3 +156,19 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
   un equipo encendido y un token compartido; si el extractor está apagado, YouTube falla pero
   la subida de audio sigue funcionando. No cambia el comportamiento cuando la variable está
   vacía.
+
+---
+
+## ADR-015 — Borrado de datos online desde el menú de cuenta
+
+- **Estado:** Aceptada
+- **Contexto:** El modo online guarda canciones y setlists en Firestore. Quitar una cuenta
+  de la allowlist no borra sus datos, y no había una forma de que el usuario los eliminara.
+- **Decisión:** Añadir `DELETE /api/account`. Borra el snapshot del usuario y, si no es
+  administrador, elimina también su entrada de la allowlist. Los administradores conservan
+  el acceso porque están en `ADMIN_EMAILS`. La copia local no se borra.
+- **Alternativas:** borrar solo la allowlist; borrar solo la biblioteca; borrar también el
+  almacenamiento local; exigir una intervención manual del operador.
+- **Consecuencias:** El usuario puede ejercer un borrado básico sin acceso al proyecto de
+  GCP. El operador sigue siendo responsable de backups, retención y borrado de logs. La
+  acción es destructiva y requiere confirmación en la UI.

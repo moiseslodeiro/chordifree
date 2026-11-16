@@ -14,6 +14,19 @@ chords to play, when each one starts and how to loop the difficult part. They ma
 browser app on a laptop or the desktop build on the same machine, and they switch between
 English and Spanish.
 
+## Modes
+
+- **Local / desktop (default):** no hosted account, no cloud library. The library stays in the
+  browser or the desktop app, and the analyzer runs on the user's machine.
+- **Private online (optional):** the owner hosts the app on Google Cloud. Access requires a
+  Google account approved by an administrator. Songs and setlists can be stored per user in
+  Firestore, and the analyzer runs on Cloud Run.
+- **Extractor (optional):** a small residential service can handle YouTube downloads when
+  Cloud Run is blocked by YouTube.
+
+The local mode remains the default. The online mode is opt-in and never replaces the local
+workflow.
+
 ## Product Purpose
 
 Chordifree turns a YouTube video or an audio file into a synchronized chord sheet: key,
@@ -24,11 +37,13 @@ guessing, and the sheet keeps matching after transposition, a capo or a simpler 
 
 ## Positioning
 
-The analysis runs on the user's machine, not on a subscription service: no account, no
-tracking, no upload to a third party. The output is treated as a draft the musician owns,
-so every chord can be corrected and every lyric line anchored. The desktop build bundles
-the analyzer. The product is open source (AGPL-3.0), and it is built by a musician for
-musicians.
+By default the analysis runs on the user's machine, not on a subscription service: the
+local mode has no account, no tracking and no upload to a third party. An operator can
+optionally host a private online instance for a small group, with Google sign-in restricted
+to an allowlist and a per-user library in Firestore. The output is treated as a draft the
+musician owns, so every chord can be corrected and every lyric line anchored. The desktop
+build bundles the analyzer. The product is open source (AGPL-3.0), and it is built by a
+musician for musicians.
 
 ## Operating Context
 
@@ -40,9 +55,13 @@ musicians.
   guitar/piano/ukelele diagrams, simplify or reduce chords.
 - Library: songs and ordered setlists in local storage, with practice history, JSON
   backups, ChordPro import/export, MusicXML export, print/PDF, and share links for a song
-  or a setlist.
+  or a setlist. On the optional online instance the library is mirrored per user in
+  Firestore.
 - Deployment: Docker stack for a laptop, home server or VPS; PWA when served over HTTPS;
-  Electron desktop builds for Windows, macOS and Linux.
+  Electron desktop builds for Windows, macOS and Linux; Terraform stack for a private
+  online instance on Cloud Run + Firestore.
+- Access: `AUTH_MODE=none` for local/desktop; `AUTH_MODE=google` for the online instance,
+  with Google sign-in, a Firestore allowlist and an Administration page.
 
 ## Capabilities and Constraints
 
@@ -53,13 +72,19 @@ musicians.
 - YouTube search (`yt-dlp`) with thumbnail, channel and duration, one click to analyze.
 - Time signature estimated from the beat accents (3/4 or 4/4) and correctable in the song
   details (2/4, 3/4, 4/4).
-- Local-first storage; shared songs stay unfiled; the analysis cache can be inspected and
-  cleared.
+- Local-first storage by default; shared songs stay unfiled; the analysis cache can be
+  inspected and cleared.
+- Online storage is a per-user snapshot in Firestore; the browser merges it with the local
+  copy by song source and `updatedAt`. Cloud data can be deleted from the account menu.
+- YouTube on cloud hosts is best-effort: YouTube often blocks datacenter/Cloud Run IPs. The
+  optional residential extractor or the audio-upload path avoids the block.
 - Constraints: the analyzer needs Essentia and ONNX Runtime; the voice/instrumental model
   is CC BY-NC-SA 4.0 (non-commercial); YouTube downloads may violate its Terms of Service;
   the analyzer exposes AGPL obligations when served over a network; ARM64 Linux is not
   supported because Essentia publishes no arm64 Linux wheel; desktop builds are unsigned
-  and not notarized; `yt-dlp` is not bundled in the desktop app.
+  and not notarized; `yt-dlp` is not bundled in the desktop app; the online instance is
+  operator-run and has no SLA; YouTube availability depends on the host IP or an optional
+  extractor.
 - Accessibility target: WCAG 2.1 AA, with keyboard navigation, visible focus and
   screen-reader labels; end-to-end tests run axe on the home and song screens.
 
@@ -77,13 +102,17 @@ musicians.
   A–B practice without an account or network.
 - Screenshots of the bar view, beat grid and YouTube search in `site/assets/`.
 - Real installers and release notes in `docs/`; Docker Compose stack; smoke-test fixture.
+- Terraform + deployment guide in `deploy/gcp/`; extractor installer and Docker image in
+  `services/youtube-extractor/`; retrospective engineering docs in `docs/engineering/`.
 - There are no testimonials, customer logos, benchmarks, prices or usage statistics. Do not
   invent any.
 
 ## Product Principles
 
-1. **Local by default.** Audio, analysis and library stay on the user's device; the network
-   is for the source and for lyrics lookup, never for an account.
+1. **Local by default, online by explicit opt-in.** In local mode audio, analysis and the
+   library stay on the user's device; the network is for the source and for lyrics lookup,
+   never for an account. An operator may opt into a private online instance with Google
+   sign-in, an allowlist and per-user cloud storage.
 2. **The musician is the authority.** Detection is a draft; every chord, timing and lyric
    anchor must be correctable, and corrections must survive reopening the song.
 3. **Practice is the outcome.** Every view serves playing along: the next chord, the current

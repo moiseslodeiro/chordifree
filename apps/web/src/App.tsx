@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearAudioCache,
   createYoutubeAnalysis,
+  deleteAccount,
   getAudioCacheStats,
   getCloudLibrary,
   getHealth,
@@ -376,6 +377,26 @@ export default function App() {
         setCloudStatus('error');
         setNotice({ message: t('cloud.error'), tone: 'warning' });
       });
+  };
+
+  const deleteCloudData = async () => {
+    if (!window.confirm(t('auth.deleteDataConfirm'))) return;
+    try {
+      const result = await deleteAccount();
+      setNotice({
+        message: t('auth.deleteDataDone', {
+          songs: result.songs,
+          setlists: result.setlists,
+        }),
+        tone: 'success',
+      });
+      if (result.accessRemoved) {
+        auth.signOut();
+        navigate({ name: 'home' });
+      }
+    } catch {
+      setNotice({ message: t('auth.deleteDataFailed'), tone: 'warning' });
+    }
   };
 
 
@@ -821,6 +842,7 @@ export default function App() {
                 ...(auth.admin
                   ? [{ label: t('auth.admin'), onSelect: () => navigate({ name: 'admin' }) }]
                   : []),
+                { label: t('auth.deleteData'), onSelect: () => void deleteCloudData() },
                 { label: t('auth.signOut'), onSelect: auth.signOut },
               ]}
             />

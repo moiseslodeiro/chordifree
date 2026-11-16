@@ -135,6 +135,8 @@ If you run `terraform apply` without the image variables, Terraform falls back t
 - The allowlist lives in Firestore: `chordifree_access/{email}`.
 - Removing an account does not delete its library; it only blocks future sign-ins.
 - Administrators are always allowed even if they are not in `chordifree_access`.
+- Users can delete their own cloud library from the account menu. A non-administrator also
+  loses allowlist access; the local copy stays on their device.
 
 ## Where data lives
 

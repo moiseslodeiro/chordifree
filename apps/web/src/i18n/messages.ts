@@ -62,6 +62,12 @@ const en = {
   'auth.restrictedBody':
     'The account {email} has not been approved for this instance. Ask the administrator to add it.',
   'auth.signOut': 'Sign out',
+  'auth.deleteData': 'Delete cloud data',
+  'auth.deleteDataConfirm':
+    'Delete your songs and setlists from the cloud? The local copy on this device will stay. If you are not an administrator, your access will also be removed.',
+  'auth.deleteDataDone':
+    'Cloud data deleted: {songs} songs and {setlists} setlists.',
+  'auth.deleteDataFailed': 'Could not delete your cloud data.',
   'auth.signedInAs': 'Signed in as {email}',
   'auth.admin': 'Administration',
   'auth.loading': 'Checking your session…',
@@ -690,6 +696,12 @@ const es: Record<MessageKey, string> = {
   'auth.restrictedBody':
     'La cuenta {email} no está aprobada para esta instancia. Pide al administrador que la añada.',
   'auth.signOut': 'Cerrar sesión',
+  'auth.deleteData': 'Borrar datos de la nube',
+  'auth.deleteDataConfirm':
+    '¿Borrar tus canciones y repertorios de la nube? La copia local de este dispositivo se mantiene. Si no eres administrador, también se quitará tu acceso.',
+  'auth.deleteDataDone':
+    'Datos de la nube borrados: {songs} canciones y {setlists} repertorios.',
+  'auth.deleteDataFailed': 'No se pudieron borrar tus datos de la nube.',
   'auth.signedInAs': 'Sesión iniciada como {email}',
   'auth.admin': 'Administración',
   'auth.loading': 'Comprobando tu sesión…',

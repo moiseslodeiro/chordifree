@@ -24,7 +24,7 @@
 | RF-018 | Provisionar la infraestructura con Terraform | Alta | Implementado | CU-014 |
 | RF-019 | Escalar a cero cuando no hay tráfico | Alta | Implementado | CU-014 |
 | RF-020 | Ofrecer un endpoint de salud que compruebe el analyzer | Media | Implementado | CU-014 |
-| RF-021 | Eliminar la cuenta y todos los datos online del usuario | Media | **Pendiente** | CU-015 |
+| RF-021 | Eliminar la cuenta y todos los datos online del usuario | Media | Implementado | CU-015 |
 | RF-022 | Gestionar cuotas por usuario en la instancia online | Baja | **Pendiente** | CU-010 |
 | RF-023 | Persistir los jobs para sobrevivir a reinicios | Media | **Pendiente** | CU-001, CU-002 |
 | RF-024 | Añadir roles de administración en Firestore | Baja | **Pendiente** | CU-009 |
@@ -47,7 +47,7 @@
 | RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Pendiente** |
 | RNF-013 | Mantenibilidad | Tests de servidor, web, analyzer y E2E | 87 + 359 + 28 + analyzer | Implementado |
 | RNF-014 | Privacidad | El modo local no envía datos a terceros salvo YouTube/LRCLIB | Sin cuentas ni analytics | Implementado |
-| RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | **Parcial** |
+| RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | Implementado |
 | RNF-016 | Observabilidad | Logs operativos y errores estructurados | Cloud Logging + envelope de error | Implementado |
 | RNF-017 | Observabilidad | Métricas, trazas y alertas de error | Cloud Monitoring / Sentry | **Pendiente** |
 | RNF-018 | Operación | Estado de Terraform duradero | Backend GCS | **Pendiente** |
