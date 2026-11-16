@@ -6,7 +6,7 @@
     <title>Chordifree — synchronized chords from YouTube or your audio</title>
     <meta
       name="description"
-      content="Search YouTube by name or upload your own audio. Chordifree turns it into a synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first."
+      content="Search YouTube by name or upload your own audio. Chordifree turns it into a synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, open source, with an optional private online instance."
     />
     <link rel="canonical" href="https://moiseslodeiro.github.io/chordifree/" />
     <meta name="theme-color" content="#f7f6f2" />
@@ -16,7 +16,7 @@
     <meta property="og:title" content="Chordifree — chords that follow the song" />
     <meta
       property="og:description"
-      content="Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Free, open source and local first."
+      content="Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, or your own private cloud."
     />
     <meta property="og:url" content="https://moiseslodeiro.github.io/chordifree/" />
     <meta property="og:image" content="https://moiseslodeiro.github.io/chordifree/assets/og-image.png" />
@@ -26,7 +26,7 @@
     <meta name="twitter:title" content="Chordifree — chords that follow the song" />
     <meta
       name="twitter:description"
-      content="Search YouTube by name or upload your own audio into a synchronized chord sheet. Local first, open source."
+      content="Search YouTube by name or upload your own audio into a synchronized chord sheet. Local first, or your own private cloud."
     />
     <meta name="twitter:image" content="https://moiseslodeiro.github.io/chordifree/assets/og-image.png" />
 
@@ -53,7 +53,7 @@
         "name": "Chordifree",
         "applicationCategory": "MusicApplication",
         "operatingSystem": "Windows, Linux, macOS, Web",
-        "description": "Search YouTube by name or use your own audio to get synchronized chord sheets with beats, bars, lyrics and A–B practice.",
+        "description": "Search YouTube by name or use your own audio to get synchronized chord sheets with beats, bars, lyrics and A–B practice. Local-first, with an optional private online instance on Google Cloud.",
         "url": "https://moiseslodeiro.github.io/chordifree/",
         "author": { "@type": "Person", "name": "Moisés Lodeiro" },
         "codeRepository": "https://github.com/moiseslodeiro/chordifree",
@@ -133,7 +133,8 @@
           <p class="lead" data-i18n="hero.lead">
             Search YouTube by name or bring your own audio, and get a synchronized chord sheet
             with beats, bars, lyrics and A–B practice. Slow down or transpose the song without
-            changing the chords. The analysis runs on your machine.
+            changing the chords. Run it locally, or host a private instance for approved
+            accounts.
           </p>
           <div class="actions">
             <a class="btn btn-primary" href="#run" data-i18n="hero.primary">Get the app</a>
@@ -276,12 +277,12 @@
             <div class="track-copy">
               <h3 data-i18n="feature.5.title">Keep</h3>
               <p data-i18n="feature.5.body">
-                Save songs and setlists in a local library with practice history.
-                Export ChordPro or MusicXML, print a PDF, back everything up as JSON or send the
-                sheet to WhatsApp, Telegram or email.
+                Save songs and setlists in your browser, on your computer, or in a private
+                online instance tied to your Google account. Export ChordPro or MusicXML,
+                print a PDF, back everything up as JSON or share the sheet.
               </p>
             </div>
-            <span class="track-tag" data-i18n="feature.5.tag">Local library</span>
+            <span class="track-tag" data-i18n="feature.5.tag">Local or private cloud</span>
           </li>
         </ol>
 
@@ -349,11 +350,12 @@
         <div class="section-head" data-reveal>
           <div>
             <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="how.eyebrow">From audio to practice</span></p>
-            <h2 data-i18n="how.title">Three steps, no account.</h2>
+            <h2 data-i18n="how.title">Three steps, no account required.</h2>
           </div>
           <p class="section-lead" data-i18n="how.lead">
             Bring a link or a file. The analyzer does the timing, you keep the musical
-            decisions.
+            decisions. Local mode stays account-free; the online instance adds Google sign-in
+            and sync.
           </p>
         </div>
 
@@ -370,8 +372,8 @@
             <span class="step-num">02</span>
             <h3 data-i18n="how.2.title">Let the analyzer work</h3>
             <p data-i18n="how.2.body">
-              Beats, bars, key and chords are detected locally. The first run loads the models
-              and takes a little longer.
+              Beats, bars, key and chords are detected by the analyzer. The first run loads the
+              models and takes a little longer.
             </p>
           </li>
           <li>
@@ -379,7 +381,7 @@
             <h3 data-i18n="how.3.title">Fix, save, practice</h3>
             <p data-i18n="how.3.body">
               Correct any chord in the editor, add lyrics, then save to your library or
-              setlists. Nothing leaves your machine.
+              setlists. On a private online instance, the library also syncs to your account.
             </p>
           </li>
         </ol>
@@ -394,7 +396,8 @@
             </div>
             <p class="section-lead" data-i18n="run.lead">
               The desktop build bundles the analyzer. The Docker stack puts the same app on a
-              laptop, a home server or a VPS.
+              laptop, a home server or a VPS. Terraform deploys a private online instance on
+              Cloud Run.
             </p>
           </div>
 
@@ -571,6 +574,43 @@ docker compose up --build -d</code></pre>
                 >
               </div>
             </article>
+
+            <article class="run-row">
+              <div class="run-title">
+                <span class="run-index">06</span>
+                <h3 data-i18n="run.gcp.title">Private cloud on GCP</h3>
+                <span class="run-badge" data-i18n="run.gcp.badge">Terraform</span>
+              </div>
+              <div class="run-body">
+                <p data-i18n="run.gcp.body">
+                  Deploy the web app and a private analyzer to Cloud Run, keep the allowlist
+                  and each user's library in Firestore, and let only approved Google accounts
+                  in. Both services scale to zero and fit the free tier for personal use.
+                </p>
+                <p class="run-note" data-i18n="run.gcp.note">
+                  Google sign-in, an admin page for access, and one Cloud Run service for the
+                  app. No load balancer or IAP.
+                </p>
+              </div>
+              <div class="run-action">
+                <a
+                  class="btn btn-secondary btn-small"
+                  href="https://github.com/moiseslodeiro/chordifree/blob/main/deploy/gcp/README.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.gcp.cta"
+                  >GCP deployment guide</a
+                >
+                <a
+                  class="run-inline-link"
+                  href="https://github.com/moiseslodeiro/chordifree/tree/main/deploy/gcp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n="run.gcp.guide"
+                  >Terraform source</a
+                >
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -580,31 +620,37 @@ docker compose up --build -d</code></pre>
           <div data-reveal>
             <p class="eyebrow eyebrow-light">
               <span class="eyebrow-rule" aria-hidden="true"></span>
-              <span data-i18n="privacy.eyebrow">Local by design</span>
+              <span data-i18n="privacy.eyebrow">Local first</span>
             </p>
             <h2 data-i18n="privacy.title">Your songs stay with you.</h2>
             <p class="night-lead" data-i18n="privacy.lead">
-              Chordifree has no accounts and no tracking. The library lives in your browser,
-              and the desktop build keeps the analyzer on your computer.
+              The desktop and local web builds have no accounts and no tracking: the library
+              lives on your machine. The optional online instance uses Google only to decide
+              who can enter, and keeps each user's library in the Firestore project you deploy.
             </p>
           </div>
 
           <dl class="fact-list" data-reveal>
             <div>
-              <dt data-i18n="privacy.1.title">No accounts</dt>
-              <dd data-i18n="privacy.1.body">Open the app and start. Nothing to sign up for.</dd>
+              <dt data-i18n="privacy.1.title">No account by default</dt>
+              <dd data-i18n="privacy.1.body">
+                Open the local app and start. Google sign-in only appears on a private online
+                instance.
+              </dd>
             </div>
             <div>
-              <dt data-i18n="privacy.2.title">Local library</dt>
+              <dt data-i18n="privacy.2.title">Local or your cloud</dt>
               <dd data-i18n="privacy.2.body">
-                Songs, setlists and practice history stay in local storage. Export them whenever
-                you want.
+                Songs, setlists and practice history stay in local storage by default. The
+                online instance stores them under your user in Firestore and syncs across
+                devices.
               </dd>
             </div>
             <div>
               <dt data-i18n="privacy.3.title">Your audio</dt>
               <dd data-i18n="privacy.3.body">
                 Uploads are analyzed and not kept in the library. Temporary files are removed.
+                On Cloud Run they stay in your own GCP project.
               </dd>
             </div>
           </dl>
@@ -623,21 +669,53 @@ docker compose up --build -d</code></pre>
             <h2 data-i18n="faq.title">Before you start.</h2>
           </div>
           <p class="section-lead" data-i18n="faq.lead">
-            The short answers. The README has the details, the environment variables and the
-            architecture.
+            The short answers. The README has the details, the environment variables, the
+            private GCP deployment and the architecture.
           </p>
         </div>
 
         <div class="faq-grid" data-reveal>
           <details>
             <summary data-i18n="faq.1.q">Do I need an account?</summary>
-            <p data-i18n="faq.1.a">No. There is no sign up, no login and no tracking.</p>
+            <p data-i18n="faq.1.a">
+              No for the desktop and local web builds. The optional private online instance uses
+              Google sign-in, and only accounts an administrator approves can enter.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.13.q">Can I run a private online instance?</summary>
+            <p data-i18n="faq.13.a">
+              Yes. The Terraform stack in deploy/gcp deploys the app to Cloud Run, keeps the
+              analyzer private and stores the allowlist and libraries in Firestore. It is
+              designed for the GCP free tier.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.14.q">Who can access the online instance?</summary>
+            <p data-i18n="faq.14.a">
+              Only Google accounts in the allowlist. Administrators are always allowed and can
+              add or remove accounts from the Administration page.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.15.q">Where is the online library stored?</summary>
+            <p data-i18n="faq.15.a">
+              In the Firestore database of your own GCP project, under each user's ID. The
+              browser keeps a copy and merges the newest songs and setlists.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.16.q">Does the online instance track me?</summary>
+            <p data-i18n="faq.16.a">
+              No analytics or ads. Google sign-in provides the email used for the allowlist; no
+              other profile data is stored.
+            </p>
           </details>
           <details>
             <summary data-i18n="faq.2.q">Does it upload my audio to a third party?</summary>
             <p data-i18n="faq.2.a">
-              No. The web app sends audio only to the API and analyzer you run. The desktop
-              build keeps everything on your computer.
+              No. The web app sends audio only to the API and analyzer you run. On the private
+              Cloud Run deployment, that is your own GCP project, not a third-party service.
             </p>
           </details>
           <details>
@@ -685,8 +763,8 @@ docker compose up --build -d</code></pre>
           <details>
             <summary data-i18n="faq.6.q">Where are my songs stored?</summary>
             <p data-i18n="faq.6.a">
-              In your browser's local storage for the web app, and on your computer for the
-              desktop app. Export JSON for backups or ChordPro for other tools.
+              In local storage for the local builds, or in your own Firestore database on the
+              private online instance. Export JSON for backups or ChordPro for other tools.
             </p>
           </details>
           <details>
@@ -705,7 +783,10 @@ docker compose up --build -d</code></pre>
           </details>
           <details>
             <summary data-i18n="faq.9.q">Is it free?</summary>
-            <p data-i18n="faq.9.a">Yes. Chordifree is open source under AGPL-3.0.</p>
+            <p data-i18n="faq.9.a">
+              Yes. Chordifree is open source under AGPL-3.0. Self-hosting on GCP stays within
+              the free tier for personal use, but Google may charge if you exceed it.
+            </p>
           </details>
         </div>
       </section>
@@ -718,7 +799,8 @@ docker compose up --build -d</code></pre>
           </p>
           <h2 data-i18n="finale.title">Turn the next song into a chord sheet.</h2>
           <p data-i18n="finale.lead">
-            Download the Windows preview or run the Docker stack. The library is yours.
+            Download the desktop preview, run the Docker stack, or deploy your own private
+            instance on GCP. The library is yours.
           </p>
           <div class="actions">
             <a class="btn btn-inverted" href="#run" data-i18n="finale.primary">Get the app</a>

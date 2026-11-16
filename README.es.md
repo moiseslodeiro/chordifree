@@ -6,13 +6,24 @@ Convierte un video musical de YouTube (o un audio propio) en una línea de tiemp
 sincronizada con la reproducción. Permite trasponer ±11 semitonos y cambiar entre notación
 inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`). También puedes buscar por nombre en
 YouTube: cada resultado muestra la miniatura, el canal y la duración, y un clic analiza la
-canción al momento.
+canción al momento. Puedes ejecutarlo en local o desplegar una instancia online privada en la
+que solo entran cuentas de Google aprobadas y cada usuario guarda su biblioteca en su cuenta.
 
 Hecho por [Moisés Lodeiro](https://github.com/moiseslodeiro), de un músico para músicos y músicas.
 
 > **Aviso legal**: descargar audio de YouTube puede contravenir sus Términos de Servicio.
 > Usa la vía de subida de audio cuando no tengas derechos sobre el contenido. Este proyecto
 > no elude restricciones técnicas ni usa cookies de sesión.
+
+## Dos modos de uso
+
+| Modo | Inicio de sesión | Biblioteca | Para qué |
+|---|---|---|---|
+| Local / escritorio | Ninguno | Almacenamiento del navegador o de la app | Practicar en un equipo, sin conexión |
+| Online privado (GCP) | Google, limitado a una lista de acceso | Firestore, por usuario | Una instancia propia para varias personas y dispositivos |
+
+El modo local es el de por defecto y sigue sin cuentas. El modo online es opcional: no elimina
+la biblioteca local ni el flujo de escritorio.
 
 ## Vista de canción
 
@@ -169,6 +180,11 @@ Ver `.env.example`. Las más relevantes:
 - `MAX_UPLOAD_BYTES`: tamaño máximo de subida (25 MB).
 - `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS`: límite de análisis por IP.
 - `YTDLP_PATH`, `FFMPEG_PATH`, `FFPROBE_PATH`: rutas a los binarios.
+- `AUTH_MODE`: `none` para local/escritorio, `google` para la instancia online.
+- `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`: cliente OAuth y administradores de la instancia online.
+- `GOOGLE_CLOUD_PROJECT`, `FIRESTORE_DATABASE`: proyecto y base de datos de Firestore.
+- `ANALYZER_AUTH`: `token` en local o `google` para llamar al analizador con un ID token de
+  Cloud Run.
 
 ## Despliegue con Docker
 
@@ -202,6 +218,34 @@ docker compose build \
 
 Los temporales se guardan en el volumen `chordifree-tmp` (`/tmp/chordifree`), y la caché de
 resultados vive en memoria con un TTL de 24 horas.
+
+## Instancia online privada en GCP
+
+La carpeta [`deploy/gcp`](deploy/gcp/README.md) añade un modo online opcional:
+
+- **Inicio de sesión con Google** verificado en el servidor con `google-auth-library`.
+- **Lista de acceso administrada** en Firestore. `ADMIN_EMAILS` arranca los administradores y
+  siempre tienen acceso; al resto se les añade desde la web (`#/admin`).
+- **Biblioteca por usuario** bajo `chordifree_users/{uid}`. Las canciones y repertorios se
+  fusionan con la copia local por fuente de canción y `updatedAt`.
+- **Analizador privado** en Cloud Run. Solo lo puede invocar la service account del servidor,
+  mediante un ID token de Cloud Run.
+- **Escala a cero** y sin balanceador, IAP ni VM siempre encendida. Terraform crea Cloud Run,
+  Firestore y Artifact Registry.
+
+Inicio rápido (la guía completa cubre OAuth, orígenes, coste y problemas):
+
+```bash
+cd deploy/gcp
+cp terraform.tfvars.example terraform.tfvars
+# rellena project_id, google_client_id y admin_emails
+gcloud auth login
+gcloud auth application-default login
+./deploy.sh
+```
+
+El modo online usa `AUTH_MODE=google`. El valor por defecto `AUTH_MODE=none` mantiene el
+comportamiento local y de escritorio sin cambios.
 
 ## Operación
 
