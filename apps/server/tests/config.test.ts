@@ -37,4 +37,19 @@ describe('config defaults', () => {
       }).audioCacheTtlMinutes,
     ).toBe(0);
   });
+
+  it('reads the optional YouTube extractor configuration', () => {
+    const config = loadConfig({
+      YOUTUBE_EXTRACTOR_URL: 'https://extractor.example.com',
+      YOUTUBE_EXTRACTOR_TOKEN: 'secret',
+    });
+    expect(config.youtubeExtractorUrl).toBe('https://extractor.example.com');
+    expect(config.youtubeExtractorToken).toBe('secret');
+  });
+
+  it('requires a token when the extractor URL is set', () => {
+    expect(() =>
+      loadConfig({ YOUTUBE_EXTRACTOR_URL: 'https://extractor.example.com' }),
+    ).toThrow('YOUTUBE_EXTRACTOR_TOKEN');
+  });
 });

@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { readdir, rm } from 'node:fs/promises';
+import { readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { AppConfig } from '../config';
@@ -63,12 +63,75 @@ function isYoutubeBlocked(error: unknown): boolean {
   return /sign in to confirm|not a bot|LOGIN_REQUIRED/i.test(stderr);
 }
 
+interface ExtractorErrorBody {
+  error?: { code?: string; message?: string };
+}
+
+function extractorBase(url: string): string {
+  return url.replace(/\/$/, '');
+}
+
+function extractorHeaders(token: string, json = false): Record<string, string> {
+  return {
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
+    'X-Chordifree-Token': token,
+  };
+}
+
+function extractorFetchError(error: unknown): ApiError {
+  const name = error instanceof Error ? error.name : '';
+  return new ApiError(
+    'EXTRACTOR_UNAVAILABLE',
+    name === 'TimeoutError'
+      ? 'The local YouTube extractor timed out.'
+      : 'The local YouTube extractor is offline.',
+  );
+}
+
+async function extractorFailure(response: Response): Promise<ApiError> {
+  let code = '';
+  let message = '';
+  try {
+    const body = (await response.json()) as ExtractorErrorBody;
+    code = body.error?.code ?? '';
+    message = body.error?.message ?? '';
+  } catch {
+    // Keep the generic message.
+  }
+  if (code === 'YOUTUBE_BLOCKED') {
+    return new ApiError(
+      'YOUTUBE_BLOCKED',
+      message || 'YouTube is blocking the extractor. Upload the audio file instead.',
+    );
+  }
+  if (response.status === 429) {
+    return new ApiError(
+      'EXTRACTOR_BUSY',
+      'The local YouTube extractor is busy. Try again in a moment.',
+    );
+  }
+  if (response.status === 401 || response.status === 403) {
+    return new ApiError(
+      'EXTRACTOR_UNAVAILABLE',
+      'The local YouTube extractor rejected the server token.',
+    );
+  }
+  if (response.status === 504) {
+    return new ApiError('EXTRACTOR_UNAVAILABLE', 'The local YouTube extractor timed out.');
+  }
+  return new ApiError(
+    'EXTRACTOR_UNAVAILABLE',
+    message || 'The local YouTube extractor is unavailable.',
+  );
+}
+
 export function createMediaTools(
   config: AppConfig,
   timeouts: Partial<MediaTimeouts> = {},
+  fetchImpl: typeof fetch = fetch,
 ): MediaTools {
   const limits = { ...DEFAULT_TIMEOUTS, ...timeouts };
-  return {
+  const local: MediaTools = {
     async probeYoutube(videoId: string): Promise<YoutubeMetadata> {
       try {
         const stdout = await run(
@@ -252,6 +315,93 @@ export function createMediaTools(
       } catch {
         throw new ApiError('INVALID_AUDIO', 'The file is not valid audio');
       }
+    },
+  };
+
+  if (!config.youtubeExtractorUrl) return local;
+
+  const base = extractorBase(config.youtubeExtractorUrl);
+  const token = config.youtubeExtractorToken;
+  const requestTimeout = config.youtubeExtractorTimeoutMs;
+
+  return {
+    ...local,
+    async probeYoutube(videoId: string): Promise<YoutubeMetadata> {
+      let response: Response;
+      try {
+        response = await fetchImpl(`${base}/probe`, {
+          method: 'POST',
+          headers: extractorHeaders(token, true),
+          body: JSON.stringify({ videoId }),
+          signal: AbortSignal.timeout(requestTimeout),
+        });
+      } catch (error) {
+        throw extractorFetchError(error);
+      }
+      if (!response.ok) throw await extractorFailure(response);
+
+      const body = (await response.json().catch(() => null)) as {
+        duration?: number;
+        title?: string;
+      } | null;
+      const duration = Number(body?.duration);
+      if (!body || !Number.isFinite(duration) || duration <= 0) {
+        throw new ApiError(
+          'EXTRACTOR_UNAVAILABLE',
+          'The local YouTube extractor returned invalid metadata.',
+        );
+      }
+      const metadata: YoutubeMetadata = { duration };
+      if (typeof body.title === 'string' && body.title.trim()) {
+        metadata.title = body.title.trim();
+      }
+      return metadata;
+    },
+
+    async searchYoutube(query: string): Promise<YoutubeSearchResult[]> {
+      let response: Response;
+      try {
+        response = await fetchImpl(`${base}/search?q=${encodeURIComponent(query)}`, {
+          headers: extractorHeaders(token),
+          signal: AbortSignal.timeout(requestTimeout),
+        });
+      } catch (error) {
+        throw extractorFetchError(error);
+      }
+      if (!response.ok) throw await extractorFailure(response);
+
+      const body = (await response.json().catch(() => null)) as {
+        results?: YoutubeSearchResult[];
+      } | null;
+      return Array.isArray(body?.results) ? body.results : [];
+    },
+
+    async downloadYoutube(videoId: string, directory: string): Promise<string> {
+      let response: Response;
+      try {
+        response = await fetchImpl(`${base}/download`, {
+          method: 'POST',
+          headers: extractorHeaders(token, true),
+          body: JSON.stringify({ videoId }),
+          signal: AbortSignal.timeout(requestTimeout),
+        });
+      } catch (error) {
+        throw extractorFetchError(error);
+      }
+      if (!response.ok) throw await extractorFailure(response);
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length === 0) {
+        throw new ApiError(
+          'EXTRACTOR_UNAVAILABLE',
+          'The local YouTube extractor returned an empty audio file.',
+        );
+      }
+      const rawName = response.headers.get('x-filename') ?? `${videoId}.m4a`;
+      const filename = rawName.replace(/[^A-Za-z0-9._-]/g, '_');
+      const path = join(directory, filename);
+      await writeFile(path, buffer);
+      return path;
     },
   };
 }

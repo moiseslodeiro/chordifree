@@ -24,6 +24,9 @@ const EnvSchema = z.object({
   GOOGLE_CLOUD_PROJECT: z.string().default(''),
   FIRESTORE_DATABASE: z.string().default('(default)'),
   ANALYZER_AUTH: z.enum(['token', 'google']).default('token'),
+  YOUTUBE_EXTRACTOR_URL: z.union([z.literal(''), z.string().url()]).default(''),
+  YOUTUBE_EXTRACTOR_TOKEN: z.string().default(''),
+  YOUTUBE_EXTRACTOR_TIMEOUT_MS: z.coerce.number().int().min(1000).default(240_000),
 });
 
 export interface AppConfig {
@@ -50,6 +53,9 @@ export interface AppConfig {
   googleCloudProject: string;
   firestoreDatabase: string;
   analyzerAuth: 'token' | 'google';
+  youtubeExtractorUrl?: string;
+  youtubeExtractorToken: string;
+  youtubeExtractorTimeoutMs: number;
 }
 
 /** True for loopback hosts and origins, where the cache should persist. */
@@ -74,6 +80,10 @@ function isLocalHost(value: string): boolean {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.parse(env);
   const local = isLocalHost(parsed.HOST) || isLocalHost(parsed.CORS_ORIGIN);
+  const youtubeExtractorUrl = parsed.YOUTUBE_EXTRACTOR_URL.trim();
+  if (youtubeExtractorUrl && !parsed.YOUTUBE_EXTRACTOR_TOKEN.trim()) {
+    throw new Error('YOUTUBE_EXTRACTOR_TOKEN is required when YOUTUBE_EXTRACTOR_URL is set');
+  }
   return {
     host: parsed.HOST,
     port: parsed.PORT,
@@ -99,5 +109,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     googleCloudProject: parsed.GOOGLE_CLOUD_PROJECT,
     firestoreDatabase: parsed.FIRESTORE_DATABASE,
     analyzerAuth: parsed.ANALYZER_AUTH,
+    ...(youtubeExtractorUrl ? { youtubeExtractorUrl } : {}),
+    youtubeExtractorToken: parsed.YOUTUBE_EXTRACTOR_TOKEN,
+    youtubeExtractorTimeoutMs: parsed.YOUTUBE_EXTRACTOR_TIMEOUT_MS,
   };
 }

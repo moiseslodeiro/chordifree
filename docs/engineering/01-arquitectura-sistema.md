@@ -102,6 +102,9 @@ flowchart LR
 - No hay load balancer ni IAP; el servidor es público a nivel de red y aplica la allowlist en
   Express.
 - Terraform crea Cloud Run, Firestore, Artifact Registry, service accounts e IAM.
+- **Opcional:** un extractor de YouTube en una IP residencial (Raspberry Pi + túnel) puede
+  sustituir al `yt-dlp` local para probe/search/download. El analyzer y la biblioteca siguen en
+  Cloud Run. Ver [`../services/youtube-extractor/README.md`](../../services/youtube-extractor/README.md).
 
 ## 3. Componentes internos
 

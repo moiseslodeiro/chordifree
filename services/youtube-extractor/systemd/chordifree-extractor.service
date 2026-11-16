@@ -1,0 +1,28 @@
+[Unit]
+Description=Chordifree YouTube extractor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chordifree
+Group=chordifree
+WorkingDirectory=/opt/chordifree-extractor
+EnvironmentFile=/etc/chordifree-extractor.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=HOME=/tmp
+ExecStart=/opt/chordifree-extractor/.venv/bin/gunicorn \
+  --workers 1 --threads 1 \
+  --bind 127.0.0.1:8010 \
+  --access-logfile - --error-logfile - \
+  app:app
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

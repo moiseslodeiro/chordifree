@@ -163,9 +163,50 @@ if you really want to start over.
 | `FIRESTORE_DATABASE` | `var.firestore_database` |
 | `ANALYZER_URL` | URL of the analyzer Cloud Run service |
 | `ANALYZER_AUTH` | `google` (Cloud Run verifies the ID token) |
+| `YOUTUBE_EXTRACTOR_URL` | Optional residential extractor URL |
+| `YOUTUBE_EXTRACTOR_TOKEN` | Optional shared extractor token |
 | `TEMP_DIR` | `/tmp/chordifree` |
 | `TRUST_PROXY` | `1` |
 | `AUDIO_CACHE_TTL_MINUTES` | `var.audio_cache_ttl_minutes` |
+
+## Optional: YouTube extractor on a residential IP
+
+YouTube blocks many Cloud Run/datacenter IPs with a “confirm you're not a bot” challenge. If
+you want YouTube analysis on the online instance, run the small extractor from
+[`services/youtube-extractor`](../../services/youtube-extractor/README.md) on a machine with a
+residential IP (a Raspberry Pi is enough) and expose it with Cloudflare Tunnel or Tailscale
+Funnel. The analyzer and the library stay in Cloud Run.
+
+On the Pi:
+
+```bash
+cd services/youtube-extractor
+sudo ./install.sh
+# or with Docker:
+cp .env.example .env   # set EXTRACTOR_TOKEN
+docker compose up -d --build
+```
+
+The native installer sets up systemd with `Restart=on-failure`; the Compose file uses
+`restart: unless-stopped`. Both bind the service to `127.0.0.1:8010`. See the
+[extractor guide](../../services/youtube-extractor/README.md) for the tunnel commands.
+
+```text
+Browser -> Cloud Run (web + API + analyzer)
+                  |
+                  +-> residential extractor -> yt-dlp -> YouTube
+```
+
+Set both Terraform variables:
+
+```hcl
+youtube_extractor_url   = "https://extractor.example.com"
+youtube_extractor_token = "..." # same value as EXTRACTOR_TOKEN on the Pi
+```
+
+The token is sensitive and is passed to the server as `YOUTUBE_EXTRACTOR_TOKEN`. If the URL is
+empty, the server uses the local `yt-dlp` as before. If the extractor is offline, YouTube
+analysis fails with a clear error but audio uploads keep working.
 
 ## Optional: custom domain
 
@@ -188,6 +229,23 @@ terraform {
 ```
 
 Do not commit `terraform.tfstate`; it is already ignored.
+
+## Stopping Cloud Run to save cost
+
+The two Cloud Run services are the only part that can keep billing while idle (`cpu_idle =
+false` on the server). To delete just those services and their IAM bindings, while keeping
+Firestore, Artifact Registry and the service accounts:
+
+```bash
+terraform destroy \
+  -target=google_cloud_run_v2_service_iam_member.server_public \
+  -target=google_cloud_run_v2_service_iam_member.analyzer_invoker \
+  -target=google_cloud_run_v2_service.server \
+  -target=google_cloud_run_v2_service.analyzer
+```
+
+To bring them back, run `./deploy.sh` again. It rebuilds the images and recreates both
+services. The Firestore database and the user libraries are untouched.
 
 ## Troubleshooting
 

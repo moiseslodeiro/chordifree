@@ -32,3 +32,4 @@ packaging/
 
 # The analyzer image downloads the ONNX models during the build.
 services/analyzer/models/
+services/youtube-extractor/
