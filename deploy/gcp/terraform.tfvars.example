@@ -4,3 +4,6 @@ region             = "europe-west1"
 firestore_location = "europe-west1"
 google_client_id   = "000000000000-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
 admin_emails       = ["you@example.com"]
+# Optional: residential YouTube extractor (Raspberry Pi + tunnel)
+# youtube_extractor_url   = "https://extractor.example.com"
+# youtube_extractor_token = "change-me"

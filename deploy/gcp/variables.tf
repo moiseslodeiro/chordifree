@@ -131,3 +131,26 @@ variable "labels" {
     app = "chordifree"
   }
 }
+
+variable "youtube_extractor_url" {
+  description = "Optional URL of a residential YouTube extractor (for example the Raspberry Pi service). Leave empty to use yt-dlp inside Cloud Run."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.youtube_extractor_url == "" || can(regex("^https://", var.youtube_extractor_url))
+    error_message = "Use an https:// URL for the YouTube extractor, or leave it empty."
+  }
+}
+
+variable "youtube_extractor_token" {
+  description = "Shared token for the YouTube extractor. Required when youtube_extractor_url is set."
+  type        = string
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition     = var.youtube_extractor_url == "" || var.youtube_extractor_token != ""
+    error_message = "Set youtube_extractor_token when youtube_extractor_url is configured."
+  }
+}

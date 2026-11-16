@@ -548,6 +548,10 @@ const en = {
     'The video is not available. If you pasted a YouTube Mix or radio link, open the individual video and copy its direct link, or upload the audio.',
   'apiError.YOUTUBE_BLOCKED':
     'YouTube is blocking this server, so it cannot download the video. Upload the audio file instead, or try again later.',
+  'apiError.EXTRACTOR_UNAVAILABLE':
+    'The local YouTube extractor is offline. Upload the audio file or try again when the device is back online.',
+  'apiError.EXTRACTOR_BUSY':
+    'The local YouTube extractor is busy. Try again in a moment.',
   'apiError.DURATION_EXCEEDED': 'The audio is too long.',
   'apiError.RATE_LIMITED': 'Too many analyses. Try again later.',
   'apiError.INVALID_AUDIO': 'The audio file is not valid.',
@@ -1182,6 +1186,10 @@ const es: Record<MessageKey, string> = {
     'El video no está disponible. Si has pegado un Mix o radio de YouTube, abre el vídeo individual y copia su enlace directo, o sube el archivo de audio.',
   'apiError.YOUTUBE_BLOCKED':
     'YouTube está bloqueando este servidor y no puede descargar el video. Sube el archivo de audio o inténtalo más tarde.',
+  'apiError.EXTRACTOR_UNAVAILABLE':
+    'El extractor local de YouTube está desconectado. Sube el archivo de audio o inténtalo cuando el equipo vuelva a estar en línea.',
+  'apiError.EXTRACTOR_BUSY':
+    'El extractor local de YouTube está ocupado. Inténtalo de nuevo en un momento.',
   'apiError.DURATION_EXCEEDED': 'El audio es demasiado largo.',
   'apiError.RATE_LIMITED': 'Demasiados análisis. Inténtalo más tarde.',
   'apiError.INVALID_AUDIO': 'El archivo de audio no es válido.',

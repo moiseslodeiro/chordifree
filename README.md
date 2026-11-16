@@ -102,6 +102,10 @@ desktop behaviour unchanged.
 > “confirm you're not a bot” challenge. The audio-upload path always works; configure cookies
 > or a proxy only if you understand the terms and the operational risk.
 
+For a free-ish workaround, [`services/youtube-extractor`](services/youtube-extractor/README.md)
+runs `yt-dlp` on a residential IP (a Raspberry Pi is enough) and lets Cloud Run use it for
+YouTube probe/search/download. The analyzer stays in Cloud Run.
+
 ## Features
 
 - **Chord detection** with Essentia `NNLSChroma`, key estimation and Viterbi smoothing.

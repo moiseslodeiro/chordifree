@@ -30,6 +30,8 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     googleCloudProject: '',
     firestoreDatabase: '(default)',
     analyzerAuth: 'token',
+    youtubeExtractorToken: '',
+    youtubeExtractorTimeoutMs: 240_000,
     ...overrides,
   };
 }

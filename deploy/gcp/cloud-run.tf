@@ -181,6 +181,22 @@ resource "google_cloud_run_v2_service" "server" {
       }
 
       dynamic "env" {
+        for_each = var.youtube_extractor_url == "" ? [] : [1]
+        content {
+          name  = "YOUTUBE_EXTRACTOR_URL"
+          value = var.youtube_extractor_url
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.youtube_extractor_url == "" ? [] : [1]
+        content {
+          name  = "YOUTUBE_EXTRACTOR_TOKEN"
+          value = var.youtube_extractor_token
+        }
+      }
+
+      dynamic "env" {
         for_each = var.cors_origin != "" ? [var.cors_origin] : []
         content {
           name  = "CORS_ORIGIN"

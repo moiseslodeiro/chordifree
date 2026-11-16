@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import ffmpegStatic from 'ffmpeg-static';
 import ffprobeStatic from 'ffprobe-static';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createMediaTools } from '../src/services/media';
 import { makeConfig } from './helpers';
 
@@ -163,6 +163,112 @@ describe('MediaTools with fake binaries', () => {
     );
     await expect(tools.probeYoutube('dQw4w9WgXcQ')).rejects.toMatchObject({
       code: 'VIDEO_UNAVAILABLE',
+    });
+  });
+});
+
+describe('MediaTools with a local YouTube extractor', () => {
+  it('uses the extractor for probe, search and download', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url.endsWith('/probe')) {
+        return new Response(JSON.stringify({ duration: 120, title: 'Demo' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (url.includes('/search')) {
+        return new Response(
+          JSON.stringify({
+            results: [
+              {
+                videoId: 'dQw4w9WgXcQ',
+                title: 'Demo',
+                thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.endsWith('/download')) {
+        return new Response(new Uint8Array(Buffer.from('audio')), {
+          status: 200,
+          headers: {
+            'Content-Type': 'audio/mp4',
+            'X-Filename': 'dQw4w9WgXcQ.m4a',
+          },
+        });
+      }
+      return new Response('not found', { status: 404 });
+    });
+
+    const tools = createMediaTools(
+      makeConfig({
+        youtubeExtractorUrl: 'https://extractor.test',
+        youtubeExtractorToken: 'secret',
+      }),
+      {},
+      fetchMock as unknown as typeof fetch,
+    );
+
+    await expect(tools.probeYoutube('dQw4w9WgXcQ')).resolves.toEqual({
+      duration: 120,
+      title: 'Demo',
+    });
+    await expect(tools.searchYoutube('demo query')).resolves.toEqual([
+      {
+        videoId: 'dQw4w9WgXcQ',
+        title: 'Demo',
+        thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+      },
+    ]);
+
+    const directory = await mkdtemp(join(tmpdir(), 'chordifree-extractor-'));
+    const downloaded = await tools.downloadYoutube('dQw4w9WgXcQ', directory);
+    expect(downloaded.endsWith('dQw4w9WgXcQ.m4a')).toBe(true);
+    await expect(readFile(downloaded, 'utf8')).resolves.toBe('audio');
+
+    expect(calls[0]?.url).toBe('https://extractor.test/probe');
+    expect(calls[0]?.init?.headers).toMatchObject({ 'X-Chordifree-Token': 'secret' });
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ videoId: 'dQw4w9WgXcQ' });
+    expect(calls[1]?.url).toBe('https://extractor.test/search?q=demo%20query');
+    expect(calls[2]?.url).toBe('https://extractor.test/download');
+  });
+
+  it('maps extractor errors to stable codes', async () => {
+    const busy = createMediaTools(
+      makeConfig({
+        youtubeExtractorUrl: 'https://extractor.test',
+        youtubeExtractorToken: 'secret',
+      }),
+      {},
+      (async () =>
+        new Response(JSON.stringify({ error: { code: 'EXTRACTOR_BUSY', message: 'busy' } }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        })) as unknown as typeof fetch,
+    );
+    await expect(busy.probeYoutube('dQw4w9WgXcQ')).rejects.toMatchObject({
+      code: 'EXTRACTOR_BUSY',
+    });
+
+    const blocked = createMediaTools(
+      makeConfig({
+        youtubeExtractorUrl: 'https://extractor.test',
+        youtubeExtractorToken: 'secret',
+      }),
+      {},
+      (async () =>
+        new Response(
+          JSON.stringify({ error: { code: 'YOUTUBE_BLOCKED', message: 'blocked' } }),
+          { status: 422, headers: { 'Content-Type': 'application/json' } },
+        )) as unknown as typeof fetch,
+    );
+    await expect(blocked.probeYoutube('dQw4w9WgXcQ')).rejects.toMatchObject({
+      code: 'YOUTUBE_BLOCKED',
     });
   });
 });

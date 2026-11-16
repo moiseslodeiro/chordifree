@@ -137,3 +137,22 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
 - **Alternativas:** Tauri; PWA; contenedor Docker de escritorio.
 - **Consecuencias:** Reutiliza la SPA y el servidor; el paquete es grande. macOS no está
   notarizado y Windows no está firmado, con avisos de SmartScreen/Gatekeeper.
+
+---
+
+## ADR-014 — Extractor de YouTube en una IP residencial (opcional)
+
+- **Estado:** Aceptada
+- **Contexto:** YouTube bloquea las IPs de datacenter/Cloud Run con “Sign in to confirm you're
+  not a bot”. Los cookies y los PO tokens no son fiables en esas IPs; un proxy residencial
+  resuelve el problema pero cuesta dinero.
+- **Decisión:** Ofrecer un extractor HTTP opcional (`services/youtube-extractor`) que corre
+  `yt-dlp` en una máquina con IP residencial (por ejemplo una Raspberry Pi) detrás de un túnel.
+  El servidor de Cloud Run lo usa para probe/search/download cuando `YOUTUBE_EXTRACTOR_URL`
+  está configurado; el analyzer y la biblioteca siguen en Cloud Run.
+- **Alternativas:** cookies de una cuenta; proxy residencial de pago; servicios públicos
+  Invidious/Piped/Cobalt; mover todo el stack a casa; subida manual de audio.
+- **Consecuencias:** Es gratis (salvo la electricidad) y usa la IP que YouTube espera. Requiere
+  un equipo encendido y un token compartido; si el extractor está apagado, YouTube falla pero
+  la subida de audio sigue funcionando. No cambia el comportamiento cuando la variable está
+  vacía.

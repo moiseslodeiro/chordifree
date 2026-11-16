@@ -163,9 +163,36 @@ if you really want to start over.
 | `FIRESTORE_DATABASE` | `var.firestore_database` |
 | `ANALYZER_URL` | URL of the analyzer Cloud Run service |
 | `ANALYZER_AUTH` | `google` (Cloud Run verifies the ID token) |
+| `YOUTUBE_EXTRACTOR_URL` | Optional residential extractor URL |
+| `YOUTUBE_EXTRACTOR_TOKEN` | Optional shared extractor token |
 | `TEMP_DIR` | `/tmp/chordifree` |
 | `TRUST_PROXY` | `1` |
 | `AUDIO_CACHE_TTL_MINUTES` | `var.audio_cache_ttl_minutes` |
+
+## Optional: YouTube extractor on a residential IP
+
+YouTube blocks many Cloud Run/datacenter IPs with a “confirm you're not a bot” challenge. If
+you want YouTube analysis on the online instance, run the small extractor from
+[`services/youtube-extractor`](../../services/youtube-extractor/README.md) on a machine with a
+residential IP (a Raspberry Pi is enough) and expose it with Cloudflare Tunnel or Tailscale
+Funnel. The analyzer and the library stay in Cloud Run.
+
+```text
+Browser -> Cloud Run (web + API + analyzer)
+                  |
+                  +-> residential extractor -> yt-dlp -> YouTube
+```
+
+Set both Terraform variables:
+
+```hcl
+youtube_extractor_url   = "https://extractor.example.com"
+youtube_extractor_token = "..." # same value as EXTRACTOR_TOKEN on the Pi
+```
+
+The token is sensitive and is passed to the server as `YOUTUBE_EXTRACTOR_TOKEN`. If the URL is
+empty, the server uses the local `yt-dlp` as before. If the extractor is offline, YouTube
+analysis fails with a clear error but audio uploads keep working.
 
 ## Optional: custom domain
 
