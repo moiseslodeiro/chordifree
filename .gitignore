@@ -26,3 +26,11 @@ deploy/gcp/.terraform/
 !*.tfvars.example
 crash.log
 crash.*.log
+
+# Impeccable: shared design artifacts are committed; local runtime state is not.
+.impeccable/config.local.json
+.impeccable/audit/
+.impeccable/questions/
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/live/inject-journal.json
