@@ -106,6 +106,15 @@ For a free-ish workaround, [`services/youtube-extractor`](services/youtube-extra
 runs `yt-dlp` on a residential IP (a Raspberry Pi is enough) and lets Cloud Run use it for
 YouTube probe/search/download. The analyzer stays in Cloud Run.
 
+```bash
+cd services/youtube-extractor
+sudo ./install.sh          # systemd, recommended for a Pi 2
+# or: docker compose up -d --build
+```
+
+Then expose `127.0.0.1:8010` with Cloudflare Tunnel or Tailscale Funnel and set
+`YOUTUBE_EXTRACTOR_URL` / `YOUTUBE_EXTRACTOR_TOKEN` in Terraform.
+
 ## Features
 
 - **Chord detection** with Essentia `NNLSChroma`, key estimation and Viterbi smoothing.
