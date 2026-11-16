@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { stubAuthConfig } from './support';
 
 const RESULT = {
   source: { type: 'youtube', videoId: 'dQw4w9WgXcQ', title: 'Demo sincronizada' },
@@ -18,6 +19,8 @@ const RESULT = {
 const JOB = { id: 'job-e2e', status: 'queued', progress: 0 };
 
 async function stubApi(page: Page, result = RESULT): Promise<void> {
+  await stubAuthConfig(page);
+
   await page.route('**/api/health', (route) =>
     route.fulfill({
       status: 200,
