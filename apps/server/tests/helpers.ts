@@ -24,6 +24,12 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     ffmpegPath: 'ffmpeg',
     ffprobePath: 'ffprobe',
     analyzerVersion: 'essentia-test',
+    authMode: 'none',
+    googleClientId: '',
+    adminEmails: [],
+    googleCloudProject: '',
+    firestoreDatabase: '(default)',
+    analyzerAuth: 'token',
     ...overrides,
   };
 }

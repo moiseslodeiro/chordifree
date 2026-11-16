@@ -14,6 +14,14 @@ import { createLyricsRouter } from './routes/lyrics';
 import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
 import {
+  createAdminRouter,
+  createAuthContext,
+  createAuthRouter,
+  createGoogleIdTokenProvider,
+  requireAllowed,
+  type AuthContext,
+} from './services/auth';
+import {
   audioCacheDirectory,
   TemporaryAudioCache,
 } from './services/audio-cache';
@@ -30,6 +38,7 @@ export interface AppDependencies {
   analyzer: AnalyzerClient;
   lyrics: LyricsClient;
   audioCache: TemporaryAudioCache;
+  auth: AuthContext;
   webDist: string;
 }
 
@@ -73,13 +82,23 @@ function sameOriginWriteGuard(config: AppConfig) {
 export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
   const tools = options.tools ?? createMediaTools(config);
+  const analyzerTokenProvider =
+    config.analyzerAuth === 'google'
+      ? createGoogleIdTokenProvider(config.analyzerUrl)
+      : undefined;
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
     queue: options.queue ?? new JobQueue(2),
     tools,
     analyzer:
-      options.analyzer ?? createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken),
+      options.analyzer ??
+      createAnalyzerClient(
+        config.analyzerUrl,
+        fetch,
+        config.analyzerToken,
+        analyzerTokenProvider,
+      ),
     lyrics: options.lyrics ?? createLyricsClient(fetch),
     audioCache:
       options.audioCache ??
@@ -89,6 +108,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         ttlMs: config.audioCacheTtlMinutes * 60_000,
         tools,
       }),
+    auth: options.auth ?? createAuthContext(config),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -101,13 +121,18 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         useDefaults: false,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
+          scriptSrc: ["'self'", 'https://accounts.google.com'],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           mediaSrc: ["'self'", 'blob:', 'data:'],
-          frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
-          connectSrc: ["'self'"],
+          frameSrc: [
+            "'self'",
+            'https://accounts.google.com',
+            'https://www.youtube.com',
+            'https://www.youtube-nocookie.com',
+          ],
+          connectSrc: ["'self'", 'https://accounts.google.com'],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"],
@@ -116,6 +141,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     }),
   );
   app.use(cors({ origin: config.corsOrigin }));
@@ -130,6 +156,10 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       analyzerVersion: health.version ?? config.analyzerVersion,
     });
   });
+
+  app.use('/api/auth', createAuthRouter(deps.auth));
+  app.use('/api/admin', createAdminRouter(deps.auth));
+  app.use('/api', requireAllowed(deps.auth));
 
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));

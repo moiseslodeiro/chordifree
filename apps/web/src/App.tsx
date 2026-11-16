@@ -13,6 +13,8 @@ import { Home } from './components/Home';
 import { NoticeBanner } from './components/ErrorBanner';
 import { UpdateBanner } from './components/UpdateBanner';
 import { LibraryList } from './components/LibraryList';
+import { AdminAccess } from './components/AdminAccess';
+import { ActionMenu } from './components/ActionMenu';
 import { SetlistList } from './components/SetlistList';
 import { SetlistView } from './components/SetlistView';
 import { SongView } from './components/SongView';
@@ -34,6 +36,7 @@ import {
   saveSetlists,
 } from './storage/setlists';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
+import { useAuth } from './auth/AuthProvider';
 import type { AppNotice, Preferences, Setlist, Song } from './types';
 
 type Route =
@@ -41,13 +44,15 @@ type Route =
   | { name: 'library' }
   | { name: 'setlists' }
   | { name: 'setlist'; id: string }
-  | { name: 'song'; id: string };
+  | { name: 'song'; id: string }
+  | { name: 'admin' };
 
 function parseHash(): Route {
   if (typeof window === 'undefined') return { name: 'home' };
   const hash = window.location.hash.replace(/^#\/?/, '');
   if (hash === 'library') return { name: 'library' };
   if (hash === 'setlists') return { name: 'setlists' };
+  if (hash === 'admin') return { name: 'admin' };
   const setlistMatch = /^setlist\/(.+)$/.exec(hash);
   if (setlistMatch?.[1]) return { name: 'setlist', id: decodeURIComponent(setlistMatch[1]) };
   const match = /^song\/(.+)$/.exec(hash);
@@ -58,6 +63,7 @@ function parseHash(): Route {
 function hashFor(route: Route): string {
   if (route.name === 'library') return '#/library';
   if (route.name === 'setlists') return '#/setlists';
+  if (route.name === 'admin') return '#/admin';
   if (route.name === 'setlist') return `#/setlist/${encodeURIComponent(route.id)}`;
   if (route.name === 'song') return `#/song/${encodeURIComponent(route.id)}`;
   return '#/';
@@ -98,6 +104,7 @@ function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
 
 export default function App() {
   const t = useT();
+  const auth = useAuth();
   const desktop = isDesktopApp();
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
@@ -648,7 +655,11 @@ export default function App() {
           </span>
         </button>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {desktop ? null : <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>}
+          {auth.mode === 'google' ? (
+            <span className="badge hidden sm:inline-flex">{t('auth.eyebrow')}</span>
+          ) : desktop ? null : (
+            <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>
+          )}
           <button
             type="button"
             className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em]"
@@ -686,6 +697,17 @@ export default function App() {
           >
             {preferences.theme === 'light' ? t('app.themeLight') : t('app.themeDark')}
           </button>
+          {auth.mode === 'google' ? (
+            <ActionMenu
+              label={auth.user?.name ?? auth.user?.email ?? t('auth.signInTitle')}
+              items={[
+                ...(auth.admin
+                  ? [{ label: t('auth.admin'), onSelect: () => navigate({ name: 'admin' }) }]
+                  : []),
+                { label: t('auth.signOut'), onSelect: auth.signOut },
+              ]}
+            />
+          ) : null}
         </div>
       </header>
 
@@ -737,6 +759,10 @@ export default function App() {
             onBack={() => navigate({ name: 'home' })}
             onHome={() => navigate({ name: 'home' })}
           />
+        ) : null}
+
+        {route.name === 'admin' ? (
+          <AdminAccess onBack={() => navigate({ name: 'library' })} />
         ) : null}
 
         {route.name === 'setlists' ? (

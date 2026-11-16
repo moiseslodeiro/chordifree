@@ -2,6 +2,21 @@ import { t } from '../i18n';
 import type { AnalysisResult, AnalysisView, LyricsResult, YoutubeSearchResult } from '../types';
 import { normalizeLyricsText } from '../lyrics/normalize';
 
+let authToken: string | null = null;
+
+/** Sets the Google ID token used by every API request. */
+export function setAuthToken(token: string | null): void {
+  authToken = token;
+  audioPreparations.clear();
+}
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    ...extra,
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+  };
+}
+
 export class ApiClientError extends Error {
   readonly code: string;
   readonly status: number;
@@ -15,6 +30,9 @@ export class ApiClientError extends Error {
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
+  if (response.status === 401 && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('chordifree:unauthorized'));
+  }
   const body = (await response.json().catch(() => null)) as
     | { error?: { code?: string; message?: string } }
     | null;
@@ -33,7 +51,7 @@ export async function getHealth(signal?: AbortSignal): Promise<{
   analyzerVersion: string;
 }> {
   try {
-    const response = await fetch('/api/health', { signal });
+    const response = await fetch('/api/health', { signal, headers: authHeaders() });
     const body = await parseResponse<{ analyzer?: string; analyzerVersion?: string }>(response);
     return {
       analyzer: body.analyzer === 'ok' ? 'ok' : 'down',
@@ -50,7 +68,7 @@ export async function createYoutubeAnalysis(
 ): Promise<AnalysisView> {
   const response = await fetch('/api/analyses', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ youtubeUrl }),
     signal,
   });
@@ -63,7 +81,12 @@ export async function createUploadAnalysis(
 ): Promise<AnalysisView> {
   const form = new FormData();
   form.append('file', file);
-  const response = await fetch('/api/analyses', { method: 'POST', body: form, signal });
+  const response = await fetch('/api/analyses', {
+    method: 'POST',
+    body: form,
+    signal,
+    headers: authHeaders(),
+  });
   return parseResponse(response);
 }
 
@@ -72,7 +95,10 @@ export async function searchYoutube(
   signal?: AbortSignal,
 ): Promise<YoutubeSearchResult[]> {
   const params = new URLSearchParams({ q: query });
-  const response = await fetch(`/api/youtube/search?${params.toString()}`, { signal });
+  const response = await fetch(`/api/youtube/search?${params.toString()}`, {
+    signal,
+    headers: authHeaders(),
+  });
   const body = await parseResponse<{ results?: YoutubeSearchResult[] }>(response);
   return Array.isArray(body.results) ? body.results : [];
 }
@@ -85,14 +111,78 @@ export interface AudioCacheStats {
 
 /** Disk usage of the temporary audio kept for the YouTube pitch player. */
 export async function getAudioCacheStats(signal?: AbortSignal): Promise<AudioCacheStats> {
-  const response = await fetch('/api/youtube/audio-cache', { signal });
+  const response = await fetch('/api/youtube/audio-cache', { signal, headers: authHeaders() });
   return parseResponse<AudioCacheStats>(response);
 }
 
 /** Removes every temporary audio file from the server cache. */
 export async function clearAudioCache(): Promise<{ removed: number }> {
-  const response = await fetch('/api/youtube/audio-cache', { method: 'DELETE' });
+  const response = await fetch('/api/youtube/audio-cache', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
   return parseResponse<{ removed: number }>(response);
+}
+
+export interface AuthConfig {
+  mode: 'none' | 'google';
+  clientId?: string;
+}
+
+export interface AuthUser {
+  uid: string;
+  email: string;
+  name?: string;
+  picture?: string;
+}
+
+export interface AuthMe {
+  user: AuthUser;
+  allowed: boolean;
+  admin: boolean;
+}
+
+export interface AccessEntry {
+  email: string;
+  addedAt: string;
+  addedBy?: string;
+}
+
+export async function getAuthConfig(signal?: AbortSignal): Promise<AuthConfig> {
+  const response = await fetch('/api/auth/config', { signal });
+  return parseResponse<AuthConfig>(response);
+}
+
+export async function getAuthMe(signal?: AbortSignal): Promise<AuthMe> {
+  const response = await fetch('/api/auth/me', { signal, headers: authHeaders() });
+  return parseResponse<AuthMe>(response);
+}
+
+export async function listAccessEntries(signal?: AbortSignal): Promise<AccessEntry[]> {
+  const response = await fetch('/api/admin/access', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ entries?: AccessEntry[] }>(response);
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
+export async function addAccessEntry(email: string): Promise<AccessEntry> {
+  const response = await fetch('/api/admin/access', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ email }),
+  });
+  const body = await parseResponse<{ entry?: AccessEntry }>(response);
+  if (!body.entry) throw new ApiClientError('INVALID_REQUEST', t('admin.addFailed'));
+  return body.entry;
+}
+
+export async function removeAccessEntry(email: string): Promise<void> {
+  const response = await fetch(`/api/admin/access/${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!response.ok && response.status !== 404) {
+    await parseResponse(response);
+  }
 }
 
 const audioPreparations = new Map<string, Promise<{ url: string; expiresAt?: string }>>();
@@ -133,6 +223,7 @@ export function prepareYoutubeAudio(
   const request = (async () => {
     const response = await fetch(`/api/youtube/${encodeURIComponent(videoId)}/audio`, {
       method: 'POST',
+      headers: authHeaders(),
     });
     const body = await parseResponse<{ url?: string; expiresAt?: string }>(response);
     if (!body.url) {
@@ -161,7 +252,10 @@ export async function fetchLyrics(
   ) {
     query.set('duration', String(Math.round(params.duration)));
   }
-  const response = await fetch(`/api/lyrics?${query.toString()}`, { signal });
+  const response = await fetch(`/api/lyrics?${query.toString()}`, {
+    signal,
+    headers: authHeaders(),
+  });
   const lyrics = await parseResponse<LyricsResult>(response);
   return {
     ...lyrics,
@@ -173,7 +267,10 @@ export async function fetchLyrics(
 }
 
 export async function deleteAnalysis(id: string): Promise<void> {
-  const response = await fetch(`/api/analyses/${id}`, { method: 'DELETE' });
+  const response = await fetch(`/api/analyses/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
   if (!response.ok && response.status !== 404) {
     throw new ApiClientError(
       'DELETE_FAILED',
@@ -184,7 +281,7 @@ export async function deleteAnalysis(id: string): Promise<void> {
 }
 
 export async function getAnalysis(id: string, signal?: AbortSignal): Promise<AnalysisView> {
-  const response = await fetch(`/api/analyses/${id}`, { signal });
+  const response = await fetch(`/api/analyses/${id}`, { signal, headers: authHeaders() });
   return parseResponse(response);
 }
 

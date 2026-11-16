@@ -18,6 +18,12 @@ const EnvSchema = z.object({
   FFMPEG_PATH: z.string().default('ffmpeg'),
   FFPROBE_PATH: z.string().default('ffprobe'),
   ANALYZER_VERSION: z.string().default('essentia-1.6'),
+  AUTH_MODE: z.enum(['none', 'google']).default('none'),
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  ADMIN_EMAILS: z.string().default(''),
+  GOOGLE_CLOUD_PROJECT: z.string().default(''),
+  FIRESTORE_DATABASE: z.string().default('(default)'),
+  ANALYZER_AUTH: z.enum(['token', 'google']).default('token'),
 });
 
 export interface AppConfig {
@@ -38,6 +44,12 @@ export interface AppConfig {
   ffmpegPath: string;
   ffprobePath: string;
   analyzerVersion: string;
+  authMode: 'none' | 'google';
+  googleClientId: string;
+  adminEmails: string[];
+  googleCloudProject: string;
+  firestoreDatabase: string;
+  analyzerAuth: 'token' | 'google';
 }
 
 /** True for loopback hosts and origins, where the cache should persist. */
@@ -81,5 +93,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ffmpegPath: parsed.FFMPEG_PATH,
     ffprobePath: parsed.FFPROBE_PATH,
     analyzerVersion: parsed.ANALYZER_VERSION,
+    authMode: parsed.AUTH_MODE,
+    googleClientId: parsed.GOOGLE_CLIENT_ID,
+    adminEmails: parsed.ADMIN_EMAILS.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean),
+    googleCloudProject: parsed.GOOGLE_CLOUD_PROJECT,
+    firestoreDatabase: parsed.FIRESTORE_DATABASE,
+    analyzerAuth: parsed.ANALYZER_AUTH,
   };
 }
