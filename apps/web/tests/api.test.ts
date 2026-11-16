@@ -82,6 +82,7 @@ describe('HTTP client', () => {
     });
     expect(fetchMock).toHaveBeenCalledWith('/api/youtube/dQw4w9WgXcQ/audio', {
       method: 'POST',
+      headers: {},
     });
   });
 
@@ -102,9 +103,11 @@ describe('HTTP client', () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/youtube/audio-cache', {
       signal: undefined,
+      headers: {},
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/youtube/audio-cache', {
       method: 'DELETE',
+      headers: {},
     });
   });
 

@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { stubAuthConfig } from './support';
+
+test.beforeEach(async ({ page }) => {
+  await stubAuthConfig(page);
+});
 
 test.describe('audio pitch', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'AudioWorklet is verified in Chromium');
