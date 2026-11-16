@@ -34,3 +34,4 @@ crash.*.log
 .impeccable/mocks/
 .impeccable/review/
 .impeccable/live/inject-journal.json
+deploy/gcp/backend.tf

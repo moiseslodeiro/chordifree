@@ -20,6 +20,30 @@
 
 - **Códigos de estado:** ver [`11-mapa-errores.md`](11-mapa-errores.md).
 
+## Configuración del cliente
+
+### `GET /api/config`
+
+Capacidades públicas para que la SPA no tenga que adivinar si la nube o YouTube están
+disponibles.
+
+| Campo | Valor |
+|---|---|
+| Auth | Ninguna |
+| Caso de uso | CU-014, CU-001, CU-010 |
+
+```json
+{
+  "features": {
+    "cloudLibrary": true,
+    "youtube": "hosted"
+  }
+}
+```
+
+`youtube` puede ser `direct` (local/self-hosted), `extractor` (extractor residencial) o
+`hosted` (Cloud Run sin extractor: YouTube suele estar bloqueado).
+
 ## Autenticación
 
 ### `GET /api/auth/config`

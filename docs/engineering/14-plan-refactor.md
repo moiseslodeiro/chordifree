@@ -11,6 +11,17 @@ es reescribir la app: es reducir el coste de cambio sin alterar el comportamient
 - No mezclar refactor con features nuevas.
 - Mantener el modo local y el online funcionando en cada paso.
 
+## Estado a 2026-11-16
+
+- **PR 1 — contratos:** hecho. `packages/contracts` está integrado en web y servidor.
+- **PR 2 — cloud sync:** hecho. `sync/cloud.ts` + `useCloudLibrary` con tests; `setlistsRef` y
+  los efectos de nube salieron de `App.tsx`.
+- **PR 3 — `App.tsx`:** parcial. De ~996 a ~660 líneas extrayendo routing, preferencias,
+  health, actualizaciones de escritorio, caché de audio, header y footer. Queda mover las
+  acciones de biblioteca/setlists y las páginas.
+- **P0:** privacidad, términos, producto, seguridad, diseño y borrado de cuenta online
+  completados.
+
 ---
 
 ## PR 1 — `packages/contracts`
@@ -140,18 +151,17 @@ Convertir `App.tsx` en una composición pequeña y mover el estado a hooks/pági
 
 - Persistencia de jobs (RT-001/RT-002).
 - Roles en Firestore (RF-024).
-- Borrado de cuenta online (RF-021).
-- `PRIVACY.md` (RT-010) — se puede hacer en un PR independiente.
-- Backend GCS de Terraform (RT-009).
+- Backend GCS de Terraform (RT-009) — hay ejemplo y runbook, pero no está activado.
 - Métricas/tracing (RNF-017).
+- División completa de `App.tsx` en páginas.
 
 ## Orden de ejecución
 
 ```mermaid
 flowchart LR
-    A[PR 1: contracts] --> B[PR 2: cloud sync]
-    B --> C[PR 3: App.tsx]
-    C --> D[Privacidad + jobs]
+    A[PR 1: contracts ✓] --> B[PR 2: cloud sync ✓]
+    B --> C[PR 3: App.tsx parcial]
+    C --> D[Jobs / métricas]
 ```
 
 Cada PR se abre contra `main`, se revisa y se fusiona antes de empezar el siguiente. No se

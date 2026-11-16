@@ -28,6 +28,7 @@
 | RF-022 | Gestionar cuotas por usuario en la instancia online | Baja | **Pendiente** | CU-010 |
 | RF-023 | Persistir los jobs para sobrevivir a reinicios | Media | **Pendiente** | CU-001, CU-002 |
 | RF-024 | Añadir roles de administración en Firestore | Baja | **Pendiente** | CU-009 |
+| RF-025 | Exponer capacidades de nube/YouTube al cliente | Media | Implementado | CU-014 |
 
 ## Requerimientos no funcionales
 
@@ -43,8 +44,8 @@
 | RNF-008 | Disponibilidad | El fallo del analyzer no debe tumbar `/api/health` | Health devuelve 200 con `analyzer: down` | Implementado |
 | RNF-009 | Disponibilidad | Los jobs no se pierden en un reinicio | Persistencia externa | **Pendiente** |
 | RNF-010 | Escalabilidad | Soportar más de una instancia del servidor | Estado compartido | **Pendiente** |
-| RNF-011 | Mantenibilidad | Tipos de API compartidos entre web y servidor | `packages/contracts` | **Pendiente** |
-| RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Pendiente** |
+| RNF-011 | Mantenibilidad | Tipos de API compartidos entre web y servidor | `packages/contracts` | Implementado |
+| RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Parcial** |
 | RNF-013 | Mantenibilidad | Tests de servidor, web, analyzer y E2E | 87 + 359 + 28 + analyzer | Implementado |
 | RNF-014 | Privacidad | El modo local no envía datos a terceros salvo YouTube/LRCLIB | Sin cuentas ni analytics | Implementado |
 | RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | Implementado |

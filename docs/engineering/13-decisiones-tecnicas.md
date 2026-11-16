@@ -172,3 +172,31 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
 - **Consecuencias:** El usuario puede ejercer un borrado básico sin acceso al proyecto de
   GCP. El operador sigue siendo responsable de backups, retención y borrado de logs. La
   acción es destructiva y requiere confirmación en la UI.
+
+---
+
+## ADR-016 — Contratos compartidos en `packages/contracts`
+
+- **Estado:** Aceptada
+- **Contexto:** Web y servidor duplicaban `AnalysisResult`, `Song`, `Setlist`, `AuthUser`,
+  `LyricsResult` y el esquema del snapshot de nube.
+- **Decisión:** Crear `packages/contracts` con tipos compartidos y los esquemas Zod que
+  cruzan la API. Web y servidor lo consumen como workspace package.
+- **Alternativas:** Generar tipos desde OpenAPI; mantener duplicados con tests de contrato;
+  usar tRPC.
+- **Consecuencias:** Una sola fuente para los contratos y el esquema de nube. El paquete
+  añade Zod al servidor y tipos al frontend; el cliente importa tipos, no necesariamente el
+  runtime de Zod.
+
+## ADR-017 — Capacidades públicas y límites por usuario
+
+- **Estado:** Aceptada
+- **Contexto:** La SPA no sabía si el modo online tenía nube o extractor, y los límites de
+  análisis eran por IP (todos los usuarios de una red compartían cuota).
+- **Decisión:** Añadir `GET /api/config` con `features.cloudLibrary` y `features.youtube`, y
+  usar `req.authUser.uid` como clave de los rate limits.
+- **Alternativas:** Deducir capacidades de los errores; un flag compilado en el frontend;
+  límites por IP.
+- **Consecuencias:** La UI puede avisar de YouTube bloqueado y priorizar la subida. Los
+  límites son por cuenta en modo Google y por usuario local en modo local. No hay cuotas
+  persistentes más allá del rate limit en memoria de una instancia.

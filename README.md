@@ -100,6 +100,9 @@ gcloud auth application-default login
 Set `AUTH_MODE=google` for the online mode. The default `AUTH_MODE=none` keeps local and
 desktop behaviour unchanged.
 
+Operations, logs, Firestore backups, token rotation and the cost/stop checklist are in
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
+
 > **YouTube on cloud hosts:** YouTube often blocks datacenter and Cloud Run IPs with a
 > “confirm you're not a bot” challenge. The audio-upload path always works; configure cookies
 > or a proxy only if you understand the terms and the operational risk.

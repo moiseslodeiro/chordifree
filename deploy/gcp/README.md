@@ -218,19 +218,30 @@ required.
 
 ## Optional: remote Terraform state
 
-Local state works for a single operator. For shared state, create a GCS bucket and add a
-backend before the first `terraform init`:
+Local state works for a single operator. For durable or shared state, create a GCS bucket
+with versioning enabled and copy the backend example before the first `terraform init`:
 
-```hcl
-terraform {
-  backend "gcs" {
-    bucket = "your-tfstate-bucket"
-    prefix = "chordifree"
-  }
-}
+```bash
+gsutil mb -l europe-west1 gs://your-tfstate-bucket
+gsutil versioning set on gs://your-tfstate-bucket
+cp backend.tf.example backend.tf
+# edit the bucket name
+terraform init -migrate-state
 ```
 
-Do not commit `terraform.tfstate`; it is already ignored.
+Do not commit `terraform.tfstate` or `backend.tf`; both are ignored.
+
+## Firestore backup
+
+The stack does not schedule backups. Export the database before risky changes and keep the
+exports in a bucket with a lifecycle/retention policy:
+
+```bash
+./backup-firestore.sh gs://your-backup-bucket/chordifree/$(date -u +%Y-%m-%dT%H-%M-%SZ)
+```
+
+This requires the Firestore import/export permissions and write access to the bucket. Restore
+with `gcloud firestore import` from the same prefix.
 
 ## Stopping Cloud Run to save cost
 
