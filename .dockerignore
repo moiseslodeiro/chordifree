@@ -16,3 +16,9 @@ playwright-report
 *.log
 .opencode
 captura.png
+deploy
+packaging
+**/.terraform
+*.tfstate
+*.tfstate.*
+*.tfvars

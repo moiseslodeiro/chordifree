@@ -17,3 +17,12 @@ __pycache__/
 .opencode/
 .agents/
 skills-lock.json
+
+# Terraform
+deploy/gcp/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log

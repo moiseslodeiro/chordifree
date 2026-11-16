@@ -58,6 +58,14 @@ VPS firewall; do not expose 3000, 3001 or 8000.
 When the app is behind a proxy, set `CORS_ORIGIN` to the public origin (for example
 `https://app.example.com`) so same-origin writes pass the CSRF guard.
 
+### Private hosted instance on GCP
+
+The [`deploy/gcp`](deploy/gcp/README.md) stack runs the app on Cloud Run, keeps the analyzer
+private and stores the Google account allowlist plus each user's library in Firestore.
+Access is restricted to accounts an administrator adds from the web UI. It is designed to
+stay inside the GCP free tier for personal use; see the
+[deployment guide](deploy/gcp/README.md) for cost notes, OAuth setup and Terraform commands.
+
 ## Features
 
 - **Chord detection** with Essentia `NNLSChroma`, key estimation and Viterbi smoothing.
@@ -128,6 +136,13 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `FFPROBE_PATH` | `ffprobe` | ffprobe binary |
 | `ANALYZER_VERSION` | `essentia-1.6` | Cache-busting analyzer version |
 | `ANALYZER_DOWNLOAD_MODELS` | `1` | Allow runtime model download |
+| `AUTH_MODE` | `none` | `none` for local/desktop, `google` for the hosted allowlisted instance |
+| `GOOGLE_CLIENT_ID` | empty | OAuth Web client ID used to verify Google ID tokens |
+| `ADMIN_EMAILS` | empty | Comma-separated administrators; always allowed and able to manage access |
+| `GOOGLE_CLOUD_PROJECT` | empty | Project for Firestore (allowlist and cloud libraries) |
+| `FIRESTORE_DATABASE` | `(default)` | Firestore database ID |
+| `ANALYZER_AUTH` | `token` | `google` makes the server call the analyzer with a Cloud Run ID token |
+| `ANALYZER_TOKEN` | empty | Shared token when `ANALYZER_AUTH=token` |
 
 ## Architecture
 
