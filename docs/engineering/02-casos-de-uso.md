@@ -357,13 +357,32 @@ Actores:
 
 ---
 
-## CU-015 — Borrar la cuenta y los datos online
+## CU-015 — Borrar los datos online y la cuenta
 
 | Campo | Contenido |
 |---|---|
-| Actores | Usuario aprobado / administrador |
-| Precondiciones | Sesión válida |
-| Postcondiciones | Datos del usuario eliminados de Firestore |
+| Actores | Usuario aprobado / administrador; Firestore |
+| Precondiciones | Sesión válida y cuenta permitida |
+| Postcondiciones | Canciones y setlists borrados; el no administrador pierde el acceso |
 
-**Estado:** `[PENDING]` — no implementado. La allowlist se puede quitar, pero no existe un
-flujo de borrado de `chordifree_users/{uid}` ni una página de “eliminar mi cuenta”.
+**Flujo principal**
+
+1. El usuario abre el menú de cuenta y elige **Delete cloud data**.
+2. La SPA pide confirmación y explica que la copia local permanece.
+3. La SPA llama a `DELETE /api/account`.
+4. El servidor borra `chordifree_users/{uid}/songs` y `.../setlists`.
+5. Si el usuario no es administrador, elimina también su entrada de `chordifree_access`.
+6. La SPA muestra el resultado; si se quitó el acceso, cierra la sesión.
+
+**Alternativas**
+
+- 5a. Un administrador conserva el acceso porque está en `ADMIN_EMAILS`; solo se borran sus
+  datos.
+- 1a. El usuario puede seguir usando la copia local y volver a subirla si mantiene el acceso.
+
+**Excepciones**
+
+- 3a. Modo local / nube deshabilitada → `404 CLOUD_DISABLED`.
+- 3b. Token inválido → `401 UNAUTHENTICATED`.
+- 3c. Cuenta fuera de la allowlist → `403 NOT_ALLOWED`.
+- 4a. Fallo de Firestore → 500; no se elimina la entrada de acceso.

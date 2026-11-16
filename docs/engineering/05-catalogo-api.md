@@ -20,6 +20,30 @@
 
 - **Códigos de estado:** ver [`11-mapa-errores.md`](11-mapa-errores.md).
 
+## Configuración del cliente
+
+### `GET /api/config`
+
+Capacidades públicas para que la SPA no tenga que adivinar si la nube o YouTube están
+disponibles.
+
+| Campo | Valor |
+|---|---|
+| Auth | Ninguna |
+| Caso de uso | CU-014, CU-001, CU-010 |
+
+```json
+{
+  "features": {
+    "cloudLibrary": true,
+    "youtube": "hosted"
+  }
+}
+```
+
+`youtube` puede ser `direct` (local/self-hosted), `extractor` (extractor residencial) o
+`hosted` (Cloud Run sin extractor: YouTube suele estar bloqueado).
+
 ## Autenticación
 
 ### `GET /api/auth/config`
@@ -96,6 +120,26 @@ administrador.
 | 204 | Eliminado |
 | 404 | `NOT_FOUND` si no estaba en la lista |
 | 403 | `ADMIN_ONLY` |
+
+## Cuenta
+
+### `DELETE /api/account`
+
+Borra la biblioteca en la nube del usuario autenticado. Si no es administrador, también
+elimina su entrada de la allowlist; los administradores conservan el acceso.
+
+| Campo | Valor |
+|---|---|
+| Auth | Bearer + allowlist |
+| Caso de uso | CU-015 |
+
+**Respuesta 200**
+
+```json
+{ "deleted": true, "songs": 12, "setlists": 3, "accessRemoved": true }
+```
+
+**Errores:** `401 UNAUTHENTICATED`, `403 NOT_ALLOWED`, `404 CLOUD_DISABLED`.
 
 ## Biblioteca en la nube
 
@@ -378,5 +422,6 @@ vocales. En Cloud Run, la autenticación la hace la plataforma con un ID token; 
 | `/api/auth/me` | Usuario local | Token + verificación |
 | `/api/admin/*` | Admin local | Token + admin |
 | `/api/cloud/*` | `404 CLOUD_DISABLED` | Token + allowlist |
+| `/api/account` | `404 CLOUD_DISABLED` | Token + allowlist |
 | `/api/analyses`, `/api/lyrics`, `/api/youtube` | Usuario local | Token + allowlist |
 | Analyzer | Token compartido opcional | IAM de Cloud Run |

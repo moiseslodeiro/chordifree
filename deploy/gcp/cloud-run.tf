@@ -121,6 +121,16 @@ resource "google_cloud_run_v2_service" "server" {
       }
 
       env {
+        name  = "OTEL_ENABLED"
+        value = "true"
+      }
+
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = local.server_service_name
+      }
+
+      env {
         name  = "TEMP_DIR"
         value = "/tmp/chordifree"
       }

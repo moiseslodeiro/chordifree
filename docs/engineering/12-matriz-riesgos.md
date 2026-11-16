@@ -13,9 +13,9 @@ Escala: probabilidad e impacto `Baja / Media / Alta`; nivel = combinación cuali
 | RT-007 | Cuota o coste de Firestore/Cloud Run supera el free tier | Baja | Medio | Medio | Budget alert, límites, keep-3 de imágenes | GCP | Mitigado |
 | RT-008 | El token de Google en `sessionStorage` se filtra por XSS | Baja | Alto | Medio | CSP estricta, dependencias auditadas, expiración del token | Web auth | Aceptado |
 | RT-009 | Pérdida del estado local de Terraform | Media | Alto | Alto | Backend GCS + backup del state | Terraform | Pendiente |
-| RT-010 | `PRIVACY.md` no cubre el modo online | Alta | Medio | Alto | Actualizar política: email, uid, biblioteca, retención y borrado | Documentación/legal | Pendiente |
-| RT-011 | `App.tsx` concentra demasiada lógica y favorece regresiones | Alta | Medio | Alto | Extraer hooks/páginas; tests de merge y sync | Web | Pendiente |
-| RT-012 | Tipos web/servidor divergen | Media | Medio | Medio | `packages/contracts` con Zod | Web + server | Pendiente |
+| RT-010 | `PRIVACY.md` no cubre el modo online | Alta | Medio | Alto | Actualizar política: email, uid, biblioteca, retención y borrado | Documentación/legal | Mitigado |
+| RT-011 | `App.tsx` concentra demasiada lógica y favorece regresiones | Alta | Medio | Alto | Extraer hooks/páginas; tests de merge y sync | Web | Mitigado parcial |
+| RT-012 | Tipos web/servidor divergen | Media | Medio | Medio | `packages/contracts` con Zod | Web + server | Mitigado |
 | RT-013 | Dependencia con vulnerabilidad conocida | Media | Alto | Alto | `pnpm audit`, Dependabot, pin de versiones | Repo | Pendiente |
 | RT-014 | Firestore sin backup ni política de retención | Media | Alto | Alto | Export programado + runbook de borrado | Firestore | Pendiente |
 | RT-015 | El administrador no puede revocar acceso rápidamente | Baja | Medio | Bajo | Eliminar de `#/admin`; el token dura ~1 h | Auth | Mitigado parcial |
@@ -29,5 +29,5 @@ Escala: probabilidad e impacto `Baja / Media / Alta`; nivel = combinación cuali
    cualquier feature nueva.
 2. **RT-012 (contratos):** bajo coste de arreglo y alto retorno; reduce bugs de integración.
 3. **RT-001/RT-002 (jobs):** no bloquean el uso personal, pero definen el techo del online.
-4. **RT-010/RT-014 (privacidad/datos):** bloqueantes antes de invitar a más gente.
+4. **RT-014 (backups/retención):** bloqueante antes de invitar a más gente. RT-010 (privacidad) ya está mitigado.
 5. **RT-009 (state):** riesgo operativo silencioso; se resuelve con un backend GCS.

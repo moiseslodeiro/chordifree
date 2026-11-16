@@ -13,6 +13,7 @@ const LyricsQuerySchema = z.object({
 export function createLyricsRouter(lyrics: LyricsClient): Router {
   const router = Router();
   const limiter = rateLimit({
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
     windowMs: 60_000,
     limit: 30,
     standardHeaders: true,

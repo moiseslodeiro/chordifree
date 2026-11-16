@@ -154,3 +154,30 @@ sequenceDiagram
     TF-->>O: service_url
     O->>O: añade URL a orígenes OAuth
 ```
+
+## CU-015 — Borrar datos online y cuenta
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant SPA
+    participant API
+    participant FS as Firestore
+
+    U->>SPA: Delete cloud data
+    SPA->>U: Confirmar (la copia local permanece)
+    U->>SPA: Confirmar
+    SPA->>API: DELETE /api/account (Bearer)
+    API->>FS: borrar songs + setlists de chordifree_users/{uid}
+    alt no es administrador
+        API->>FS: borrar chordifree_access/{email}
+    else administrador
+        API->>API: conservar acceso por ADMIN_EMAILS
+    end
+    API-->>SPA: { deleted, songs, setlists, accessRemoved }
+    alt accessRemoved
+        SPA->>SPA: signOut + pantalla de login
+    else administrador
+        SPA->>U: aviso y biblioteca local intacta
+    end
+```

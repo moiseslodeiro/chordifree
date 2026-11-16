@@ -137,6 +137,12 @@ flowchart LR
 - Modelo canónico de acordes, notación, transposición, simplificación, reducción y segmentos.
 - Es la única fuente de verdad del dominio musical compartida entre web y servidor.
 
+### `packages/contracts`
+
+- Tipos y esquemas Zod que cruzan la API: análisis, canciones, setlists, auth, snapshot de
+  nube y capacidades del runtime.
+- Web y servidor lo consumen como workspace package para evitar que los contratos diverjan.
+
 ## 4. Flujos principales
 
 ### Análisis

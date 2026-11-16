@@ -156,3 +156,66 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
   un equipo encendido y un token compartido; si el extractor está apagado, YouTube falla pero
   la subida de audio sigue funcionando. No cambia el comportamiento cuando la variable está
   vacía.
+
+---
+
+## ADR-015 — Borrado de datos online desde el menú de cuenta
+
+- **Estado:** Aceptada
+- **Contexto:** El modo online guarda canciones y setlists en Firestore. Quitar una cuenta
+  de la allowlist no borra sus datos, y no había una forma de que el usuario los eliminara.
+- **Decisión:** Añadir `DELETE /api/account`. Borra el snapshot del usuario y, si no es
+  administrador, elimina también su entrada de la allowlist. Los administradores conservan
+  el acceso porque están en `ADMIN_EMAILS`. La copia local no se borra.
+- **Alternativas:** borrar solo la allowlist; borrar solo la biblioteca; borrar también el
+  almacenamiento local; exigir una intervención manual del operador.
+- **Consecuencias:** El usuario puede ejercer un borrado básico sin acceso al proyecto de
+  GCP. El operador sigue siendo responsable de backups, retención y borrado de logs. La
+  acción es destructiva y requiere confirmación en la UI.
+
+---
+
+## ADR-016 — Contratos compartidos en `packages/contracts`
+
+- **Estado:** Aceptada
+- **Contexto:** Web y servidor duplicaban `AnalysisResult`, `Song`, `Setlist`, `AuthUser`,
+  `LyricsResult` y el esquema del snapshot de nube.
+- **Decisión:** Crear `packages/contracts` con tipos compartidos y los esquemas Zod que
+  cruzan la API. Web y servidor lo consumen como workspace package.
+- **Alternativas:** Generar tipos desde OpenAPI; mantener duplicados con tests de contrato;
+  usar tRPC.
+- **Consecuencias:** Una sola fuente para los contratos y el esquema de nube. El paquete
+  añade Zod al servidor y tipos al frontend; el cliente importa tipos, no necesariamente el
+  runtime de Zod.
+
+## ADR-017 — Capacidades públicas y límites por usuario
+
+- **Estado:** Aceptada
+- **Contexto:** La SPA no sabía si el modo online tenía nube o extractor, y los límites de
+  análisis eran por IP (todos los usuarios de una red compartían cuota).
+- **Decisión:** Añadir `GET /api/config` con `features.cloudLibrary` y `features.youtube`, y
+  usar `req.authUser.uid` como clave de los rate limits.
+- **Alternativas:** Deducir capacidades de los errores; un flag compilado en el frontend;
+  límites por IP.
+- **Consecuencias:** La UI puede avisar de YouTube bloqueado y priorizar la subida. Los
+  límites son por cuenta en modo Google y por usuario local en modo local. No hay cuotas
+  persistentes más allá del rate limit en memoria de una instancia.
+
+---
+
+## ADR-018 — Alertas en Cloud Monitoring y trazas OTLP
+
+- **Estado:** Aceptada
+- **Contexto:** Solo había logs y una alerta de presupuesto; no había avisos de fallos de
+  análisis, 5xx, caída del health check ni trazas distribuidas.
+- **Decisión:** Terraform crea un canal de email, una métrica basada en logs para fallos de
+  análisis, una alerta de 5xx, un uptime check de `/api/health` y sus alertas. El servidor
+  exporta trazas OTLP a `telemetry.googleapis.com` cuando `OTEL_ENABLED=true`, con
+  `roles/telemetry.writer`. El exportador de Google Cloud Trace específico se descartó por
+  estar deprecado.
+- **Alternativas:** `@google-cloud/opentelemetry-cloud-trace-exporter` (deprecado), Sentry,
+  Prometheus/GMP, no instrumentar.
+- **Consecuencias:** Trazas y alertas dentro de GCP, sin agente adicional. El canal de email
+  requiere verificación. El SDK de OpenTelemetry solo se carga si `OTEL_ENABLED=true`; en
+  local/escritorio queda desactivado. El volumen de trazas y la retención dependen del
+  proyecto y del free tier.

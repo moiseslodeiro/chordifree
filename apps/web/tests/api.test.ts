@@ -4,6 +4,7 @@ import {
   clearAudioCache,
   createUploadAnalysis,
   createYoutubeAnalysis,
+  deleteAccount,
   fetchLyrics,
   getAnalysis,
   getAudioCacheStats,
@@ -106,6 +107,24 @@ describe('HTTP client', () => {
       headers: {},
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/youtube/audio-cache', {
+      method: 'DELETE',
+      headers: {},
+    });
+  });
+
+  it('deletes the cloud account data', async () => {
+    const fetchMock = vi.fn(async () =>
+      response({ deleted: true, songs: 2, setlists: 1, accessRemoved: true }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(deleteAccount()).resolves.toEqual({
+      deleted: true,
+      songs: 2,
+      setlists: 1,
+      accessRemoved: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/account', {
       method: 'DELETE',
       headers: {},
     });

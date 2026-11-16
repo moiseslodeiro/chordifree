@@ -25,6 +25,11 @@ export function AuthScreen() {
         {auth.status === 'signed-out' ? (
           <>
             <p className="mt-3 text-sm leading-relaxed text-ink2">{t('auth.signInBody')}</p>
+            {auth.expired ? (
+              <p className="note note-warning mt-4 text-sm leading-relaxed">
+                {t('auth.sessionExpired')}
+              </p>
+            ) : null}
             <div className="mt-6">
               {auth.config?.clientId ? (
                 <GoogleSignIn clientId={auth.config.clientId} onCredential={(value) => void auth.signIn(value)} />

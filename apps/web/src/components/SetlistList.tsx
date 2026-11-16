@@ -1,5 +1,6 @@
 import { useLanguage, useT } from '../i18n';
 import type { Setlist, SongSummary } from '../types';
+import { useConfirm } from './ConfirmDialog';
 
 interface SetlistListProps {
   setlists: Setlist[];
@@ -29,6 +30,7 @@ export function SetlistList({
   onBack,
 }: SetlistListProps) {
   const t = useT();
+  const confirm = useConfirm();
   const language = useLanguage();
 
   const create = () => {
@@ -62,9 +64,7 @@ export function SetlistList({
           <p className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
             {t('setlists.emptyTitle')}
           </p>
-          <p className="mx-auto mt-2 max-w-[40ch] text-sm text-ink2">
-            {t('setlists.emptyBody')}
-          </p>
+          <p className="mx-auto mt-2 max-w-[40ch] text-sm text-ink2">{t('setlists.emptyBody')}</p>
           <button type="button" className="btn btn-primary mt-5" onClick={create}>
             {t('setlists.new')}
           </button>
@@ -107,9 +107,14 @@ export function SetlistList({
                     type="button"
                     className="btn btn-danger"
                     onClick={() => {
-                      if (window.confirm(t('setlists.deleteConfirm', { name: setlist.name }))) {
-                        onDelete(setlist.id);
-                      }
+                      void confirm({
+                        title: t('common.delete'),
+                        description: t('setlists.deleteConfirm', { name: setlist.name }),
+                        confirmLabel: t('common.delete'),
+                        tone: 'danger',
+                      }).then((accepted) => {
+                        if (accepted) onDelete(setlist.id);
+                      });
                     }}
                   >
                     {t('common.delete')}

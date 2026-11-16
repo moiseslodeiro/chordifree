@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseChord, type ChordSegment } from '@chordifree/chords';
 import { EditorPanel } from '../src/components/EditorPanel';
+import { ConfirmProvider } from '../src/components/ConfirmDialog';
 import type { Song } from '../src/types';
 
 const segments: ChordSegment[] = [
@@ -31,13 +32,15 @@ function renderEditor(overrides: Partial<Song> = {}) {
   const onSave = vi.fn();
   const onDiscard = vi.fn();
   render(
-    <EditorPanel
-      song={song(overrides)}
-      notation="english"
-      accidental="sharp"
-      onSave={onSave}
-      onDiscard={onDiscard}
-    />,
+    <ConfirmProvider>
+      <EditorPanel
+        song={song(overrides)}
+        notation="english"
+        accidental="sharp"
+        onSave={onSave}
+        onDiscard={onDiscard}
+      />
+    </ConfirmProvider>,
   );
   return { onSave, onDiscard };
 }
@@ -111,26 +114,29 @@ describe('EditorPanel', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('Am');
   });
 
-  it('restores the original detection after confirmation', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('restores the original detection after confirmation', async () => {
     renderEditor();
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
     fireEvent.change(field, { target: { value: 'D' } });
     fireEvent.blur(field);
 
     fireEvent.click(screen.getByRole('button', { name: 'Restaurar detección' }));
-    expect(window.confirm).toHaveBeenCalled();
-    expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('C');
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Restaurar detección' }));
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('C'),
+    );
   });
 
-  it('does not restore when confirmation is cancelled', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('does not restore when confirmation is cancelled', async () => {
     renderEditor();
     const field = screen.getAllByLabelText('Acorde del segmento')[0]!;
     fireEvent.change(field, { target: { value: 'D' } });
     fireEvent.blur(field);
 
     fireEvent.click(screen.getByRole('button', { name: 'Restaurar detección' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
     expect(screen.getAllByLabelText('Acorde del segmento')[0]).toHaveValue('D');
   });
 

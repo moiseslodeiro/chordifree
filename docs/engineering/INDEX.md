@@ -38,22 +38,20 @@ Fortalezas:
 
 Deuda principal:
 
-1. `App.tsx` concentra demasiada lógica (≈1000 líneas, 20 estados, 11 efectos).
-2. Tipos web/servidor duplicados.
-3. Jobs y audio temporal en memoria → 1 instancia y pérdida al reiniciar.
-4. `PRIVACY.md` no cubre aún el modo online.
-5. Estado de Terraform local y falta de backup/borrado de Firestore.
+1. `App.tsx` sigue concentrando lógica (≈660 líneas; ya se extrajeron routing, preferencias, health, updates, audio cache, header y footer).
+2. Jobs y audio temporal en memoria → 1 instancia y pérdida al reiniciar.
+3. Estado de Terraform local y falta de backup programado de Firestore.
+4. Persistencia de jobs, roles en Firestore y observabilidad avanzada.
 
 ## Huecos de documentación
 
 Marcados `[PENDING]` en los documentos:
 
-- Borrado de cuenta y biblioteca online (CU-015 / RF-021).
 - Persistencia de jobs (RF-023 / RNF-009).
 - Escalado horizontal (RNF-010).
-- Contratos compartidos (RNF-011) y división de `App.tsx` (RNF-012).
-- Política de privacidad del modo online (RNF-015).
-- Métricas, trazas y alertas (RNF-017).
+- División completa de `App.tsx` en páginas (RNF-012, parcial).
+- Trazas OTLP y alertas base ya existen; falta dashboards/SLOs y alertas de coste (RNF-017 parcial).
+- Roles de administración en Firestore (RF-024).
 - Backend remoto de Terraform (RNF-018).
 - Backup/retención de Firestore (RD-005/RD-006).
 

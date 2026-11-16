@@ -24,10 +24,11 @@
 | RF-018 | Provisionar la infraestructura con Terraform | Alta | Implementado | CU-014 |
 | RF-019 | Escalar a cero cuando no hay tráfico | Alta | Implementado | CU-014 |
 | RF-020 | Ofrecer un endpoint de salud que compruebe el analyzer | Media | Implementado | CU-014 |
-| RF-021 | Eliminar la cuenta y todos los datos online del usuario | Media | **Pendiente** | CU-015 |
+| RF-021 | Eliminar la cuenta y todos los datos online del usuario | Media | Implementado | CU-015 |
 | RF-022 | Gestionar cuotas por usuario en la instancia online | Baja | **Pendiente** | CU-010 |
 | RF-023 | Persistir los jobs para sobrevivir a reinicios | Media | **Pendiente** | CU-001, CU-002 |
 | RF-024 | Añadir roles de administración en Firestore | Baja | **Pendiente** | CU-009 |
+| RF-025 | Exponer capacidades de nube/YouTube al cliente | Media | Implementado | CU-014 |
 
 ## Requerimientos no funcionales
 
@@ -43,13 +44,13 @@
 | RNF-008 | Disponibilidad | El fallo del analyzer no debe tumbar `/api/health` | Health devuelve 200 con `analyzer: down` | Implementado |
 | RNF-009 | Disponibilidad | Los jobs no se pierden en un reinicio | Persistencia externa | **Pendiente** |
 | RNF-010 | Escalabilidad | Soportar más de una instancia del servidor | Estado compartido | **Pendiente** |
-| RNF-011 | Mantenibilidad | Tipos de API compartidos entre web y servidor | `packages/contracts` | **Pendiente** |
-| RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Pendiente** |
+| RNF-011 | Mantenibilidad | Tipos de API compartidos entre web y servidor | `packages/contracts` | Implementado |
+| RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Parcial** |
 | RNF-013 | Mantenibilidad | Tests de servidor, web, analyzer y E2E | 87 + 359 + 28 + analyzer | Implementado |
 | RNF-014 | Privacidad | El modo local no envía datos a terceros salvo YouTube/LRCLIB | Sin cuentas ni analytics | Implementado |
-| RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | **Parcial** |
+| RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | Implementado |
 | RNF-016 | Observabilidad | Logs operativos y errores estructurados | Cloud Logging + envelope de error | Implementado |
-| RNF-017 | Observabilidad | Métricas, trazas y alertas de error | Cloud Monitoring / Sentry | **Pendiente** |
+| RNF-017 | Observabilidad | Métricas, trazas y alertas de error | Cloud Monitoring / Cloud Trace / alertas | **Parcial** |
 | RNF-018 | Operación | Estado de Terraform duradero | Backend GCS | **Pendiente** |
 | RNF-019 | Accesibilidad | Sin violaciones críticas en las vistas principales | Axe E2E | Implementado |
 | RNF-020 | Compatibilidad | Node 22.22+/24.15+, Python 3.11+, navegadores modernos | CI + E2E Chromium | Implementado |

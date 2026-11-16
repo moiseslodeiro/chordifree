@@ -1,6 +1,8 @@
 # Google Drive backup and sync
 
-Status: **proposal**. Nothing in this document is implemented yet.
+Status: **deferred**. The private online instance uses Firestore for the per-user library;
+this Drive proposal remains an alternative and is not implemented. Revisit it only if a user
+asks for a provider-neutral backup or a Google Drive mirror.
 
 ## 1. Goal
 

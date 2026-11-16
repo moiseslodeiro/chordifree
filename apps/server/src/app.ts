@@ -12,6 +12,8 @@ import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
+import { createAccountRouter } from './routes/account';
+import { createConfigRouter } from './routes/config';
 import {
   FirestoreCloudLibraryStore,
   type CloudLibraryStore,
@@ -169,10 +171,12 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     });
   });
 
+  app.use('/api/config', createConfigRouter(deps.config, deps.cloudLibrary));
   app.use('/api/auth', createAuthRouter(deps.auth));
   app.use('/api/admin', createAdminRouter(deps.auth));
   app.use('/api', requireAllowed(deps.auth));
 
+  app.use('/api/account', createAccountRouter(deps.auth, deps.cloudLibrary));
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));

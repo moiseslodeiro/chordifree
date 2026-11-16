@@ -1,5 +1,4 @@
 import type { Firestore } from '@google-cloud/firestore';
-import { z } from 'zod';
 import { ApiError } from '../errors';
 
 export interface CloudLibraryData {
@@ -10,6 +9,7 @@ export interface CloudLibraryData {
 export interface CloudLibraryStore {
   load(uid: string): Promise<CloudLibraryData>;
   replace(uid: string, data: CloudLibraryData): Promise<void>;
+  clear(uid: string): Promise<{ songs: number; setlists: number }>;
 }
 
 export class MemoryCloudLibraryStore implements CloudLibraryStore {
@@ -27,6 +27,12 @@ export class MemoryCloudLibraryStore implements CloudLibraryStore {
       songs: [...data.songs],
       setlists: [...data.setlists],
     });
+  }
+
+  async clear(uid: string): Promise<{ songs: number; setlists: number }> {
+    const data = this.users.get(uid);
+    this.users.delete(uid);
+    return { songs: data?.songs.length ?? 0, setlists: data?.setlists.length ?? 0 };
   }
 }
 
@@ -56,6 +62,13 @@ export class FirestoreCloudLibraryStore implements CloudLibraryStore {
     const root = this.firestore.collection(this.collection).doc(uid);
     await this.replaceCollection(root.collection('songs'), data.songs);
     await this.replaceCollection(root.collection('setlists'), data.setlists);
+  }
+
+  async clear(uid: string): Promise<{ songs: number; setlists: number }> {
+    const data = await this.load(uid);
+    await this.replace(uid, { songs: [], setlists: [] });
+    await this.firestore.collection(this.collection).doc(uid).delete().catch(() => undefined);
+    return { songs: data.songs.length, setlists: data.setlists.length };
   }
 
   private async replaceCollection(
@@ -95,26 +108,3 @@ export class FirestoreCloudLibraryStore implements CloudLibraryStore {
     }
   }
 }
-
-const CloudSongSchema = z
-  .object({
-    id: z.string().min(1),
-    title: z.string(),
-    updatedAt: z.string(),
-  })
-  .passthrough();
-
-const CloudSetlistSchema = z
-  .object({
-    id: z.string().min(1),
-    name: z.string(),
-    songIds: z.array(z.string()),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .passthrough();
-
-export const CloudLibraryBodySchema = z.object({
-  songs: z.array(CloudSongSchema).max(2000),
-  setlists: z.array(CloudSetlistSchema).max(500),
-});

@@ -1,24 +1,11 @@
-import type { ChordSegment } from '@chordifree/chords';
+import type { VocalRegion } from '@chordifree/contracts';
 
-export type AnalysisSource =
-  | { type: 'youtube'; videoId: string; title?: string }
-  | { type: 'upload'; filename: string };
-
-export interface AnalysisResult {
-  source: AnalysisSource;
-  duration: number;
-  segments: ChordSegment[];
-  beats?: number[];
-  beatsPerBar?: number;
-  vocalRegions?: VocalRegion[];
-  analyzerVersion: string;
-  createdAt: string;
-}
-
-export interface VocalRegion {
-  start: number;
-  end: number;
-}
+export type {
+  AnalysisResult,
+  AnalysisSource,
+  VocalRegion,
+  YoutubeSearchResult,
+} from '@chordifree/contracts';
 
 export interface RawSegment {
   start: number;
@@ -39,14 +26,6 @@ export interface RawAnalysis {
 export interface YoutubeMetadata {
   duration: number;
   title?: string;
-}
-
-export interface YoutubeSearchResult {
-  videoId: string;
-  title: string;
-  uploader?: string;
-  duration?: number;
-  thumbnail: string;
 }
 
 export interface AudioProbe {

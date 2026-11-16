@@ -79,6 +79,8 @@ The [`deploy/gcp`](deploy/gcp/README.md) stack adds an optional online mode:
   they are always allowed; everyone else must be added from the web UI (`#/admin`).
 - **Per-user cloud library** under `chordifree_users/{uid}`. Songs and setlists merge with
   the local copy by song source and `updatedAt`.
+- **Account deletion:** from the account menu, a user can delete their cloud library. A
+  non-admin also loses allowlist access; the local copy stays on the device.
 - **Private analyzer** on Cloud Run. Only the server service account can invoke it, using a
   Cloud Run ID token.
 - **Scale to zero** and a free-tier-friendly shape: no load balancer, no IAP, no always-on
@@ -97,6 +99,9 @@ gcloud auth application-default login
 
 Set `AUTH_MODE=google` for the online mode. The default `AUTH_MODE=none` keeps local and
 desktop behaviour unchanged.
+
+Operations, logs, Firestore backups, token rotation and the cost/stop checklist are in
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 > **YouTube on cloud hosts:** YouTube often blocks datacenter and Cloud Run IPs with a
 > “confirm you're not a bot” challenge. The audio-upload path always works; configure cookies

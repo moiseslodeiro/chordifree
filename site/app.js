@@ -130,7 +130,7 @@ const spanish = {
   'run.gcp.body':
     'Despliega la app web y un analizador privado en Cloud Run, guarda la lista de acceso y la biblioteca de cada usuario en Firestore y deja entrar solo a cuentas de Google aprobadas. Ambos servicios escalan a cero y caben en el free tier para uso personal.',
   'run.gcp.note':
-    'Inicio de sesión con Google, una página de administración para los accesos y un solo servicio de Cloud Run para la app. Sin balanceador ni IAP.',
+    'Inicio de sesión con Google, una página de administración para los accesos y un solo servicio de Cloud Run para la app. Sin balanceador ni IAP. YouTube puede necesitar el extractor residencial opcional o subir el audio.',
   'run.gcp.cta': 'Guía de despliegue en GCP',
   'run.gcp.guide': 'Código Terraform',
 
@@ -186,7 +186,7 @@ const spanish = {
     'Todavía no. Essentia no publica un wheel de Linux arm64, así que la versión de escritorio para Linux es solo x86_64. Una build ARM requeriría compilar Essentia desde el código fuente.',
   'faq.5.q': '¿Funciona con YouTube?',
   'faq.5.a':
-    'Sí, mediante yt-dlp. Descargar audio de YouTube puede contravenir sus Términos de Servicio, así que usa tus propios archivos cuando no tengas derechos.',
+    'Sí, mediante yt-dlp. En una instancia online privada, YouTube puede bloquear la IP del servidor; sube el archivo de audio o configura el extractor residencial opcional. Descargar audio de YouTube puede contravenir sus Términos de Servicio, así que usa tus propios archivos cuando no tengas derechos.',
   'faq.12.q': '¿Puedo buscar en YouTube por nombre?',
   'faq.12.a':
     'Sí. Escribe una canción o un artista en el buscador, revisa la miniatura y el canal, y pulsa Chordifree para analizar ese video. Pegar un enlace sigue funcionando.',

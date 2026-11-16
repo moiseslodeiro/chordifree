@@ -20,6 +20,8 @@ resource "google_project_service" "services" {
     "artifactregistry.googleapis.com",
     "firestore.googleapis.com",
     "cloudbuild.googleapis.com",
+    "cloudtrace.googleapis.com",
+    "telemetry.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "cloudresourcemanager.googleapis.com",
@@ -86,6 +88,12 @@ resource "google_project_iam_member" "server_firestore" {
 resource "google_project_iam_member" "server_logs" {
   project = var.project_id
   role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.server.email}"
+}
+
+resource "google_project_iam_member" "server_trace" {
+  project = var.project_id
+  role    = "roles/telemetry.writer"
   member  = "serviceAccount:${google_service_account.server.email}"
 }
 

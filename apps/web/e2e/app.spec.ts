@@ -117,9 +117,7 @@ test.describe('full flow', () => {
     await expect(page.getByText('Never Gonna Give You Up')).toBeVisible();
     await expect(page.getByText('Rick Astley · 3:33')).toBeVisible();
 
-    await page
-      .getByRole('button', { name: 'Analizar Never Gonna Give You Up' })
-      .click();
+    await page.getByRole('button', { name: 'Analizar Never Gonna Give You Up' }).click();
 
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
@@ -242,8 +240,8 @@ test.describe('full flow', () => {
     const backupPath = testInfo.outputPath('biblioteca.json');
     await download.saveAs(backupPath);
 
-    page.once('dialog', (dialog) => void dialog.accept());
     await page.getByRole('button', { name: 'Eliminar' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
     await expect(page.getByText('Todavía no hay canciones')).toBeVisible();
 
     await page.getByLabel('Copia de seguridad u hoja de acordes').setInputFiles(backupPath);
@@ -285,9 +283,7 @@ test.describe('full flow', () => {
     expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
   });
 
-  test('saves the lyrics, updates the chords with the capo and restores them', async ({
-    page,
-  }) => {
+  test('saves the lyrics, updates the chords with the capo and restores them', async ({ page }) => {
     await analyze(page);
 
     await page.getByRole('button', { name: 'Letra', exact: true }).click();
@@ -321,9 +317,7 @@ test.describe('full flow', () => {
       .getByTestId('song-grid-column')
       .evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
-    await expect(
-      page.getByTestId('song-grid-column').getByText('Segunda línea'),
-    ).toBeVisible();
+    await expect(page.getByTestId('song-grid-column').getByText('Segunda línea')).toBeVisible();
   });
 
   test('skips intro and interlude and allows anchoring a line to the current time', async ({
@@ -373,9 +367,7 @@ test.describe('full flow', () => {
     await expect(textarea).toHaveValue('Primera línea\n[00:40] Segunda línea');
     await page.getByRole('button', { name: 'Guardar letra' }).click();
 
-    await expect(
-      page.getByTestId('song-grid-column').getByText('Segunda línea'),
-    ).toBeVisible();
+    await expect(page.getByTestId('song-grid-column').getByText('Segunda línea')).toBeVisible();
     await expect(page.getByText('[00:40]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'F en 00:52' })).toBeVisible();
 
@@ -434,9 +426,7 @@ test.describe('full flow', () => {
     await page.getByTestId('beat-cell-8').click();
     for (const index of [8, 9, 10, 11]) {
       await expect(page.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-loop', 'a');
-      await expect(page.getByTestId(`beat-cell-${index}`)).not.toHaveAttribute(
-        'data-mark-preview',
-      );
+      await expect(page.getByTestId(`beat-cell-${index}`)).not.toHaveAttribute('data-mark-preview');
     }
     await expect(page.getByRole('button', { name: 'Marcar inicio A' })).toHaveAttribute(
       'data-set',
@@ -521,8 +511,8 @@ test.describe('full flow', () => {
     });
 
     await page.getByRole('button', { name: 'Más acciones' }).click();
-    page.once('dialog', (dialog) => void dialog.accept());
     await page.getByRole('menuitem', { name: 'Reanalizar' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Reanalizar' }).click();
     await expect(page.getByText(/Reanalizando… \d+%/)).toBeVisible();
     await expect(page.getByText('Canción reanalizada con el analizador actual.')).toBeVisible({
       timeout: 10_000,
@@ -691,6 +681,27 @@ test.describe('accessibility', () => {
       (violation) => violation.impact === 'critical' || violation.impact === 'serious',
     );
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+  });
+
+  test('the delete confirmation has no critical violations', async ({ page }) => {
+    await analyze(page);
+    await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Eliminar' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .include('dialog')
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+    const blocking = results.violations.filter(
+      (violation) => violation.impact === 'critical' || violation.impact === 'serious',
+    );
+    expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(dialog).not.toBeVisible();
   });
 
   test('the lyrics view has no critical violations', async ({ page }) => {

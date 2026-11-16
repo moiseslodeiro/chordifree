@@ -104,6 +104,57 @@ describe('cloud library', () => {
     expect(response.body.error.code).toBe('INVALID_REQUEST');
   });
 
+  it('deletes the cloud library and removes access for a normal user', async () => {
+    const app = buildApp();
+    await request(app)
+      .put('/api/cloud/library')
+      .set('Authorization', 'Bearer friend-token')
+      .send({ songs: [SONG], setlists: [SETLIST] });
+
+    const deleted = await request(app)
+      .delete('/api/account')
+      .set('Authorization', 'Bearer friend-token');
+    expect(deleted.status).toBe(200);
+    expect(deleted.body).toEqual({
+      deleted: true,
+      songs: 1,
+      setlists: 1,
+      accessRemoved: true,
+    });
+
+    const denied = await request(app)
+      .get('/api/cloud/library')
+      .set('Authorization', 'Bearer friend-token');
+    expect(denied.status).toBe(403);
+    expect(denied.body.error.code).toBe('NOT_ALLOWED');
+  });
+
+  it('deletes an administrator library without removing admin access', async () => {
+    const app = buildApp();
+    await request(app)
+      .put('/api/cloud/library')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ songs: [SONG], setlists: [] });
+
+    const deleted = await request(app)
+      .delete('/api/account')
+      .set('Authorization', 'Bearer admin-token');
+    expect(deleted.status).toBe(200);
+    expect(deleted.body).toEqual({
+      deleted: true,
+      songs: 1,
+      setlists: 0,
+      accessRemoved: false,
+    });
+
+    const after = await request(app)
+      .get('/api/cloud/library')
+      .set('Authorization', 'Bearer admin-token');
+    expect(after.status).toBe(200);
+    expect(after.body.songs).toEqual([]);
+    expect(after.body.setlists).toEqual([]);
+  });
+
   it('is disabled in local mode', async () => {
     const app = createApp({
       config: makeConfig({ authMode: 'none' }),
@@ -114,5 +165,9 @@ describe('cloud library', () => {
     const response = await request(app).get('/api/cloud/library');
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('CLOUD_DISABLED');
+
+    const deleted = await request(app).delete('/api/account');
+    expect(deleted.status).toBe(404);
+    expect(deleted.body.error.code).toBe('CLOUD_DISABLED');
   });
 });

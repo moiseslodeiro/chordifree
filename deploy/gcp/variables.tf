@@ -154,3 +154,14 @@ variable "youtube_extractor_token" {
     error_message = "Set youtube_extractor_token when youtube_extractor_url is configured."
   }
 }
+
+variable "alert_email" {
+  description = "Email for Cloud Monitoring alerts. Defaults to the first administrator."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.alert_email == "" || can(regex("^[^@]+@[^@]+\\.[^@]+$", var.alert_email))
+    error_message = "Use a valid email address or leave it empty."
+  }
+}

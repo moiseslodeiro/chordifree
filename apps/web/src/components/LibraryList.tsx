@@ -4,6 +4,7 @@ import type { SongHistory, SongSummary } from '../types';
 import { useLanguage, useT, type MessageKey } from '../i18n';
 import { isDesktopApp } from '../lib/platform';
 import { NoticeBanner } from './ErrorBanner';
+import { useConfirm } from './ConfirmDialog';
 
 type SourceFilter = 'all' | 'youtube' | 'upload' | 'sheet';
 
@@ -81,6 +82,7 @@ export function LibraryList({
 }: LibraryListProps) {
   const t = useT();
   const language = useLanguage();
+  const confirm = useConfirm();
   const desktop = isDesktopApp();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<SourceFilter>('all');
@@ -166,9 +168,7 @@ export function LibraryList({
           <p className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
             {t('library.emptyTitle')}
           </p>
-          <p className="mx-auto mt-2 max-w-[40ch] text-sm text-ink2">
-            {t('library.emptyBody')}
-          </p>
+          <p className="mx-auto mt-2 max-w-[40ch] text-sm text-ink2">{t('library.emptyBody')}</p>
         </div>
       ) : (
         <>
@@ -288,13 +288,14 @@ export function LibraryList({
                       type="button"
                       className="btn btn-danger"
                       onClick={() => {
-                        if (
-                          window.confirm(
-                            t('library.deleteConfirm', { title: song.title }),
-                          )
-                        ) {
-                          onDelete(song.id);
-                        }
+                        void confirm({
+                          title: t('common.delete'),
+                          description: t('library.deleteConfirm', { title: song.title }),
+                          confirmLabel: t('common.delete'),
+                          tone: 'danger',
+                        }).then((accepted) => {
+                          if (accepted) onDelete(song.id);
+                        });
                       }}
                     >
                       {t('common.delete')}

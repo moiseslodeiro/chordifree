@@ -1199,3 +1199,14 @@ body.performance-mode .song-view {
     transform: translateY(0);
   }
 }
+
+/* Native confirmation dialog: keep scroll gestures inside the top layer. */
+dialog.confirm-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.confirm-dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}

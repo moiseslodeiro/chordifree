@@ -3,21 +3,11 @@ import { Router } from 'express';
 import { Firestore } from '@google-cloud/firestore';
 import { GoogleAuth, OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
+import type { AccessEntry, AuthUser } from '@chordifree/contracts';
 import type { AppConfig } from '../config';
 import { ApiError } from '../errors';
 
-export interface AuthUser {
-  uid: string;
-  email: string;
-  name?: string;
-  picture?: string;
-}
-
-export interface AccessEntry {
-  email: string;
-  addedAt: string;
-  addedBy?: string;
-}
+export type { AccessEntry, AuthUser } from '@chordifree/contracts';
 
 export interface AccessStore {
   isAllowed(email: string): Promise<boolean>;

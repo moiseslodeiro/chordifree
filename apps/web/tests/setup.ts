@@ -64,7 +64,10 @@ if (!globalThis.URL.createObjectURL) {
 
 if (!globalThis.requestAnimationFrame) {
   globalThis.requestAnimationFrame = ((callback: FrameRequestCallback) =>
-    setTimeout(() => callback(Date.now()), 16) as unknown as number) as typeof requestAnimationFrame;
+    setTimeout(
+      () => callback(Date.now()),
+      16,
+    ) as unknown as number) as typeof requestAnimationFrame;
   globalThis.cancelAnimationFrame = ((handle: number) =>
     clearTimeout(handle)) as typeof cancelAnimationFrame;
 }
@@ -89,4 +92,19 @@ if (typeof window.HTMLMediaElement !== 'undefined') {
     configurable: true,
     value: () => undefined,
   });
+}
+
+if (typeof HTMLDialogElement !== 'undefined') {
+  if (!HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function showModal() {
+      this.setAttribute('open', '');
+    };
+  }
+  if (!HTMLDialogElement.prototype.close) {
+    HTMLDialogElement.prototype.close = function close(value?: string) {
+      this.removeAttribute('open');
+      this.returnValue = value ?? '';
+      this.dispatchEvent(new Event('close'));
+    };
+  }
 }

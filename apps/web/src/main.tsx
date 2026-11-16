@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthScreen } from './auth/AuthScreen';
+import { ConfirmProvider } from './components/ConfirmDialog';
 import './index.css';
 
 const container = document.getElementById('root');
@@ -17,7 +18,9 @@ function Root() {
 createRoot(container).render(
   <StrictMode>
     <AuthProvider>
-      <Root />
+      <ConfirmProvider>
+        <Root />
+      </ConfirmProvider>
     </AuthProvider>
   </StrictMode>,
 );

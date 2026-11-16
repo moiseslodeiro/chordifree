@@ -25,7 +25,7 @@ Cada fila cruza un requerimiento con los casos de uso que lo cubren. `x` = cubie
 | RF-018 | | | | | | | | | | | | | | x | | Completa |
 | RF-019 | | | | | | | | | | | | | | x | | Completa |
 | RF-020 | | | | | | | | | | | | | | x | | Completa |
-| RF-021 | | | | | | | | | | | | | | | | **Sin cubrir** |
+| RF-021 | | | | | | | | | | | | | | | x | Completa |
 | RF-022 | | | | | | | | | | P | | | | | | Parcial |
 | RF-023 | P | P | | | | | | | | | | | | | | Parcial |
 | RF-024 | | | | | | | | | P | | | | | | | Parcial |
@@ -39,13 +39,13 @@ Cada fila cruza un requerimiento con los casos de uso que lo cubren. `x` = cubie
 | RNF-008 | | | | | | | | | | | | | | x | | Completa |
 | RNF-009 | | | | | | | | | | | | | | | | **Sin cubrir** |
 | RNF-010 | | | | | | | | | | | | | | | | **Sin cubrir** |
-| RNF-011 | | | | | | | | | | | | | | | | **Sin cubrir** |
-| RNF-012 | | | | | | | | | | | | | | | | **Sin cubrir** |
+| RNF-011 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | Completa |
+| RNF-012 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | Parcial |
 | RNF-013 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | | Completa |
 | RNF-014 | x | x | x | x | x | x | x | x | x | | | x | x | | | Completa |
-| RNF-015 | | | | | | | | | | | | | | | | **Sin cubrir** |
+| RNF-015 | | | | | | | | | | | | | | | x | Completa |
 | RNF-016 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | | Completa |
-| RNF-017 | | | | | | | | | | | | | | | | **Sin cubrir** |
+| RNF-017 | | | | | | | | | | | | | | x | | Parcial |
 | RNF-018 | | | | | | | | | | | | | | | | **Sin cubrir** |
 | RNF-019 | | | | | | x | | | | | | | | | | Parcial |
 | RNF-020 | x | x | x | x | x | x | x | x | x | x | x | x | x | x | | Completa |
@@ -68,12 +68,10 @@ Cada fila cruza un requerimiento con los casos de uso que lo cubren. `x` = cubie
 | CU-012 | RF-015, RNF-002, RNF-004, RNF-007, RNF-013, RNF-014, RNF-016, RNF-020 |
 | CU-013 | RF-008, RNF-002, RNF-004, RNF-014, RNF-016, RNF-020 |
 | CU-014 | RF-016, RF-017, RF-018, RF-019, RF-020, RNF-003, RNF-004, RNF-005, RNF-008, RNF-013, RNF-016, RNF-020 |
-| CU-015 | Ninguno: caso de uso pendiente |
+| CU-015 | RF-021, RNF-015, RNF-002, RNF-004, RNF-016 |
 
 ## Huecos principales
 
-1. **RF-021 / CU-015:** no hay borrado de cuenta ni de biblioteca online.
-2. **RNF-009 / RNF-010:** la persistencia de jobs y el escalado horizontal no existen.
-3. **RNF-011 / RNF-012:** contratos compartidos y división de `App.tsx`.
-4. **RNF-015:** `PRIVACY.md` no describe todavía el modo online.
-5. **RNF-017 / RNF-018:** faltan métricas/trazas y backend remoto de Terraform.
+1. **RNF-009 / RNF-010:** la persistencia de jobs y el escalado horizontal no existen.
+2. **RNF-011 / RNF-012:** contratos compartidos y división de `App.tsx`.
+3. **RNF-017 / RNF-018:** faltan métricas/trazas y backend remoto de Terraform.

@@ -1,92 +1,22 @@
-import type { AccidentalPreference, ChordSegment, Notation } from '@chordifree/chords';
+import type { AccidentalPreference, Notation } from '@chordifree/chords';
+import type { AnalysisResult, AnalysisSource, Song } from '@chordifree/contracts';
 
-export type AnalysisSource =
-  | { type: 'youtube'; videoId: string; title?: string }
-  | { type: 'upload'; filename: string }
-  | { type: 'sheet'; filename: string };
+export type {
+  AnalysisResult,
+  AnalysisSource,
+  AnalysisStatus,
+  AnalysisView,
+  LyricsResult,
+  Setlist,
+  Song,
+  YoutubeSearchResult,
+} from '@chordifree/contracts';
 
 export type AppNoticeTone = 'info' | 'warning' | 'success';
 
 export interface AppNotice {
   message: string;
   tone: AppNoticeTone;
-}
-
-export interface AnalysisResult {
-  source: AnalysisSource;
-  duration: number;
-  segments: ChordSegment[];
-  beats?: number[];
-  beatsPerBar?: number;
-  vocalRegions?: Array<{ start: number; end: number }>;
-  analyzerVersion: string;
-  createdAt: string;
-}
-
-export type AnalysisStatus = 'queued' | 'processing' | 'done' | 'error';
-
-export interface AnalysisView {
-  id: string;
-  status: AnalysisStatus;
-  progress: number;
-  source?: AnalysisSource;
-  result?: AnalysisResult;
-  error?: { code: string; message: string };
-}
-
-export interface YoutubeSearchResult {
-  videoId: string;
-  title: string;
-  uploader?: string;
-  duration?: number;
-  thumbnail: string;
-}
-
-export interface LyricsResult {
-  lyrics: string;
-  syncedLyrics?: string;
-  trackName: string;
-  artistName: string;
-  albumName?: string;
-  duration?: number;
-  source: 'lrclib';
-}
-
-export interface Song {
-  id: string;
-  title: string;
-  /** Optional artist, separate from the title once the user edits details. */
-  artist?: string;
-  source: AnalysisSource;
-  duration: number;
-  segments: ChordSegment[];
-  detectedSegments: ChordSegment[];
-  beats?: number[];
-  beatsPerBar?: number;
-  /** Detected regions with sung vocals, used to align the lyrics. */
-  vocalRegions?: Array<{ start: number; end: number }>;
-  /** Virtual capo: chords are shown transposed -capo semitones. */
-  capo?: number;
-  /** Optional plain-text lyrics, with significant line breaks. */
-  lyrics?: string;
-  /** Visual horizontal offsets for lyric chord labels, in em, keyed by segment index. */
-  lyricChordOffsets?: Record<string, number>;
-  /** Visual lyric line overrides, keyed by segment index. */
-  lyricChordLines?: Record<string, number>;
-  analyzerVersion: string;
-  transpose: number;
-  notation: Notation;
-  accidentalPreference: AccidentalPreference;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Setlist {
-  id: string;
-  name: string;
-  songIds: string[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface SongHistory {

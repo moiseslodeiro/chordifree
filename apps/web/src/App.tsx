@@ -1,383 +1,69 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  clearAudioCache,
-  createYoutubeAnalysis,
-  getAudioCacheStats,
-  getCloudLibrary,
-  getHealth,
-  saveCloudLibrary,
-  type AudioCacheStats,
-} from './lib/api';
-import { isDesktopApp, type UpdateInfo } from './lib/platform';
+import { useCallback, useState } from 'react';
+import { deleteAccount } from './lib/api';
+import { isDesktopApp } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
-import { useT, setLanguage } from './i18n';
-import { Home } from './components/Home';
+import { useT } from './i18n';
 import { NoticeBanner } from './components/ErrorBanner';
 import { UpdateBanner } from './components/UpdateBanner';
-import { LibraryList } from './components/LibraryList';
-import { AdminAccess } from './components/AdminAccess';
-import { ActionMenu } from './components/ActionMenu';
-import { SetlistList } from './components/SetlistList';
-import { SetlistView } from './components/SetlistView';
-import { SongView } from './components/SongView';
-import { getStorage, PREFIX, StorageQuotaError } from './storage/keys';
-import { listKeys } from './storage/envelope';
-import { BackupError, downloadBackup, parseBackupSnapshot } from './storage/backup';
-import { decodeSongFromToken } from './lib/share';
-import { ChordProError, parseChordPro } from './lib/chordpro';
-import { Library, analysisCacheStats, clearAnalysisCache } from './storage/library';
-import { loadPreferences, savePreferences } from './storage/preferences';
-import { removePractice } from './storage/practice';
-import {
-  addSongToSetlist,
-  createSetlist,
-  loadSetlists,
-  moveSongInSetlist,
-  removeSongFromSetlist,
-  renameSetlist,
-  saveSetlists,
-} from './storage/setlists';
+import { AppHeader } from './components/AppHeader';
+import { AppFooter } from './components/AppFooter';
+import { AppRoutes } from './components/AppRoutes';
+import { useConfirm } from './components/ConfirmDialog';
+import { getStorage } from './storage/keys';
+import { Library } from './storage/library';
 import { loadHistory, markOpened, saveHistory, type HistoryMap } from './storage/history';
+import { hasQuarantinedData } from './lib/songState';
 import { useAuth } from './auth/AuthProvider';
-import { sourceKey, type AppNotice, type Preferences, type Setlist, type Song } from './types';
-
-type Route =
-  | { name: 'home' }
-  | { name: 'library' }
-  | { name: 'setlists' }
-  | { name: 'setlist'; id: string }
-  | { name: 'song'; id: string }
-  | { name: 'admin' };
-
-function parseHash(): Route {
-  if (typeof window === 'undefined') return { name: 'home' };
-  const hash = window.location.hash.replace(/^#\/?/, '');
-  if (hash === 'library') return { name: 'library' };
-  if (hash === 'setlists') return { name: 'setlists' };
-  if (hash === 'admin') return { name: 'admin' };
-  const setlistMatch = /^setlist\/(.+)$/.exec(hash);
-  if (setlistMatch?.[1]) return { name: 'setlist', id: decodeURIComponent(setlistMatch[1]) };
-  const match = /^song\/(.+)$/.exec(hash);
-  if (match?.[1]) return { name: 'song', id: decodeURIComponent(match[1]) };
-  return { name: 'home' };
-}
-
-function hashFor(route: Route): string {
-  if (route.name === 'library') return '#/library';
-  if (route.name === 'setlists') return '#/setlists';
-  if (route.name === 'admin') return '#/admin';
-  if (route.name === 'setlist') return `#/setlist/${encodeURIComponent(route.id)}`;
-  if (route.name === 'song') return `#/song/${encodeURIComponent(route.id)}`;
-  return '#/';
-}
-
-/** Static audio shipped with the app (the built-in demo) has no object URL. */
-function audioUrlForSong(song: Song): string | null {
-  return song.source.type === 'upload' && song.source.filename === 'demo.wav'
-    ? '/demo.wav'
-    : null;
-}
-
-/** Stable comparison that ignores timestamps and object key order. */
-function comparableSong(song: Song): string {
-  const stable = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(stable);
-    if (value && typeof value === 'object') {
-      return Object.fromEntries(
-        Object.entries(value as Record<string, unknown>)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([key, entry]) => [key, stable(entry)]),
-      );
-    }
-    return value;
-  };
-  const { updatedAt: _updatedAt, ...rest } = song;
-  return JSON.stringify(stable(rest));
-}
-
-function songIsDirty(current: Song | null, saved: Song | null): boolean {
-  if (!current || !saved) return false;
-  return comparableSong(current) !== comparableSong(saved);
-}
-
-function mergeSetlists(local: Setlist[], cloud: Setlist[]): Setlist[] {
-  const byId = new Map(local.map((setlist) => [setlist.id, setlist] as const));
-  for (const remote of cloud) {
-    const current = byId.get(remote.id);
-    if (!current || new Date(remote.updatedAt).getTime() >= new Date(current.updatedAt).getTime()) {
-      byId.set(remote.id, remote);
-    }
-  }
-  return [...byId.values()];
-}
-
-function hasQuarantinedData(storage: ReturnType<typeof getStorage>): boolean {
-  return listKeys(storage, `${PREFIX}:corrupt:`).length > 0;
-}
+import { useCloudLibrary } from './sync/useCloudLibrary';
+import { usePreferences } from './hooks/usePreferences';
+import { useHealth } from './hooks/useHealth';
+import { useDesktopUpdates } from './hooks/useDesktopUpdates';
+import { useAudioCache } from './hooks/useAudioCache';
+import { useSetlistActions } from './hooks/useSetlistActions';
+import { useLibraryActions } from './hooks/useLibraryActions';
+import { useSharedSongImport } from './hooks/useSharedSongImport';
+import { useSongNavigation } from './hooks/useSongNavigation';
+import { hashFor, type Route } from './routing';
+import type { AppNotice, Song } from './types';
 
 export default function App() {
   const t = useT();
   const auth = useAuth();
+  const confirm = useConfirm();
   const desktop = isDesktopApp();
   const [storage] = useState(getStorage);
   const [library] = useState(() => new Library(storage));
-  const [preferences, setPreferences] = useState<Preferences>(() => {
-    const loaded = loadPreferences(storage);
-    return parseHash().name === 'song' ? { ...loaded, gridView: 'beats' } : loaded;
-  });
-  const analysisRunner = useAnalysisRunner();
-  const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
-  const [audioCache, setAudioCache] = useState<AudioCacheStats | null>(null);
-  const [audioCacheRefresh, setAudioCacheRefresh] = useState(0);
-  const [cloudStatus, setCloudStatus] = useState<'idle' | 'syncing' | 'saved' | 'error'>(
-    'idle',
-  );
-  const cloudReady = useRef(false);
-  const cloudErrorNotified = useRef(false);
-  const [setlists, setSetlists] = useState<Setlist[]>(() => loadSetlists(storage));
-  const setlistsRef = useRef(setlists);
-  setlistsRef.current = setlists;
-  const [history, setHistory] = useState<HistoryMap>(() => loadHistory(storage));
-  const [initial] = useState(() => {
-    const route = parseHash();
-    if (route.name === 'song') {
-      const found = library.get(route.id);
-      if (found) return { route, song: found as Song | null };
-      return { route: { name: 'home' } as Route, song: null };
-    }
-    if (route.name === 'setlist') {
-      const found = setlists.some((setlist) => setlist.id === route.id);
-      if (found) return { route, song: null as Song | null };
-      return { route: { name: 'setlists' } as Route, song: null };
-    }
-    return { route, song: null as Song | null };
-  });
-  const [route, setRoute] = useState<Route>(initial.route);
-  const [song, setSong] = useState<Song | null>(initial.song);
-  const [savedSong, setSavedSong] = useState<Song | null>(initial.song);
-  const dirty = useMemo(() => songIsDirty(song, savedSong), [song, savedSong]);
-  useEffect(() => {
-    if (route.name !== 'library') return;
-    const controller = new AbortController();
-    void getAudioCacheStats(controller.signal)
-      .then((stats) => {
-        if (!controller.signal.aborted) setAudioCache(stats);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setAudioCache(null);
-      });
-    return () => controller.abort();
-  }, [route.name, audioCacheRefresh]);
-
-  const songRef = useRef<Song | null>(initial.song);
-  const shareHandled = useRef(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(
-    initial.song ? audioUrlForSong(initial.song) : null,
-  );
-  const [songs, setSongs] = useState(() => library.list());
   const [notice, setNotice] = useState<AppNotice | null>(() =>
-    hasQuarantinedData(storage)
-      ? {
-          message: t('app.storageCorrupt'),
-          tone: 'warning',
-        }
-      : null,
+    hasQuarantinedData(storage) ? { message: t('app.storageCorrupt'), tone: 'warning' } : null,
   );
-  const [health, setHealth] = useState<{ status: 'ok' | 'down' | 'unknown'; version: string }>({
-    status: 'unknown',
-    version: 'essentia-1.6',
-  });
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [updateNotice, setUpdateNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!desktop) return;
-    const bridge = window.chordifreeDesktop;
-    if (!bridge) return;
-    const unsubscribe = bridge.onUpdateAvailable?.((info) => setUpdateInfo(info));
-    void bridge
-      .checkForUpdates?.()
-      .then((result) => {
-        if (result?.status === 'update' && result.version && result.url) {
-          setUpdateInfo({ version: result.version, url: result.url });
-        }
-      })
-      .catch(() => undefined);
-    return () => unsubscribe?.();
-  }, [desktop]);
-
-  const checkForUpdatesNow = async () => {
-    const bridge = window.chordifreeDesktop;
-    if (!bridge?.checkForUpdates) {
-      setUpdateNotice(t('update.disabled'));
-      return;
-    }
-    try {
-      const result = await bridge.checkForUpdates();
-      if (result.status === 'update' && result.version && result.url) {
-        setUpdateInfo({ version: result.version, url: result.url });
-        setUpdateNotice(null);
-      } else if (result.status === 'current') {
-        setUpdateNotice(t('update.current'));
-      } else if (result.status === 'disabled') {
-        setUpdateNotice(t('update.disabled'));
-      } else {
-        setUpdateNotice(t('update.failed'));
-      }
-    } catch {
-      setUpdateNotice(t('update.failed'));
-    }
-  };
-
+  const { preferences, updatePreferences, resetGridView } = usePreferences(storage, setNotice);
+  const health = useHealth();
+  const { updateInfo, updateNotice, dismissUpdate, dismissNotice, checkForUpdatesNow } =
+    useDesktopUpdates(desktop);
+  const analysisRunner = useAnalysisRunner();
+  const notifySaveError = useCallback(() => {
+    setNotice({ message: t('app.saveFailed'), tone: 'warning' });
+  }, [t]);
+  const {
+    setlists,
+    replaceSetlists,
+    createList,
+    deleteList,
+    renameList,
+    addSong,
+    removeSong,
+    moveSong,
+    addSongToNewList,
+  } = useSetlistActions({ storage, onSaveError: notifySaveError });
+  const [history, setHistory] = useState<HistoryMap>(() => loadHistory(storage));
+  const [songs, setSongs] = useState(() => library.list());
   const forceFake =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('fakePlayer') === '1';
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = preferences.theme;
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', preferences.theme === 'dark' ? '#090b0f' : '#f6f7f9');
-  }, [preferences.theme]);
-
-  useEffect(() => {
-    document.documentElement.lang = preferences.language;
-    setLanguage(preferences.language);
-  }, [preferences.language]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void getHealth(controller.signal).then((result) => {
-      if (controller.signal.aborted) return;
-      setHealth({
-        status: result.analyzer,
-        version: result.analyzerVersion || 'essentia-1.6',
-      });
-    });
-    return () => controller.abort();
-  }, []);
-
-  const replaceAudioUrl = useCallback((next: string | null) => {
-    setAudioUrl((previous) => {
-      if (previous && previous !== next) URL.revokeObjectURL(previous);
-      return next;
-    });
-  }, []);
-
-  /** Every song opens in the chord grid; the view can still change afterwards. */
-  const resetGridView = useCallback(() => {
-    setPreferences((current) => {
-      if (current.gridView === 'beats') return current;
-      const next: Preferences = { ...current, gridView: 'beats' };
-      try {
-        savePreferences(storage, next);
-      } catch {
-        // The in-memory preference is still reset.
-      }
-      return next;
-    });
-  }, [storage]);
-
   const refreshLibrary = useCallback(() => {
     setSongs(library.list());
   }, [library]);
-
-  const cloudEnabled = auth.mode === 'google' && auth.status === 'authenticated';
-
-  useEffect(() => {
-    if (!cloudEnabled) {
-      cloudReady.current = false;
-      setCloudStatus('idle');
-      return;
-    }
-    let cancelled = false;
-    setCloudStatus('syncing');
-    void (async () => {
-      try {
-        const cloud = await getCloudLibrary();
-        if (cancelled) return;
-        const localSongs = library.exportSongs();
-        const merged = [...cloud.songs];
-        for (const song of localSongs) {
-          const key = sourceKey(song.source);
-          const remote = cloud.songs.find((item) => sourceKey(item.source) === key);
-          const localIsNewer =
-            !remote ||
-            new Date(song.updatedAt).getTime() > new Date(remote.updatedAt).getTime();
-          if (!localIsNewer) continue;
-          const index = merged.findIndex((item) => sourceKey(item.source) === key);
-          if (index >= 0) merged[index] = song;
-          else merged.push(song);
-        }
-        const mergedSetlists = mergeSetlists(setlistsRef.current, cloud.setlists);
-        if (
-          cloud.songs.length > 0 ||
-          cloud.setlists.length > 0 ||
-          localSongs.length > 0 ||
-          setlistsRef.current.length > 0
-        ) {
-          library.importSnapshot({ songs: merged });
-          setSetlists(mergedSetlists);
-          try {
-            saveSetlists(storage, mergedSetlists);
-          } catch {
-            // The local copy remains usable.
-          }
-          refreshLibrary();
-          await saveCloudLibrary({ songs: merged, setlists: mergedSetlists });
-          if (cloud.songs.length > 0 || cloud.setlists.length > 0) {
-            setNotice({ message: t('cloud.loaded'), tone: 'info' });
-          }
-        }
-        cloudReady.current = true;
-        setCloudStatus('saved');
-      } catch {
-        if (!cancelled) {
-          cloudReady.current = false;
-          setCloudStatus('error');
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [cloudEnabled]);
-
-  useEffect(() => {
-    if (!cloudEnabled || !cloudReady.current) return;
-    setCloudStatus('syncing');
-    const timer = window.setTimeout(() => {
-      void saveCloudLibrary({ songs: library.exportSongs(), setlists })
-        .then(() => {
-          setCloudStatus('saved');
-          cloudErrorNotified.current = false;
-        })
-        .catch(() => {
-          setCloudStatus('error');
-          if (!cloudErrorNotified.current) {
-            cloudErrorNotified.current = true;
-            setNotice({ message: t('cloud.error'), tone: 'warning' });
-          }
-        });
-    }, 1200);
-    return () => window.clearTimeout(timer);
-  }, [cloudEnabled, library, setlists, songs, storage]);
-
-  const syncCloudNow = () => {
-    if (!cloudEnabled) return;
-    cloudReady.current = true;
-    setCloudStatus('syncing');
-    void saveCloudLibrary({ songs: library.exportSongs(), setlists })
-      .then(() => {
-        setCloudStatus('saved');
-        setNotice({ message: t('cloud.saved'), tone: 'success' });
-      })
-      .catch(() => {
-        setCloudStatus('error');
-        setNotice({ message: t('cloud.error'), tone: 'warning' });
-      });
-  };
-
 
   const recordOpen = useCallback(
     (songId: string) => {
@@ -394,603 +80,214 @@ export default function App() {
     [storage],
   );
 
-  const openSong = useCallback(
-    (next: Song, nextAudioUrl: string | null) => {
-      songRef.current = next;
-      setSong(next);
-      setSavedSong(next);
-      resetGridView();
-      recordOpen(next.id);
-      replaceAudioUrl(nextAudioUrl);
-      const nextRoute: Route = { name: 'song', id: next.id };
-      setRoute(nextRoute);
-      if (window.location.hash !== hashFor(nextRoute)) {
-        window.location.hash = hashFor(nextRoute);
-      }
-    },
-    [recordOpen, replaceAudioUrl, resetGridView],
+  const {
+    route,
+    setRoute,
+    song,
+    setSong,
+    setSavedSong,
+    songRef,
+    audioUrl,
+    dirty,
+    replaceAudioUrl,
+    openSong,
+    navigate,
+  } = useSongNavigation({
+    library,
+    setlists,
+    recordOpen,
+    refreshLibrary,
+    resetGridView,
+    onNotice: setNotice,
+  });
+
+  const { stats: audioCache, clear: clearAudioCacheAndNotify } = useAudioCache(
+    route.name === 'library',
+    setNotice,
   );
 
-  const applyRoute = useCallback(
-    (next: Route) => {
-      if (next.name === 'song') {
-        const found = library.get(next.id);
-        if (found) {
-          songRef.current = found;
-          setSong(found);
-          setSavedSong(found);
-          resetGridView();
-          recordOpen(found.id);
-          replaceAudioUrl(audioUrlForSong(found));
-          setRoute(next);
-          return;
-        }
-        if (songRef.current?.id === next.id) {
-          resetGridView();
-          setRoute(next);
-          return;
-        }
-        setNotice({
-          message: t('app.songMissing'),
-          tone: 'warning',
-        });
-        setRoute({ name: 'library' });
-        if (window.location.hash !== '#/library') window.location.hash = '#/library';
-        return;
-      }
-      if (next.name === 'library') refreshLibrary();
-      if (next.name === 'setlist') {
-        const found = setlists.some((setlist) => setlist.id === next.id);
-        if (!found) {
-          setNotice({ message: t('setlists.notFound'), tone: 'warning' });
-          setRoute({ name: 'setlists' });
-          if (window.location.hash !== '#/setlists') window.location.hash = '#/setlists';
-          return;
-        }
-      }
-      setRoute(next);
+  const cloudEnabled = auth.mode === 'google' && auth.status === 'authenticated';
+
+  const applyCloudSnapshot = useCallback(
+    (snapshot: { songs: Song[]; setlists: typeof setlists }) => {
+      library.importSnapshot({ songs: snapshot.songs });
+      replaceSetlists(snapshot.setlists);
+      refreshLibrary();
     },
-    [library, recordOpen, refreshLibrary, replaceAudioUrl, resetGridView, setlists, t],
+    [library, refreshLibrary, replaceSetlists],
   );
 
-  useEffect(() => {
-    const onHashChange = () => applyRoute(parseHash());
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, [applyRoute]);
+  const cloud = useCloudLibrary({
+    enabled: cloudEnabled,
+    songs,
+    setlists,
+    getSongs: () => library.exportSongs(),
+    onMerge: applyCloudSnapshot,
+    onNotice: (message, tone) => setNotice({ message, tone }),
+  });
 
-  const navigate = (next: Route) => {
-    if (window.location.hash !== hashFor(next)) window.location.hash = hashFor(next);
-    applyRoute(next);
-  };
+  useSharedSongImport({
+    library,
+    refreshLibrary,
+    openSong,
+    navigate,
+    onNotice: setNotice,
+  });
 
-  useEffect(() => {
-    const match = /^#share=(.+)$/.exec(window.location.hash);
-    if (!match || shareHandled.current) return;
-    shareHandled.current = true;
+  const {
+    reanalyzingId,
+    reanalyzeProgress,
+    saveSong,
+    deleteSong,
+    exportLibrary,
+    importLibrary,
+    clearAnalysisCache,
+    reanalyzeSong,
+  } = useLibraryActions({
+    library,
+    storage,
+    preferences,
+    analysisRunner,
+    currentSongRef: songRef,
+    setSong,
+    setSavedSong,
+    replaceAudioUrl,
+    refreshLibrary,
+    onNotice: setNotice,
+  });
 
-    void (async () => {
-      try {
-        const shared = await decodeSongFromToken(decodeURIComponent(match[1]!));
-        const imported = library.add(shared);
-        refreshLibrary();
-        openSong(imported, null);
-        setNotice({ message: t('share.imported'), tone: 'success' });
-      } catch {
-        setNotice({ message: t('share.invalid'), tone: 'warning' });
+  const deleteCloudData = async () => {
+    const accepted = await confirm({
+      title: t('auth.deleteData'),
+      description: t('auth.deleteDataConfirm'),
+      confirmLabel: t('auth.deleteData'),
+      tone: 'danger',
+    });
+    if (!accepted) return;
+    try {
+      const result = await deleteAccount();
+      setNotice({
+        message: t('auth.deleteDataDone', {
+          songs: result.songs,
+          setlists: result.setlists,
+        }),
+        tone: 'success',
+      });
+      if (result.accessRemoved) {
+        auth.signOut();
         navigate({ name: 'home' });
       }
-    })();
-    // The token is consumed once, on first load; later renders must not re-import it.
-  }, [refreshLibrary]);
-
-  const updateSetlists = (updater: (current: Setlist[]) => Setlist[]) => {
-    setSetlists((current) => {
-      const next = updater(current);
-      try {
-        saveSetlists(storage, next);
-      } catch {
-        setNotice({ message: t('app.saveFailed'), tone: 'warning' });
-      }
-      return next;
-    });
+    } catch {
+      setNotice({ message: t('auth.deleteDataFailed'), tone: 'warning' });
+    }
   };
 
   const handleCreateSetlist = (name: string) => {
-    const created = createSetlist(name);
-    updateSetlists((current) => [...current, created]);
+    const created = createList(name);
     const nextRoute: Route = { name: 'setlist', id: created.id };
     setRoute(nextRoute);
     if (window.location.hash !== hashFor(nextRoute)) window.location.hash = hashFor(nextRoute);
   };
 
   const handleDeleteSetlist = (id: string) => {
-    updateSetlists((current) => current.filter((setlist) => setlist.id !== id));
+    deleteList(id);
     if (route.name === 'setlist' && route.id === id) {
       navigate({ name: 'setlists' });
     }
   };
 
-  const handleRenameSetlist = (id: string, name: string) => {
-    updateSetlists((current) =>
-      current.map((setlist) => (setlist.id === id ? renameSetlist(setlist, name) : setlist)),
-    );
-  };
-
-  const handleAddSongToSetlist = (id: string, songId: string) => {
-    updateSetlists((current) =>
-      current.map((setlist) =>
-        setlist.id === id ? addSongToSetlist(setlist, songId) : setlist,
-      ),
-    );
-  };
-
-  const addCurrentSongToSetlist = (setlistId: string, song: Song) => {
-    const target = setlists.find((setlist) => setlist.id === setlistId);
-    if (!target) return;
-    if (target.songIds.includes(song.id)) {
+  const addCurrentSongToSetlist = (setlistId: string, target: Song) => {
+    const setlist = setlists.find((item) => item.id === setlistId);
+    if (!setlist) return;
+    if (setlist.songIds.includes(target.id)) {
       setNotice({
-        message: t('setlists.songAlreadyIn', { name: target.name }),
+        message: t('setlists.songAlreadyIn', { name: setlist.name }),
         tone: 'info',
       });
       return;
     }
-    handleAddSongToSetlist(setlistId, song.id);
-    setNotice({ message: t('setlists.songAdded', { name: target.name }), tone: 'success' });
+    addSong(setlistId, target.id);
+    setNotice({ message: t('setlists.songAdded', { name: setlist.name }), tone: 'success' });
   };
 
-  const createSetlistWithSong = (name: string, song: Song) => {
-    const created = addSongToSetlist(createSetlist(name), song.id);
-    updateSetlists((current) => [...current, created]);
+  const createSetlistWithSong = (name: string, target: Song) => {
+    const created = addSongToNewList(name, target.id);
     setNotice({ message: t('setlists.songAdded', { name: created.name }), tone: 'success' });
   };
 
-  const handleRemoveSongFromSetlist = (id: string, songId: string) => {
-    updateSetlists((current) =>
-      current.map((setlist) =>
-        setlist.id === id ? removeSongFromSetlist(setlist, songId) : setlist,
-      ),
-    );
-  };
-
-  const handleMoveSongInSetlist = (id: string, songId: string, direction: -1 | 1) => {
-    updateSetlists((current) =>
-      current.map((setlist) =>
-        setlist.id === id ? moveSongInSetlist(setlist, songId, direction) : setlist,
-      ),
-    );
-  };
-
-  const updatePreferences = (patch: Partial<Preferences>) => {
-    setPreferences((previous) => {
-      const next = { ...previous, ...patch };
-      try {
-        savePreferences(storage, next);
-      } catch (error) {
-        setNotice({
-          message:
-            error instanceof StorageQuotaError
-              ? t('app.preferencesQuota')
-              : t('app.preferencesFailed'),
-          tone: 'warning',
-        });
-      }
-      return next;
-    });
-  };
-
-  const saveSong = (target: Song) => {
-    try {
-      library.save(target);
-      songRef.current = target;
-      setSong(target);
-      setSavedSong(target);
-      refreshLibrary();
-      setNotice({ message: t('app.songSaved'), tone: 'success' });
-    } catch (error) {
-      setNotice({
-        message:
-          error instanceof StorageQuotaError
-            ? t('app.saveQuota')
-            : t('app.saveFailed'),
-        tone: 'warning',
-      });
-    }
-  };
-
-  const deleteSong = (id: string) => {
-    library.remove(id);
-    removePractice(storage, id);
-    refreshLibrary();
-    if (songRef.current?.id === id) {
-      songRef.current = null;
-      setSong(null);
-      setSavedSong(null);
-      replaceAudioUrl(null);
-    }
-    setNotice({ message: t('app.songDeleted'), tone: 'info' });
-  };
-
-  useEffect(() => {
-    if (reanalyzingId === null) return;
-    const progress = analysisRunner.state.view?.progress;
-    if (progress === undefined) return;
-    setNotice({
-      message: t('app.reanalyzingProgress', { progress: Math.round(progress) }),
-      tone: 'info',
-    });
-  }, [analysisRunner.state.view?.progress, reanalyzingId, t]);
-
-  const reanalyzeSong = async (target: Song) => {
-    const source = target.source;
-    if (source.type !== 'youtube' || reanalyzingId !== null) return;
-    setReanalyzingId(target.id);
-    setNotice({ message: t('app.reanalyzingProgress', { progress: 0 }), tone: 'info' });
-    const result = await analysisRunner.run((signal) =>
-      createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal),
-    );
-    setReanalyzingId(null);
-    if (!result) {
-      setNotice({ message: t('app.reanalyzeFailed'), tone: 'warning' });
-      return;
-    }
-
-    const updated: Song = {
-      ...target,
-      segments: result.segments,
-      detectedSegments: result.segments,
-      beats: result.beats ?? [],
-      beatsPerBar: result.beatsPerBar ?? 4,
-      vocalRegions: result.vocalRegions ?? [],
-      duration: result.duration,
-      analyzerVersion: result.analyzerVersion,
-      lyricChordOffsets: undefined,
-      lyricChordLines: undefined,
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (songRef.current?.id === target.id) {
-      songRef.current = updated;
-      setSong(updated);
-    }
-    try {
-      library.save(updated);
-      setSavedSong(updated);
-      refreshLibrary();
-      setNotice({ message: t('app.reanalyzed'), tone: 'success' });
-    } catch {
-      setNotice({
-        message: t('app.reanalyzedNotSaved'),
-        tone: 'warning',
-      });
-    }
-  };
-
-  const exportLibrary = () => {
-    const snapshot = library.exportSnapshot();
-    if (snapshot.songs.length === 0) {
-      setNotice({ message: t('app.exportEmpty'), tone: 'warning' });
-      return;
-    }
-    downloadBackup(snapshot.songs);
-    setNotice({
-      message: t('app.exported', {
-        count: snapshot.songs.length,
-        label: snapshot.songs.length === 1 ? t('common.song') : t('common.songs'),
-      }),
-      tone: 'success',
-    });
-  };
-
-  const clearAnalysisCacheAndNotify = () => {
-    const removed = clearAnalysisCache(storage);
-    setNotice({ message: t('app.cacheCleared', { count: removed }), tone: 'info' });
-  };
-
-  const clearAudioCacheAndNotify = () => {
-    void clearAudioCache()
-      .then(({ removed }) => {
-        setAudioCache((current) =>
-          current ? { ...current, entries: 0, bytes: 0 } : current,
-        );
-        setNotice({
-          message: t('app.audioCacheCleared', { count: removed }),
-          tone: 'info',
-        });
-      })
-      .catch(() => {
-        setNotice({ message: t('app.audioCacheClearFailed'), tone: 'warning' });
-        setAudioCacheRefresh((value) => value + 1);
-      });
-  };
-
-  const importLibrary = async (file: File) => {
-    try {
-      const text = await file.text();
-      const trimmed = text.trimStart();
-      const isJson = file.name.toLowerCase().endsWith('.json') || trimmed.startsWith('{"');
-
-      if (!isJson) {
-        const sheet = parseChordPro(text, file.name, preferences);
-        library.importSongs([sheet]);
-        refreshLibrary();
-        setNotice({
-          message: t('app.importedSheet', { title: sheet.title }),
-          tone: 'success',
-        });
-        return;
-      }
-
-      const imported = parseBackupSnapshot(text);
-      const result = library.importSnapshot(imported);
-      refreshLibrary();
-      setNotice({
-        message: t('app.imported', {
-          added: result.added,
-          addedLabel: result.added === 1 ? t('app.newSong') : t('app.newSongs'),
-          updated: result.updated,
-          updatedLabel: result.updated === 1 ? t('app.updatedSong') : t('app.updatedSongs'),
-        }),
-        tone: 'success',
-      });
-    } catch (error) {
-      setNotice({
-        message:
-          error instanceof BackupError || error instanceof ChordProError
-            ? error.message
-            : t('app.backupImportFailed'),
-        tone: 'warning',
-      });
-    }
-  };
-
   const currentSetlist =
-    route.name === 'setlist'
-      ? setlists.find((setlist) => setlist.id === route.id) ?? null
-      : null;
+    route.name === 'setlist' ? (setlists.find((setlist) => setlist.id === route.id) ?? null) : null;
 
   return (
     <div className="shell">
-      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-line pb-4 sm:items-end">
-        <button
-          type="button"
-          className="flex flex-col items-start gap-1.5 text-left"
-          onClick={() => navigate({ name: 'home' })}
-        >
-          <img
-            src="/brand-light.png"
-            alt="chordifree"
-            className="brand-light h-8 w-auto sm:h-9"
-          />
-          <img
-            src="/brand-dark.png"
-            alt="chordifree"
-            className="brand-dark h-8 w-auto sm:h-9"
-          />
-          <span className="hidden font-mono text-[0.56rem] uppercase leading-none tracking-[0.16em] text-ink3 sm:block sm:text-[0.62rem]">
-            {t('app.tagline')}
-          </span>
-        </button>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {auth.mode === 'google' ? (
-            <span className="badge hidden sm:inline-flex">{t('auth.eyebrow')}</span>
-          ) : desktop ? null : (
-            <span className="badge hidden sm:inline-flex">{t('app.localOnly')}</span>
-          )}
-          <button
-            type="button"
-            className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em]"
-            onClick={() => navigate({ name: 'setlists' })}
-          >
-            {t('nav.setlists')}
-          </button>
-          <div className="flex items-center gap-1" role="group" aria-label={t('app.language')}>
-            <button
-              type="button"
-              className={preferences.language === 'en' ? 'tool-chip-active' : 'tool-chip'}
-              aria-pressed={preferences.language === 'en'}
-              onClick={() => updatePreferences({ language: 'en' })}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              className={preferences.language === 'es' ? 'tool-chip-active' : 'tool-chip'}
-              aria-pressed={preferences.language === 'es'}
-              onClick={() => updatePreferences({ language: 'es' })}
-            >
-              ES
-            </button>
-          </div>
-          <button
-            type="button"
-            className="btn min-h-0 px-3 py-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em]"
-            aria-pressed={preferences.theme === 'dark'}
-            onClick={() =>
-              updatePreferences({
-                theme: preferences.theme === 'light' ? 'dark' : 'light',
-              })
-            }
-          >
-            {preferences.theme === 'light' ? t('app.themeLight') : t('app.themeDark')}
-          </button>
-          {auth.mode === 'google' ? (
-            <ActionMenu
-              label={auth.user?.name ?? auth.user?.email ?? t('auth.signInTitle')}
-              items={[
-                ...(auth.admin
-                  ? [{ label: t('auth.admin'), onSelect: () => navigate({ name: 'admin' }) }]
-                  : []),
-                { label: t('auth.signOut'), onSelect: auth.signOut },
-              ]}
-            />
-          ) : null}
-        </div>
-      </header>
+      <AppHeader
+        auth={auth}
+        desktop={desktop}
+        preferences={preferences}
+        onNavigate={navigate}
+        onPreferences={updatePreferences}
+        onDeleteCloudData={() => void deleteCloudData()}
+      />
 
       <main className="flex-1 py-7 sm:py-10">
         {updateInfo ? (
           <UpdateBanner
             version={updateInfo.version}
             onDownload={() => window.chordifreeDesktop?.openExternal?.(updateInfo.url)}
-            onDismiss={() => setUpdateInfo(null)}
+            onDismiss={dismissUpdate}
           />
         ) : null}
         {updateNotice ? (
           <div className="mb-4">
-            <NoticeBanner
-              message={updateNotice}
-              tone="info"
-              onDismiss={() => setUpdateNotice(null)}
-            />
+            <NoticeBanner message={updateNotice} tone="info" onDismiss={dismissNotice} />
           </div>
         ) : null}
-        {route.name === 'home' ? (
-          <Home
-            storage={storage}
-            preferences={preferences}
-            analyzerVersion={health.version}
-            analyzerStatus={health.status}
-            libraryCount={songs.length}
-            notice={notice}
-            onDismissNotice={() => setNotice(null)}
-            onOpenLibrary={() => navigate({ name: 'library' })}
-            onAnalyzed={openSong}
-          />
-        ) : null}
-
-        {route.name === 'library' ? (
-          <LibraryList
-            songs={songs}
-            history={history}
-            notice={notice}
-            onDismissNotice={() => setNotice(null)}
-            onExport={exportLibrary}
-            onImport={(file) => void importLibrary(file)}
-            cache={analysisCacheStats(storage)}
-            onClearCache={clearAnalysisCacheAndNotify}
-            audioCache={audioCache ?? undefined}
-            onClearAudioCache={clearAudioCacheAndNotify}
-            cloud={
-              cloudEnabled ? { status: cloudStatus, onSync: syncCloudNow } : undefined
-            }
-            onOpen={(id) => navigate({ name: 'song', id })}
-            onDelete={deleteSong}
-            onBack={() => navigate({ name: 'home' })}
-            onHome={() => navigate({ name: 'home' })}
-          />
-        ) : null}
-
-        {route.name === 'admin' ? (
-          <AdminAccess onBack={() => navigate({ name: 'library' })} />
-        ) : null}
-
-        {route.name === 'setlists' ? (
-          <SetlistList
-            setlists={setlists}
-            songs={songs}
-            onCreate={handleCreateSetlist}
-            onDelete={handleDeleteSetlist}
-            onOpen={(id) => navigate({ name: 'setlist', id })}
-            onBack={() => navigate({ name: 'home' })}
-          />
-        ) : null}
-
-        {route.name === 'setlist' && currentSetlist ? (
-          <SetlistView
-            setlist={currentSetlist}
-            songs={songs}
-            onRename={(name) => handleRenameSetlist(currentSetlist.id, name)}
-            onDelete={() => handleDeleteSetlist(currentSetlist.id)}
-            onAddSong={(songId) => handleAddSongToSetlist(currentSetlist.id, songId)}
-            onRemoveSong={(songId) => handleRemoveSongFromSetlist(currentSetlist.id, songId)}
-            onMoveSong={(songId, direction) =>
-              handleMoveSongInSetlist(currentSetlist.id, songId, direction)
-            }
-            onOpenSong={(songId) => navigate({ name: 'song', id: songId })}
-            onBack={() => navigate({ name: 'setlists' })}
-          />
-        ) : null}
-
-        {route.name === 'song' && song ? (
-          <SongView
-            song={song}
-            audioUrl={audioUrl}
-            forceFake={forceFake}
-            saved={songs.some((item) => item.id === song.id)}
-            dirty={dirty}
-            simplifyChords={preferences.simplifyChords}
-            reduceChords={preferences.reduceChords}
-            reduceChordsMax={preferences.reduceChordsMax}
-            instrument={preferences.instrument}
-            gridView={preferences.gridView}
-            notice={notice}
-            onDismissNotice={() => setNotice(null)}
-            onChange={(next) => {
-              songRef.current = next;
-              setSong(next);
-            }}
-            onSave={saveSong}
-            setlists={setlists}
-            onAddToSetlist={(setlistId) => addCurrentSongToSetlist(setlistId, song)}
-            onCreateSetlistWithSong={(name) => createSetlistWithSong(name, song)}
-            onReanalyze={() => void reanalyzeSong(song)}
-            reanalyzing={reanalyzingId === song.id}
-            reanalyzeProgress={
-              reanalyzingId === song.id
-                ? (analysisRunner.state.view?.progress ??
-                  (analysisRunner.state.phase === 'starting' ? 0 : null))
-                : null
-            }
-            onBack={() => navigate({ name: 'home' })}
-            onOpenLibrary={() => navigate({ name: 'library' })}
-            onPreferences={updatePreferences}
-          />
-        ) : null}
+        <AppRoutes
+          route={route}
+          song={song}
+          audioUrl={audioUrl}
+          forceFake={forceFake}
+          dirty={dirty}
+          songs={songs}
+          history={history}
+          notice={notice}
+          storage={storage}
+          preferences={preferences}
+          health={health}
+          features={auth.features}
+          audioCache={audioCache}
+          cloud={cloudEnabled ? { status: cloud.status, onSync: cloud.syncNow } : undefined}
+          setlists={setlists}
+          currentSetlist={currentSetlist}
+          reanalyzingId={reanalyzingId}
+          reanalyzeProgress={reanalyzeProgress}
+          onDismissNotice={() => setNotice(null)}
+          onNavigate={navigate}
+          onAnalyzed={openSong}
+          onImport={(file) => void importLibrary(file)}
+          onExport={exportLibrary}
+          onClearCache={clearAnalysisCache}
+          onClearAudioCache={clearAudioCacheAndNotify}
+          onDeleteSong={deleteSong}
+          onCreateSetlist={handleCreateSetlist}
+          onDeleteSetlist={handleDeleteSetlist}
+          onRenameSetlist={renameList}
+          onAddSetlistSong={addSong}
+          onRemoveSetlistSong={removeSong}
+          onMoveSetlistSong={moveSong}
+          onChangeSong={(next) => {
+            songRef.current = next;
+            setSong(next);
+          }}
+          onSaveSong={saveSong}
+          onAddToSetlist={addCurrentSongToSetlist}
+          onCreateSetlistWithSong={createSetlistWithSong}
+          onReanalyze={(target) => void reanalyzeSong(target)}
+          onPreferences={updatePreferences}
+        />
       </main>
 
-      <footer
-        data-testid="site-footer"
-        className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pb-2 pt-4 font-mono text-[0.56rem] uppercase tracking-[0.12em] text-ink3"
-      >
-        <span title={t('footer.quoteTranslation')}>{t('footer.tagline')}</span>
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label={t('footer.links')}>
-          {desktop ? (
-            <button
-              type="button"
-              className="transition hover:text-accent"
-              onClick={() => void checkForUpdatesNow()}
-            >
-              {t('update.check')}
-            </button>
-          ) : null}
-          <a
-            className="transition hover:text-accent"
-            href="https://github.com/moiseslodeiro/chordifree"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('footer.github')}
-          </a>
-          <span>{`v${__APP_VERSION__}`}</span>
-          <a
-            className="transition hover:text-accent"
-            href="https://www.gnu.org/licenses/agpl-3.0.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('footer.license')}
-          </a>
-          <a
-            className="transition hover:text-accent"
-            href="https://essentia.upf.edu/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('footer.essentia')}
-          </a>
-        </nav>
-      </footer>
+      <AppFooter desktop={desktop} onCheckUpdates={() => void checkForUpdatesNow()} />
     </div>
   );
 }

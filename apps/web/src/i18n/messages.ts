@@ -58,10 +58,17 @@ const en = {
   'auth.signInTitle': 'Sign in to Chordifree',
   'auth.signInBody': 'Use your Google account. Access is limited to approved accounts.',
   'auth.googleUnavailable': 'Google sign-in could not be loaded.',
+  'auth.sessionExpired': 'Your session expired. Sign in again to continue.',
   'auth.restrictedTitle': 'Access not enabled',
   'auth.restrictedBody':
     'The account {email} has not been approved for this instance. Ask the administrator to add it.',
   'auth.signOut': 'Sign out',
+  'auth.deleteData': 'Delete cloud data',
+  'auth.deleteDataConfirm':
+    'Delete your songs and setlists from the cloud? The local copy on this device will stay. If you are not an administrator, your access will also be removed.',
+  'auth.deleteDataDone':
+    'Cloud data deleted: {songs} songs and {setlists} setlists.',
+  'auth.deleteDataFailed': 'Could not delete your cloud data.',
   'auth.signedInAs': 'Signed in as {email}',
   'auth.admin': 'Administration',
   'auth.loading': 'Checking your session…',
@@ -98,6 +105,8 @@ const en = {
   'home.youtubeTab': 'YouTube',
   'home.uploadTab': 'Audio file',
   'home.youtubeLabel': 'Video link',
+  'home.youtubeHostedHint':
+    'YouTube may be blocked on this hosted instance. Upload the audio file or use the optional extractor.',
   'home.youtubeHelp': 'Supports `youtube.com/watch?v=`, `youtu.be/` and `youtube.com/shorts/`.',
   'home.searchLabel': 'Search YouTube',
   'home.searchPlaceholder': 'Song, artist or band',
@@ -686,10 +695,17 @@ const es: Record<MessageKey, string> = {
   'auth.signInBody':
     'Usa tu cuenta de Google. El acceso está limitado a cuentas aprobadas.',
   'auth.googleUnavailable': 'No se pudo cargar el inicio de sesión de Google.',
+  'auth.sessionExpired': 'Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.',
   'auth.restrictedTitle': 'Acceso no habilitado',
   'auth.restrictedBody':
     'La cuenta {email} no está aprobada para esta instancia. Pide al administrador que la añada.',
   'auth.signOut': 'Cerrar sesión',
+  'auth.deleteData': 'Borrar datos de la nube',
+  'auth.deleteDataConfirm':
+    '¿Borrar tus canciones y repertorios de la nube? La copia local de este dispositivo se mantiene. Si no eres administrador, también se quitará tu acceso.',
+  'auth.deleteDataDone':
+    'Datos de la nube borrados: {songs} canciones y {setlists} repertorios.',
+  'auth.deleteDataFailed': 'No se pudieron borrar tus datos de la nube.',
   'auth.signedInAs': 'Sesión iniciada como {email}',
   'auth.admin': 'Administración',
   'auth.loading': 'Comprobando tu sesión…',
@@ -726,6 +742,8 @@ const es: Record<MessageKey, string> = {
   'home.youtubeTab': 'YouTube',
   'home.uploadTab': 'Archivo de audio',
   'home.youtubeLabel': 'Enlace del video',
+  'home.youtubeHostedHint':
+    'YouTube puede estar bloqueado en esta instancia. Sube el archivo de audio o usa el extractor opcional.',
   'home.youtubeHelp':
     'Se admiten `youtube.com/watch?v=`, `youtu.be/` y `youtube.com/shorts/`.',
   'home.searchLabel': 'Buscar en YouTube',

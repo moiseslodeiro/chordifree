@@ -589,7 +589,8 @@ docker compose up --build -d</code></pre>
                 </p>
                 <p class="run-note" data-i18n="run.gcp.note">
                   Google sign-in, an admin page for access, and one Cloud Run service for the
-                  app. No load balancer or IAP.
+                  app. No load balancer or IAP. YouTube may need the optional residential
+                  extractor or an audio upload.
                 </p>
               </div>
               <div class="run-action">
@@ -749,8 +750,10 @@ docker compose up --build -d</code></pre>
           <details>
             <summary data-i18n="faq.5.q">Does YouTube work?</summary>
             <p data-i18n="faq.5.a">
-              Yes, through yt-dlp. Downloading YouTube audio may violate its Terms of Service,
-              so prefer your own files when you do not own the content.
+              Yes, through yt-dlp. On a private online instance YouTube may block the server's
+              datacenter IP; upload the audio file or configure the optional residential
+              extractor. Downloading YouTube audio may violate its Terms of Service, so prefer
+              your own files when you do not own the content.
             </p>
           </details>
           <details>

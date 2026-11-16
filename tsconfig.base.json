@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "paths": {
-      "@chordifree/chords": ["./packages/chords/src/index.ts"]
+      "@chordifree/chords": ["./packages/chords/src/index.ts"],
+      "@chordifree/contracts": ["./packages/contracts/src/index.ts"]
     }
   }
 }
