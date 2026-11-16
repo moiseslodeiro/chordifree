@@ -13,6 +13,7 @@ import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
 import { createAccountRouter } from './routes/account';
+import { createConfigRouter } from './routes/config';
 import {
   FirestoreCloudLibraryStore,
   type CloudLibraryStore,
@@ -170,6 +171,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     });
   });
 
+  app.use('/api/config', createConfigRouter(deps.config, deps.cloudLibrary));
   app.use('/api/auth', createAuthRouter(deps.auth));
   app.use('/api/admin', createAdminRouter(deps.auth));
   app.use('/api', requireAllowed(deps.auth));

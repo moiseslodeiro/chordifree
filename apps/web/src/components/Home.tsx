@@ -31,6 +31,7 @@ interface HomeProps {
   onDismissNotice: () => void;
   onOpenLibrary: () => void;
   onAnalyzed: (song: Song, audioUrl: string | null) => void;
+  youtubeMode?: 'direct' | 'extractor' | 'hosted';
 }
 
 interface Problem {
@@ -58,6 +59,7 @@ export function Home({
   onDismissNotice,
   onOpenLibrary,
   onAnalyzed,
+  youtubeMode = 'direct',
 }: HomeProps) {
   const t = useT();
   const desktop = isDesktopApp();
@@ -239,6 +241,11 @@ export function Home({
           >
             {mode === 'youtube' ? (
               <div className="space-y-6">
+                {youtubeMode === 'hosted' ? (
+                  <p className="note note-warning text-xs leading-relaxed">
+                    {t('home.youtubeHostedHint')}
+                  </p>
+                ) : null}
                 <div className="space-y-2">
                   <label htmlFor="youtube-search" className="eyebrow block">
                     {t('home.searchLabel')}

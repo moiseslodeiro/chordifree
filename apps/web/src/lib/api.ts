@@ -5,6 +5,7 @@ import type {
   AuthMe,
   CloudLibrarySnapshot,
   DeleteAccountResult,
+  RuntimeConfig,
 } from '@chordifree/contracts';
 import type {
   AnalysisResult,
@@ -22,6 +23,7 @@ export type {
   AuthUser,
   CloudLibrarySnapshot,
   DeleteAccountResult,
+  RuntimeConfig,
 } from '@chordifree/contracts';
 import { normalizeLyricsText } from '../lyrics/normalize';
 
@@ -155,6 +157,11 @@ export async function getAuthConfig(signal?: AbortSignal): Promise<AuthConfig> {
 export async function getAuthMe(signal?: AbortSignal): Promise<AuthMe> {
   const response = await fetch('/api/auth/me', { signal, headers: authHeaders() });
   return parseResponse<AuthMe>(response);
+}
+
+export async function getRuntimeConfig(signal?: AbortSignal): Promise<RuntimeConfig> {
+  const response = await fetch('/api/config', { signal });
+  return parseResponse<RuntimeConfig>(response);
 }
 
 export async function listAccessEntries(signal?: AbortSignal): Promise<AccessEntry[]> {

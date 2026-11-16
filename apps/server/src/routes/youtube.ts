@@ -20,6 +20,7 @@ export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): R
   const router = Router();
 
   const limiter = rateLimit({
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
     windowMs: 60_000,
     limit: 30,
     standardHeaders: true,
@@ -33,6 +34,7 @@ export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): R
   });
 
   const audioLimiter = rateLimit({
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
     windowMs: 60_000,
     limit: 20,
     standardHeaders: true,

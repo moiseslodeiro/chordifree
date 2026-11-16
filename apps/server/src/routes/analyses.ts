@@ -77,6 +77,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
   });
 
   const limiter = rateLimit({
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
     windowMs: deps.config.rateLimitWindowMs,
     limit: deps.config.rateLimitMax,
     standardHeaders: true,

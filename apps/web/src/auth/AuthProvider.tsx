@@ -2,19 +2,23 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   getAuthConfig,
   getAuthMe,
+  getRuntimeConfig,
   setAuthToken,
   type AuthConfig,
   type AuthUser,
+  type RuntimeConfig,
 } from '../lib/api';
 
 type AuthStatus = 'loading' | 'signed-out' | 'denied' | 'authenticated' | 'error';
 
-interface AuthValue {
+export interface AuthValue {
   mode: 'none' | 'google';
   status: AuthStatus;
   user: AuthUser | null;
   admin: boolean;
   config: AuthConfig | null;
+  features: RuntimeConfig | null;
+  expired: boolean;
   signIn: (credential: string) => Promise<void>;
   signOut: () => void;
   retry: () => void;
@@ -28,6 +32,8 @@ const LOCAL_AUTH: AuthValue = {
   user: null,
   admin: false,
   config: null,
+  features: null,
+  expired: false,
   signIn: async () => undefined,
   signOut: () => undefined,
   retry: () => undefined,
@@ -45,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [admin, setAdmin] = useState(false);
   const [config, setConfig] = useState<AuthConfig | null>(null);
+  const [features, setFeatures] = useState<RuntimeConfig | null>(null);
+  const [expired, setExpired] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   const clearSession = useCallback(() => {
@@ -89,10 +97,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!nextConfig || nextConfig.mode !== 'google' || !nextConfig.clientId) {
         setMode('none');
         setStatus('authenticated');
+        setFeatures(null);
         setAuthToken(null);
         return;
       }
       setMode('google');
+      try {
+        const nextFeatures = await getRuntimeConfig();
+        if (!cancelled) setFeatures(nextFeatures);
+      } catch {
+        if (!cancelled) setFeatures(null);
+      }
+      if (cancelled) return;
       let token: string | null = null;
       try {
         token = window.sessionStorage.getItem(SESSION_KEY);
@@ -113,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onUnauthorized = () => {
       clearSession();
+      setExpired(true);
       setStatus('signed-out');
     };
     window.addEventListener('chordifree:unauthorized', onUnauthorized);
@@ -126,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // The token still works until the page is reloaded.
       }
+      setExpired(false);
       setStatus('loading');
       await verify(credential);
     },
@@ -134,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     clearSession();
+    setExpired(false);
     setStatus('signed-out');
   }, [clearSession]);
 
@@ -144,11 +163,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       admin,
       config,
+      features,
+      expired,
       signIn,
       signOut,
       retry: () => setAttempt((current) => current + 1),
     }),
-    [admin, config, mode, signIn, signOut, status, user],
+    [admin, config, expired, features, mode, signIn, signOut, status, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

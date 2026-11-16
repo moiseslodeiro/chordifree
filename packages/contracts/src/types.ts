@@ -129,3 +129,12 @@ export interface DeleteAccountResult {
   setlists: number;
   accessRemoved: boolean;
 }
+
+export type YoutubeMode = 'direct' | 'extractor' | 'hosted';
+
+export interface RuntimeConfig {
+  features: {
+    cloudLibrary: boolean;
+    youtube: YoutubeMode;
+  };
+}
