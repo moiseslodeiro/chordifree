@@ -11,12 +11,18 @@ import { JobQueue } from './jobs/queue';
 import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
+import { createCloudLibraryRouter } from './routes/cloud-library';
+import {
+  FirestoreCloudLibraryStore,
+  type CloudLibraryStore,
+} from './services/cloud-library';
 import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
 import {
   createAdminRouter,
   createAuthContext,
   createAuthRouter,
+  createFirestore,
   createGoogleIdTokenProvider,
   requireAllowed,
   type AuthContext,
@@ -39,6 +45,7 @@ export interface AppDependencies {
   lyrics: LyricsClient;
   audioCache: TemporaryAudioCache;
   auth: AuthContext;
+  cloudLibrary: CloudLibraryStore | null;
   webDist: string;
 }
 
@@ -109,6 +116,11 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         tools,
       }),
     auth: options.auth ?? createAuthContext(config),
+    cloudLibrary:
+      options.cloudLibrary ??
+      (config.authMode === 'google'
+        ? new FirestoreCloudLibraryStore(createFirestore(config))
+        : null),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -161,6 +173,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api/admin', createAdminRouter(deps.auth));
   app.use('/api', requireAllowed(deps.auth));
 
+  app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
   app.use('/api/youtube', createYoutubeRouter({ tools: deps.tools, audioCache: deps.audioCache }));

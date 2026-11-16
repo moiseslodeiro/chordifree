@@ -1,5 +1,12 @@
 import { t } from '../i18n';
-import type { AnalysisResult, AnalysisView, LyricsResult, YoutubeSearchResult } from '../types';
+import type {
+  AnalysisResult,
+  AnalysisView,
+  LyricsResult,
+  Setlist,
+  Song,
+  YoutubeSearchResult,
+} from '../types';
 import { normalizeLyricsText } from '../lyrics/normalize';
 
 let authToken: string | null = null;
@@ -183,6 +190,34 @@ export async function removeAccessEntry(email: string): Promise<void> {
   if (!response.ok && response.status !== 404) {
     await parseResponse(response);
   }
+}
+
+export interface CloudLibrarySnapshot {
+  songs: Song[];
+  setlists: Setlist[];
+  updatedAt?: string;
+}
+
+export async function getCloudLibrary(signal?: AbortSignal): Promise<CloudLibrarySnapshot> {
+  const response = await fetch('/api/cloud/library', { signal, headers: authHeaders() });
+  const body = await parseResponse<Partial<CloudLibrarySnapshot>>(response);
+  return {
+    songs: Array.isArray(body.songs) ? body.songs : [],
+    setlists: Array.isArray(body.setlists) ? body.setlists : [],
+    ...(body.updatedAt ? { updatedAt: body.updatedAt } : {}),
+  };
+}
+
+export async function saveCloudLibrary(snapshot: {
+  songs: Song[];
+  setlists: Setlist[];
+}): Promise<void> {
+  const response = await fetch('/api/cloud/library', {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(snapshot),
+  });
+  await parseResponse<{ saved: boolean }>(response);
 }
 
 const audioPreparations = new Map<string, Promise<{ url: string; expiresAt?: string }>>();
