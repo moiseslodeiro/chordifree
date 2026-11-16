@@ -21,11 +21,19 @@ TAG="${TAG:-$(git -C "$ROOT" rev-parse --short HEAD)-$(date -u +%Y%m%d%H%M%S)}"
 
 terraform init -input=false
 
+# `terraform output` only persists outputs that depend on the targeted resource.
+# Read the variable directly so the first partial apply can still bootstrap the
+# image repository.
+PROJECT_ID="$(terraform console -no-color <<<'var.project_id' | tr -d '"')"
+if [[ -z "$PROJECT_ID" ]]; then
+  echo "Could not read project_id from terraform.tfvars." >&2
+  exit 1
+fi
+
 # The repository has to exist before Cloud Build can push to it.
 terraform apply -input=false -auto-approve \
   -target=google_artifact_registry_repository.images
 
-PROJECT_ID="$(terraform output -raw project_id)"
 REGISTRY="$(terraform output -raw artifact_registry)"
 
 echo "Building server image in $REGISTRY/server:$TAG"
