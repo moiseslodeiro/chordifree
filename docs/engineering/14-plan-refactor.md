@@ -16,9 +16,10 @@ es reescribir la app: es reducir el coste de cambio sin alterar el comportamient
 - **PR 1 — contratos:** hecho. `packages/contracts` está integrado en web y servidor.
 - **PR 2 — cloud sync:** hecho. `sync/cloud.ts` + `useCloudLibrary` con tests; `setlistsRef` y
   los efectos de nube salieron de `App.tsx`.
-- **PR 3 — `App.tsx`:** parcial. De ~996 a ~660 líneas extrayendo routing, preferencias,
-  health, actualizaciones de escritorio, caché de audio, header y footer. Queda mover las
-  acciones de biblioteca/setlists y las páginas.
+- **PR 3 — `App.tsx`:** hecho. De ~996 a 293 líneas. El routing y el estado de la canción
+  viven en `useSongNavigation`; las acciones de biblioteca y setlists en `useLibraryActions` y
+  `useSetlistActions`; la importación de enlaces en `useSharedSongImport`; y el switch de ruta
+  en `AppRoutes`. Header, footer, preferencias, health y caché ya estaban extraídos.
 - **P0:** privacidad, términos, producto, seguridad, diseño y borrado de cuenta online
   completados.
 
@@ -153,14 +154,13 @@ Convertir `App.tsx` en una composición pequeña y mover el estado a hooks/pági
 - Roles en Firestore (RF-024).
 - Backend GCS de Terraform (RT-009) — hay ejemplo y runbook, pero no está activado.
 - Trazas OTLP y alertas base están implementadas; faltan dashboards/SLOs (RNF-017 parcial).
-- División completa de `App.tsx` en páginas.
 
 ## Orden de ejecución
 
 ```mermaid
 flowchart LR
     A[PR 1: contracts ✓] --> B[PR 2: cloud sync ✓]
-    B --> C[PR 3: App.tsx parcial]
+    B --> C[PR 3: App.tsx hecho]
     C --> D[Jobs / métricas]
 ```
 
