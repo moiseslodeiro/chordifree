@@ -43,6 +43,7 @@ interface LibraryListProps {
   onClearCache?: () => void;
   audioCache?: { entries: number; bytes: number; ttlMinutes: number };
   onClearAudioCache?: () => void;
+  cloud?: { status: 'idle' | 'syncing' | 'saved' | 'error'; onSync: () => void };
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onBack: () => void;
@@ -72,6 +73,7 @@ export function LibraryList({
   onClearCache,
   audioCache,
   onClearAudioCache,
+  cloud,
   onOpen,
   onDelete,
   onBack,
@@ -109,7 +111,13 @@ export function LibraryList({
           <p className="eyebrow">{t('library.eyebrow')}</p>
           <h1 className="display mt-2 text-3xl sm:text-4xl">{t('library.title')}</h1>
           <p className="mt-2 text-sm text-ink2">
-            {t(desktop ? 'library.localOnlyDesktop' : 'library.localOnly')}
+            {t(
+              cloud
+                ? 'library.cloudBacked'
+                : desktop
+                  ? 'library.localOnlyDesktop'
+                  : 'library.localOnly',
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -300,6 +308,25 @@ export function LibraryList({
       )}
 
       <div className="border-t border-line text-xs text-ink3">
+        {cloud ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4 sm:px-8">
+            <span role="status">
+              {cloud.status === 'syncing'
+                ? t('cloud.syncing')
+                : cloud.status === 'error'
+                  ? t('cloud.error')
+                  : t('cloud.saved')}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={cloud.status === 'syncing'}
+              onClick={cloud.onSync}
+            >
+              {t('cloud.syncNow')}
+            </button>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 sm:px-8">
           <span>
             {t('library.cacheStats', {
