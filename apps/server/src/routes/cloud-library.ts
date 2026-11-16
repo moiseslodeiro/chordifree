@@ -1,9 +1,7 @@
 import { Router } from 'express';
+import { CloudLibraryBodySchema } from '@chordifree/contracts';
 import { ApiError } from '../errors';
-import {
-  CloudLibraryBodySchema,
-  type CloudLibraryStore,
-} from '../services/cloud-library';
+import type { CloudLibraryStore } from '../services/cloud-library';
 
 export function createCloudLibraryRouter(store: CloudLibraryStore | null): Router {
   const router = Router();

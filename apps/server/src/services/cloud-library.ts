@@ -1,5 +1,4 @@
 import type { Firestore } from '@google-cloud/firestore';
-import { z } from 'zod';
 import { ApiError } from '../errors';
 
 export interface CloudLibraryData {
@@ -109,26 +108,3 @@ export class FirestoreCloudLibraryStore implements CloudLibraryStore {
     }
   }
 }
-
-const CloudSongSchema = z
-  .object({
-    id: z.string().min(1),
-    title: z.string(),
-    updatedAt: z.string(),
-  })
-  .passthrough();
-
-const CloudSetlistSchema = z
-  .object({
-    id: z.string().min(1),
-    name: z.string(),
-    songIds: z.array(z.string()),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .passthrough();
-
-export const CloudLibraryBodySchema = z.object({
-  songs: z.array(CloudSongSchema).max(2000),
-  setlists: z.array(CloudSetlistSchema).max(500),
-});

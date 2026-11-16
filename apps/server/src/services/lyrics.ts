@@ -1,20 +1,13 @@
 import { z } from 'zod';
+import type { LyricsResult } from '@chordifree/contracts';
 import { ApiError } from '../errors';
+
+export type { LyricsResult } from '@chordifree/contracts';
 
 export interface LyricsQuery {
   title: string;
   artist?: string;
   duration?: number;
-}
-
-export interface LyricsResult {
-  lyrics: string;
-  syncedLyrics?: string;
-  trackName: string;
-  artistName: string;
-  albumName?: string;
-  duration?: number;
-  source: 'lrclib';
 }
 
 export interface LyricsClient {

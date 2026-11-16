@@ -1,5 +1,12 @@
 import { t } from '../i18n';
 import type {
+  AccessEntry,
+  AuthConfig,
+  AuthMe,
+  CloudLibrarySnapshot,
+  DeleteAccountResult,
+} from '@chordifree/contracts';
+import type {
   AnalysisResult,
   AnalysisView,
   LyricsResult,
@@ -7,6 +14,15 @@ import type {
   Song,
   YoutubeSearchResult,
 } from '../types';
+
+export type {
+  AccessEntry,
+  AuthConfig,
+  AuthMe,
+  AuthUser,
+  CloudLibrarySnapshot,
+  DeleteAccountResult,
+} from '@chordifree/contracts';
 import { normalizeLyricsText } from '../lyrics/normalize';
 
 let authToken: string | null = null;
@@ -131,30 +147,6 @@ export async function clearAudioCache(): Promise<{ removed: number }> {
   return parseResponse<{ removed: number }>(response);
 }
 
-export interface AuthConfig {
-  mode: 'none' | 'google';
-  clientId?: string;
-}
-
-export interface AuthUser {
-  uid: string;
-  email: string;
-  name?: string;
-  picture?: string;
-}
-
-export interface AuthMe {
-  user: AuthUser;
-  allowed: boolean;
-  admin: boolean;
-}
-
-export interface AccessEntry {
-  email: string;
-  addedAt: string;
-  addedBy?: string;
-}
-
 export async function getAuthConfig(signal?: AbortSignal): Promise<AuthConfig> {
   const response = await fetch('/api/auth/config', { signal });
   return parseResponse<AuthConfig>(response);
@@ -192,12 +184,6 @@ export async function removeAccessEntry(email: string): Promise<void> {
   }
 }
 
-export interface CloudLibrarySnapshot {
-  songs: Song[];
-  setlists: Setlist[];
-  updatedAt?: string;
-}
-
 export async function getCloudLibrary(signal?: AbortSignal): Promise<CloudLibrarySnapshot> {
   const response = await fetch('/api/cloud/library', { signal, headers: authHeaders() });
   const body = await parseResponse<Partial<CloudLibrarySnapshot>>(response);
@@ -218,13 +204,6 @@ export async function saveCloudLibrary(snapshot: {
     body: JSON.stringify(snapshot),
   });
   await parseResponse<{ saved: boolean }>(response);
-}
-
-export interface DeleteAccountResult {
-  deleted: boolean;
-  songs: number;
-  setlists: number;
-  accessRemoved: boolean;
 }
 
 /** Deletes the signed-in user's cloud library (and their access if they are not an admin). */
