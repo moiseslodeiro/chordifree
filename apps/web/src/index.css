@@ -916,6 +916,7 @@ body.performance-mode .song-controls,
 body.performance-mode .song-toolbar,
 body.performance-mode .song-tools,
 body.performance-mode [data-testid='song-player-column'],
+body.performance-mode [data-testid='song-harmony-column'],
 body.performance-mode .print-sheet {
   display: none !important;
 }

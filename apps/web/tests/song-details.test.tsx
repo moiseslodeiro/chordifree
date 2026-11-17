@@ -86,4 +86,24 @@ describe('SongDetails', () => {
     expect(screen.queryByText('Capo')).not.toBeInTheDocument();
     expect(screen.queryByText('Sin capo')).not.toBeInTheDocument();
   });
+
+  it('can leave the chord list to the harmony panel', () => {
+    render(
+      <SongDetails
+        keyLabel="Do mayor"
+        relativeKeyLabel="La menor"
+        capo={0}
+        capoKeyLabel="Do mayor"
+        bpm={null}
+        beatsPerBar={4}
+        duration={90}
+        artist={null}
+        chords={['Do', 'Sol']}
+        showChords={false}
+      />,
+    );
+
+    expect(screen.queryByText('Acordes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Do')).not.toBeInTheDocument();
+  });
 });

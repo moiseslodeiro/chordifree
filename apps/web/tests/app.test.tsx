@@ -464,18 +464,25 @@ describe('App', () => {
 
     const gridColumn = screen.getByTestId('song-grid-column');
     const playerColumn = screen.getByTestId('song-player-column');
+    const harmonyColumn = screen.getByTestId('song-harmony-column');
     const toolsColumn = screen.getByTestId('song-tools-column');
     expect(within(gridColumn).getByTestId('beat-row-0')).toBeInTheDocument();
     expect(within(playerColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
-    // On mobile the player comes first, then the grid, then the song tools.
+    // On mobile the player comes first, then the grid, the tools and the harmony.
     expect(
       playerColumn.compareDocumentPosition(gridColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       gridColumn.compareDocumentPosition(toolsColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(
+      toolsColumn.compareDocumentPosition(harmonyColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
     expect(details).toBeInTheDocument();
+    expect(
+      within(harmonyColumn).getByRole('region', { name: 'Análisis armónico' }),
+    ).toBeInTheDocument();
     const activeChord = within(toolsColumn).getByText('Acorde activo');
     // The info block goes below the chord diagrams.
     expect(
@@ -508,8 +515,13 @@ describe('App', () => {
     expect(within(details).getByText('00:08')).toBeInTheDocument();
     expect(within(details).getByText('—')).toBeInTheDocument();
     expect(
-      within(details).getByRole('list', { name: 'Acordes de la canción' }),
+      within(screen.getByTestId('song-harmony-column')).getByRole('list', {
+        name: 'Grado de cada acorde',
+      }),
     ).toBeInTheDocument();
+    expect(
+      within(details).queryByRole('list', { name: 'Acordes de la canción' }),
+    ).not.toBeInTheDocument();
   });
 
   it('persists the list view and uses it when reopening the song', async () => {

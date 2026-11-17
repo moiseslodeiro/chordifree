@@ -942,7 +942,7 @@ export function SongView({
 
       <div
         data-testid="song-layout"
-        className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-[auto_1fr] lg:items-start"
+        className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
       >
         <aside data-testid="song-player-column" className="order-1 lg:col-start-2 lg:row-start-1">
           <section
@@ -963,7 +963,7 @@ export function SongView({
 
         <div
           data-testid="song-grid-column"
-          className="order-2 min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2"
+          className="order-2 min-w-0 lg:col-start-1 lg:row-start-1"
         >
           {editingLyrics ? (
             <LyricsEditor
@@ -1039,9 +1039,15 @@ export function SongView({
             duration={song.duration}
             artist={artist}
             chords={chordList}
+            showChords={false}
             onChangeMeter={changeMeter}
           />
+        </aside>
 
+        <div
+          data-testid="song-harmony-column"
+          className="order-4 min-w-0 lg:col-start-1 lg:row-start-2"
+        >
           <HarmonicAnalysis
             segments={transposedSegments}
             harmonyKey={estimatedKey}
@@ -1049,7 +1055,7 @@ export function SongView({
             accidental={accidental}
             capo={effectiveCapo}
           />
-        </aside>
+        </div>
       </div>
 
       <section className="print-sheet" data-testid="print-sheet" aria-hidden="true">
