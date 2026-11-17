@@ -1,3 +1,71 @@
+# Chordifree 0.3.1
+
+Private online mode, an optional YouTube extractor and a clearer song layout.
+
+## Highlights
+
+- **Private online mode (opt-in)**: Google sign-in, an allowlist and a per-user cloud
+  library, with account deletion and a clear local-only fallback. The GitHub Pages build
+  stays local-only; online mode requires a configured server and Google OAuth.
+- **Cloud sync**: songs and setlists merge per user. A sync failure keeps the local library
+  usable and is shown as a warning, never as a blocking modal.
+- **Shared contracts**: web and server use the same Zod schemas for songs, setlists,
+  authentication and cloud requests.
+- **Security and operations**: per-user rate limits, session-expiry handling, privacy,
+  terms, security and operations documentation, a Firestore backup script and an optional
+  GCS backup backend example.
+- **Raspberry Pi YouTube extractor**: an optional fallback for blocked YouTube requests,
+  behind Cloudflare Tunnel or Tailscale Funnel and configured with `YOUTUBE_EXTRACTOR_URL`.
+- **Monitoring**: Cloud Monitoring alerts for analysis failures and 5xx responses, an
+  uptime check and optional OTLP traces.
+- **YouTube errors**: bot blocks are now distinguished from missing or private videos.
+- **Design refresh**: native confirmation dialogs, a keyboard-navigable action menu,
+  better form semantics, mobile order of player → timeline → active chord → details →
+  harmony, a contiguous sticky tools rail and a balanced home side panel.
+- **Less duplication**: harmonic analysis is the single chord list in the song view.
+- **Dependencies**: FastAPI, python-multipart and the GitHub Pages actions were updated.
+
+## Online mode
+
+Online mode is opt-in and does not change local or desktop use. When enabled, the server
+verifies Google ID tokens, checks the Firestore allowlist and stores one cloud snapshot per
+user. Users can delete their cloud data from the account menu. See `PRIVACY.md`,
+`SECURITY.md` and `docs/OPERATIONS.md` for the data model and operational details.
+
+## Web
+
+The public build at <https://moiseslodeiro.github.io/chordifree/> remains local-only.
+Online mode is available when the API and Google OAuth are configured.
+
+## Desktop
+
+The installers are built from the tagged commit. They bundle the local analyzer, ffmpeg
+and the ONNX models.
+
+### Windows
+
+- Download `chordifree-0.3.1-setup.exe`.
+- Verify `SHA256SUMS.txt` before running it.
+- SmartScreen: **More info → Run anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/WINDOWS_INSTALL.md>
+
+### macOS
+
+- Apple Silicon: `chordifree-0.3.1-arm64.dmg`
+- Verify `SHA256SUMS.txt` before opening it.
+- The app is ad-hoc signed, not notarized. If Gatekeeper blocks it, open **System
+  Settings → Privacy & Security → Open Anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/MACOS_INSTALL.md>
+
+### Linux
+
+- `chordifree-0.3.1-x86_64.AppImage` or `chordifree-0.3.1-amd64.deb`
+- Verify `SHA256SUMS.txt` before running it.
+- The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with `apt`.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/LINUX_INSTALL.md>
+
+Code signing, notarization and automatic installation of updates are not available yet.
+
 # Chordifree 0.3.0
 
 Audio transposition, one player for YouTube and uploads, and a simpler library.
