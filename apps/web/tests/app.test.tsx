@@ -468,21 +468,11 @@ describe('App', () => {
     const toolsColumn = screen.getByTestId('song-tools-column');
     expect(within(gridColumn).getByTestId('beat-row-0')).toBeInTheDocument();
     expect(within(playerColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
-    // On mobile the player comes first, then the grid, the tools and the harmony.
-    expect(
-      playerColumn.compareDocumentPosition(gridColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      gridColumn.compareDocumentPosition(toolsColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      toolsColumn.compareDocumentPosition(harmonyColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
-    expect(details).toBeInTheDocument();
     expect(
       within(harmonyColumn).getByRole('region', { name: 'Análisis armónico' }),
     ).toBeInTheDocument();
+    const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
+    expect(details).toBeInTheDocument();
     const activeChord = within(toolsColumn).getByText('Acorde activo');
     // The info block goes below the chord diagrams.
     expect(

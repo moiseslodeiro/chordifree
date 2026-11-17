@@ -944,23 +944,6 @@ export function SongView({
         data-testid="song-layout"
         className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
       >
-        <aside data-testid="song-player-column" className="order-1 lg:col-start-2 lg:row-start-1">
-          <section
-            className="rounded-xl border border-line bg-panel p-3 shadow-sm"
-            aria-label={t('song.playerAria')}
-          >
-            <PlayerHost
-              song={song}
-              audioUrl={audioUrl}
-              forceFake={forceFake}
-              variant="compact"
-              pitch={pitch}
-              onAdapter={handleAdapter}
-              onPlaybackError={setPlaybackError}
-            />
-          </section>
-        </aside>
-
         <div
           data-testid="song-grid-column"
           className="order-2 min-w-0 lg:col-start-1 lg:row-start-1"
@@ -1017,45 +1000,63 @@ export function SongView({
 
         <aside
           data-testid="song-tools-column"
-          className="song-tools order-3 space-y-5 lg:col-start-2 lg:row-start-2 lg:sticky lg:top-5"
+          className="song-tools contents lg:sticky lg:top-5 lg:col-start-2 lg:row-start-1 lg:flex lg:min-w-0 lg:flex-col lg:gap-5"
           aria-label={t('song.toolsColumnAria')}
         >
-          <ActiveChordDiagram
-            segments={displaySegments}
-            clock={clock}
-            instrument={instrument}
-            notation={song.notation}
-            accidental={accidental}
-          />
+          <div data-testid="song-player-column" className="order-1 lg:order-none">
+            <section
+              className="rounded-xl border border-line bg-panel p-3 shadow-sm"
+              aria-label={t('song.playerAria')}
+            >
+              <PlayerHost
+                song={song}
+                audioUrl={audioUrl}
+                forceFake={forceFake}
+                variant="compact"
+                pitch={pitch}
+                onAdapter={handleAdapter}
+                onPlaybackError={setPlaybackError}
+              />
+            </section>
+          </div>
 
-          <SongDetails
-            keyLabel={keyLabel}
-            relativeKeyLabel={relativeKeyLabel}
-            capo={effectiveCapo}
-            capoKeyLabel={capoKeyLabel}
-            showCapo={capoAvailable}
-            bpm={bpm}
-            beatsPerBar={beatsPerBar}
-            duration={song.duration}
-            artist={artist}
-            chords={chordList}
-            showChords={false}
-            onChangeMeter={changeMeter}
-          />
+          <div data-testid="song-active-chord" className="order-3 lg:order-none">
+            <ActiveChordDiagram
+              segments={displaySegments}
+              clock={clock}
+              instrument={instrument}
+              notation={song.notation}
+              accidental={accidental}
+            />
+          </div>
+
+          <div className="order-4 lg:order-none">
+            <SongDetails
+              keyLabel={keyLabel}
+              relativeKeyLabel={relativeKeyLabel}
+              capo={effectiveCapo}
+              capoKeyLabel={capoKeyLabel}
+              showCapo={capoAvailable}
+              bpm={bpm}
+              beatsPerBar={beatsPerBar}
+              duration={song.duration}
+              artist={artist}
+              chords={chordList}
+              showChords={false}
+              onChangeMeter={changeMeter}
+            />
+          </div>
+
+          <div data-testid="song-harmony-column" className="order-5 lg:order-none">
+            <HarmonicAnalysis
+              segments={transposedSegments}
+              harmonyKey={estimatedKey}
+              notation={song.notation}
+              accidental={accidental}
+              capo={effectiveCapo}
+            />
+          </div>
         </aside>
-
-        <div
-          data-testid="song-harmony-column"
-          className="order-4 min-w-0 lg:col-start-1 lg:row-start-2"
-        >
-          <HarmonicAnalysis
-            segments={transposedSegments}
-            harmonyKey={estimatedKey}
-            notation={song.notation}
-            accidental={accidental}
-            capo={effectiveCapo}
-          />
-        </div>
       </div>
 
       <section className="print-sheet" data-testid="print-sheet" aria-hidden="true">
