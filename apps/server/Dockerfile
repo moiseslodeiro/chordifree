@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Versiones fijadas: Node, pnpm, ffmpeg/ffprobe y yt-dlp.
-ARG NODE_VERSION=20-bookworm-slim
+ARG NODE_VERSION=22-bookworm-slim
 ARG PNPM_VERSION=9.15.9
 ARG FFMPEG_IMAGE=mwader/static-ffmpeg:7.1
 ARG YTDLP_VERSION=2026.10.26
