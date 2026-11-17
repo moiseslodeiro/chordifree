@@ -1214,3 +1214,44 @@ dialog.confirm-dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
 }
+
+/* Microphone practice: a recognized chord segment turns green. */
+.beat-cell[data-practice-hit='true'],
+.bar-cell[data-practice-hit='true'] {
+  background: rgb(var(--color-positive) / 0.1);
+  box-shadow: inset 0 0 0 2px rgb(var(--color-positive) / 0.55);
+}
+
+.chord-row[data-practice-hit='true'] {
+  background: rgb(var(--color-positive) / 0.08);
+  box-shadow: inset 3px 0 0 rgb(var(--color-positive));
+}
+
+/* Practice disclosure: same hairline language, one collapsible block. */
+.practice-panel > summary {
+  list-style: none;
+}
+
+.practice-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.practice-panel > summary::before {
+  content: '';
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid rgb(var(--color-ink-3));
+  border-bottom: 2px solid rgb(var(--color-ink-3));
+  rotate: -45deg;
+  transition: rotate var(--dur-fast) var(--ease);
+}
+
+.practice-panel[open] > summary::before {
+  rotate: 45deg;
+}
+
+.practice-panel > summary:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
+}

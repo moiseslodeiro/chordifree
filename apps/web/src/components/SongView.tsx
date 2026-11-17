@@ -39,10 +39,12 @@ import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { barRangeAt } from '../practice/range';
+import { useMicPractice } from '../practice/useMicPractice';
 import { usePracticeSession } from '../practice/usePracticeSession';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
+import { usePlaybackIndex } from '../sync/hooks';
 import {
   supportsCapo,
   type AppNotice,
@@ -60,10 +62,12 @@ import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
 import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
+import { MicPractice } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
+import { PracticePanel } from './PracticePanel';
 import { SongDetails } from './SongDetails';
 import { Transport } from './Transport';
 
@@ -140,12 +144,14 @@ export function SongView({
   const shareDialogRef = useRef<HTMLDivElement>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [performance, setPerformance] = useState(false);
+  const [micEnabled, setMicEnabled] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm, pitch } = practice;
 
   useEffect(() => {
     setEditingLyrics(false);
     setLyricsDraft('');
+    setMicEnabled(false);
   }, [song.id]);
 
   useEffect(() => {
@@ -282,6 +288,37 @@ export function SongView({
     if (!reduceChords) return simplified;
     return reduceChordSegments(simplified, beats, reduceChordsMax ? 'max' : 'normal', beatsPerBar);
   }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats, beatsPerBar]);
+
+  /** Sounding chords for the microphone: the timeline shows capo shapes. */
+  const practiceSegments = useMemo(
+    () =>
+      displaySegments.map((segment) => ({
+        ...segment,
+        chord: segment.chord ? transposeChord(segment.chord, effectiveCapo) : null,
+      })),
+    [displaySegments, effectiveCapo],
+  );
+  const practiceIndex = usePlaybackIndex(clock);
+  const micPractice = useMicPractice({
+    enabled: micEnabled,
+    songId: song.id,
+    segments: practiceSegments,
+    currentIndex: practiceIndex,
+  });
+  const practiceTarget =
+    practiceIndex >= 0 ? (practiceSegments[practiceIndex]?.chord ?? null) : null;
+  const totalPracticeChords = useMemo(
+    () => practiceSegments.filter((segment) => segment.chord !== null).length,
+    [practiceSegments],
+  );
+  const practiceHitRanges = useMemo(() => {
+    const ranges: Array<{ start: number; end: number }> = [];
+    for (const index of micPractice.hits) {
+      const segment = practiceSegments[index];
+      if (segment) ranges.push({ start: segment.start, end: segment.end });
+    }
+    return ranges;
+  }, [micPractice.hits, practiceSegments]);
 
   /** Lyrics keep the real timings: maximum reduction only affects the grid. */
   const lyricsSegments = useMemo(() => {
@@ -870,30 +907,50 @@ export function SongView({
             loopB={loopB}
             loopEnabled={loopEnabled}
           />
-          <PracticeBar
-            adapter={adapter}
-            clock={clock}
-            beats={beats}
-            beatsPerBar={beatsPerBar}
-            duration={song.duration}
-            loopA={loopA}
-            loopB={loopB}
-            loopEnabled={loopEnabled}
-            onLoopAChange={(value) => updatePractice({ loopA: value })}
-            onLoopBChange={(value) => updatePractice({ loopB: value })}
-            onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
-            markMode={markMode}
-            onMarkModeChange={setMarkMode}
-            rate={rate}
-            onRateChange={(value) => updatePractice({ rate: value })}
-            manualBpm={manualBpm}
-            onManualBpmChange={(value) => updatePractice({ bpm: value })}
-            pitch={pitch}
-            onPitchChange={(value) => updatePractice({ pitch: value })}
-            pitchAvailable={
-              song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
-            }
-          />
+          <PracticePanel
+            onOpenChange={(open) => {
+              if (!open) setMicEnabled(false);
+            }}
+          >
+            <PracticeBar
+              adapter={adapter}
+              clock={clock}
+              beats={beats}
+              beatsPerBar={beatsPerBar}
+              duration={song.duration}
+              loopA={loopA}
+              loopB={loopB}
+              loopEnabled={loopEnabled}
+              onLoopAChange={(value) => updatePractice({ loopA: value })}
+              onLoopBChange={(value) => updatePractice({ loopB: value })}
+              onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
+              markMode={markMode}
+              onMarkModeChange={setMarkMode}
+              rate={rate}
+              onRateChange={(value) => updatePractice({ rate: value })}
+              manualBpm={manualBpm}
+              onManualBpmChange={(value) => updatePractice({ bpm: value })}
+              pitch={pitch}
+              onPitchChange={(value) => updatePractice({ pitch: value })}
+              pitchAvailable={
+                song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
+              }
+              embedded
+            />
+            <MicPractice
+              enabled={micEnabled}
+              status={micPractice.status}
+              target={practiceTarget}
+              detected={micPractice.detected}
+              hit={micPractice.hit}
+              hitCount={micPractice.hits.size}
+              totalChords={totalPracticeChords}
+              notation={song.notation}
+              accidental={accidental}
+              onToggle={() => setMicEnabled((value) => !value)}
+              onReset={micPractice.reset}
+            />
+          </PracticePanel>
         </div>
       ) : (
         <div className="song-controls rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
@@ -994,6 +1051,8 @@ export function SongView({
               onEditLyrics={openLyricsEditor}
               view={gridView}
               onViewChange={(view) => onPreferences({ gridView: view })}
+              practiceHits={micPractice.hits}
+              practiceHitRanges={practiceHitRanges}
             />
           )}
         </div>

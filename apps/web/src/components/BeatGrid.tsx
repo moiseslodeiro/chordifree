@@ -22,6 +22,7 @@ interface BeatCellButtonProps {
   loopRole: LoopRole;
   showLoopMark: boolean;
   markPreview: 'a' | 'b' | null;
+  practiceHit: boolean;
   onHoverBar: (barIndex: number | null) => void;
   onSeek: (time: number) => void;
   onNavigate: (
@@ -33,7 +34,10 @@ interface BeatCellButtonProps {
 
 type LoopRole = 'a' | 'b' | 'ab' | 'range' | null;
 
-const LOOP_LABELS: Record<Exclude<LoopRole, null>, 'grid.loopA' | 'grid.loopB' | 'grid.loopAB' | 'grid.loopRange'> = {
+const LOOP_LABELS: Record<
+  Exclude<LoopRole, null>,
+  'grid.loopA' | 'grid.loopB' | 'grid.loopAB' | 'grid.loopRange'
+> = {
   a: 'grid.loopA',
   b: 'grid.loopB',
   ab: 'grid.loopAB',
@@ -58,6 +62,7 @@ const BeatCellButton = memo(function BeatCellButton({
   loopRole,
   showLoopMark,
   markPreview,
+  practiceHit,
   onHoverBar,
   onSeek,
   onNavigate,
@@ -78,7 +83,8 @@ const BeatCellButton = memo(function BeatCellButton({
       time: formatTime(cell.time),
     }) +
     (loopRole ? t(LOOP_LABELS[loopRole]) : '') +
-    (lowConfidence ? t('grid.lowConfidence') : '');
+    (lowConfidence ? t('grid.lowConfidence') : '') +
+    (practiceHit ? t('mic.hitLabel') : '');
 
   return (
     <button
@@ -91,6 +97,7 @@ const BeatCellButton = memo(function BeatCellButton({
       data-change={cell.change ? 'true' : 'false'}
       data-loop={loopRole ?? undefined}
       data-mark-preview={markPreview ?? undefined}
+      data-practice-hit={practiceHit ? 'true' : undefined}
       data-confidence={
         cell.confidence === undefined ? undefined : Math.round(cell.confidence * 100)
       }
@@ -132,6 +139,7 @@ interface BeatGridProps {
   loopA?: number | null;
   loopB?: number | null;
   markMode?: 'a' | 'b' | null;
+  practiceHits?: Array<{ start: number; end: number }>;
 }
 
 export function BeatGrid({
@@ -145,6 +153,7 @@ export function BeatGrid({
   loopA = null,
   loopB = null,
   markMode = null,
+  practiceHits = [],
 }: BeatGridProps) {
   const t = useT();
   const activeBeat = useBeatIndex(clock);
@@ -163,6 +172,9 @@ export function BeatGrid({
     if (markMode === null) return;
     setPreviewBar(barIndex);
   };
+
+  const practiceHitFor = (time: number) =>
+    practiceHits.some((range) => time >= range.start && time < range.end);
 
   const loopBars = useMemo(() => {
     const starts: number[] = [];
@@ -217,9 +229,7 @@ export function BeatGrid({
   }, [activeRowIndex, follow]);
 
   const focusBeat = (beatIndex: number) => {
-    containerRef.current
-      ?.querySelector<HTMLElement>(`[data-beat-index="${beatIndex}"]`)
-      ?.focus();
+    containerRef.current?.querySelector<HTMLElement>(`[data-beat-index="${beatIndex}"]`)?.focus();
   };
 
   const firstCellIn = (rowIndex: number): BeatCell | null => {
@@ -237,12 +247,12 @@ export function BeatGrid({
     return null;
   };
 
-  const neighborInRow = (
-    row: BeatRow,
-    cellIndex: number,
-    direction: -1 | 1,
-  ): BeatCell | null => {
-    for (let index = cellIndex + direction; index >= 0 && index < row.cells.length; index += direction) {
+  const neighborInRow = (row: BeatRow, cellIndex: number, direction: -1 | 1): BeatCell | null => {
+    for (
+      let index = cellIndex + direction;
+      index >= 0 && index < row.cells.length;
+      index += direction
+    ) {
       const cell = row.cells[index];
       if (cell) return cell;
     }
@@ -305,11 +315,7 @@ export function BeatGrid({
     >
       <div className="w-full min-w-0 divide-y divide-line">
         {rows.map((row) => (
-          <div
-            key={row.index}
-            data-testid={`beat-row-${row.index}`}
-            className="flex items-stretch"
-          >
+          <div key={row.index} data-testid={`beat-row-${row.index}`} className="flex items-stretch">
             <div className="flex w-16 shrink-0 flex-col justify-center gap-0.5 border-r border-line px-2 py-1 font-mono text-[0.62rem] uppercase leading-tight tracking-[0.1em] text-ink3">
               <span className="tabular-nums">{formatTime(row.start)}</span>
               <span>C{(row.bars[0]?.index ?? row.index * 2) + 1}</span>
@@ -335,11 +341,11 @@ export function BeatGrid({
                     loopRole={loopRoleFor(Math.floor(cell.beatIndex / beatsPerBar))}
                     showLoopMark={cellIndex % beatsPerBar === 0}
                     markPreview={
-                      markMode !== null &&
-                      previewBar === Math.floor(cell.beatIndex / beatsPerBar)
+                      markMode !== null && previewBar === Math.floor(cell.beatIndex / beatsPerBar)
                         ? markMode
                         : null
                     }
+                    practiceHit={practiceHitFor(cell.time)}
                     onHoverBar={hoverBar}
                     onSeek={onSeek}
                     onNavigate={navigate}
@@ -349,14 +355,12 @@ export function BeatGrid({
                     key={`${row.index}-${cellIndex}`}
                     aria-hidden="true"
                     data-loop={
-                      loopRoleFor(
-                        row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? -1,
-                      ) ?? undefined
+                      loopRoleFor(row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? -1) ??
+                      undefined
                     }
                     data-mark-preview={
                       markMode !== null &&
-                      previewBar ===
-                        (row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? -1)
+                      previewBar === (row.bars[Math.floor(cellIndex / beatsPerBar)]?.index ?? -1)
                         ? markMode
                         : undefined
                     }

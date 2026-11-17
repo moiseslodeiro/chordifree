@@ -29,6 +29,7 @@ interface PracticeBarProps {
   pitch: number;
   onPitchChange: (value: number) => void;
   pitchAvailable: boolean;
+  embedded?: boolean;
 }
 
 const SPEEDS = PLAYBACK_RATES.map((value) => ({
@@ -36,10 +37,7 @@ const SPEEDS = PLAYBACK_RATES.map((value) => ({
   label: `${String(value).replace('.', ',')}×`,
 }));
 
-const PITCHES = Array.from(
-  { length: MAX_PITCH - MIN_PITCH + 1 },
-  (_, index) => MIN_PITCH + index,
-);
+const PITCHES = Array.from({ length: MAX_PITCH - MIN_PITCH + 1 }, (_, index) => MIN_PITCH + index);
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -86,6 +84,7 @@ export function PracticeBar({
   pitch,
   onPitchChange,
   pitchAvailable,
+  embedded = false,
 }: PracticeBarProps) {
   const t = useT();
   const mobile = useIsMobile();
@@ -248,11 +247,14 @@ export function PracticeBar({
       }
     }
     setCountingIn(true);
-    countInTimer.current = window.setTimeout(() => {
-      setCountingIn(false);
-      countInTimer.current = null;
-      adapter.play();
-    }, interval * countBeats * 1000);
+    countInTimer.current = window.setTimeout(
+      () => {
+        setCountingIn(false);
+        countInTimer.current = null;
+        adapter.play();
+      },
+      interval * countBeats * 1000,
+    );
   };
 
   const hasRange = loopA !== null && loopB !== null && loopB > loopA;
@@ -303,11 +305,7 @@ export function PracticeBar({
         className={metronome ? 'tool-chip-active' : 'tool-chip'}
         aria-pressed={metronome}
         disabled={duration <= 0}
-        title={
-          beats.length === 0
-            ? t('practice.metronomeManual')
-            : t('practice.metronomeOn')
-        }
+        title={beats.length === 0 ? t('practice.metronomeManual') : t('practice.metronomeOn')}
         onClick={() => setMetronome((value) => !value)}
       >
         {t('practice.metronome')}
@@ -326,12 +324,20 @@ export function PracticeBar({
 
   return (
     <section
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm"
+      className={
+        embedded
+          ? 'flex flex-wrap items-center gap-x-4 gap-y-2'
+          : 'flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm'
+      }
       aria-label={t('practice.aria')}
     >
-      <span className="eyebrow"> {t('practice.eyebrow')} </span>
+      {embedded ? null : <span className="eyebrow"> {t('practice.eyebrow')} </span>}
 
-      <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t('practice.loopGroup')}>
+      <div
+        className="flex flex-wrap items-center gap-1"
+        role="group"
+        aria-label={t('practice.loopGroup')}
+      >
         <button
           type="button"
           className={aClassName}

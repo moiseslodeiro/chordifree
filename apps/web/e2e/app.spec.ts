@@ -600,11 +600,11 @@ test.describe('full flow', () => {
   });
 
   test('moves secondary controls into disclosures on mobile', async ({ page }) => {
-    await analyze(page);
     await page.setViewportSize({ width: 390, height: 844 });
+    await analyze(page);
 
     await expect(page.getByText('Más ajustes')).toBeVisible();
-    await expect(page.getByText('Más práctica')).toBeVisible();
+    await expect(page.getByText('Más práctica')).not.toBeVisible();
     await expect(page.getByText('Alteraciones')).not.toBeVisible();
     await expect(page.getByRole('button', { name: 'Metrónomo' })).not.toBeVisible();
 
@@ -617,6 +617,8 @@ test.describe('full flow', () => {
     await expect(page.getByLabel('Instrumento')).toBeVisible();
     await expect(page.getByLabel('Capo')).toBeVisible();
 
+    await page.getByTestId('practice-summary').click();
+    await expect(page.getByText('Más práctica')).toBeVisible();
     await page.getByText('Más práctica').click();
     await expect(page.getByRole('button', { name: 'Metrónomo' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cuenta atrás' })).toBeVisible();

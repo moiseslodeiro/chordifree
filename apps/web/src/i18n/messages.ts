@@ -66,8 +66,7 @@ const en = {
   'auth.deleteData': 'Delete cloud data',
   'auth.deleteDataConfirm':
     'Delete your songs and setlists from the cloud? The local copy on this device will stay. If you are not an administrator, your access will also be removed.',
-  'auth.deleteDataDone':
-    'Cloud data deleted: {songs} songs and {setlists} setlists.',
+  'auth.deleteDataDone': 'Cloud data deleted: {songs} songs and {setlists} setlists.',
   'auth.deleteDataFailed': 'Could not delete your cloud data.',
   'auth.signedInAs': 'Signed in as {email}',
   'auth.admin': 'Administration',
@@ -177,8 +176,7 @@ const en = {
   'library.cacheStats': 'Analysis cache: {count} entries · {size}',
   'library.clearCache': 'Clear cache',
   'library.audioCacheStatsOne': 'Temporary YouTube audio: 1 file · {size} · {retention}',
-  'library.audioCacheStatsOther':
-    'Temporary YouTube audio: {count} files · {size} · {retention}',
+  'library.audioCacheStatsOther': 'Temporary YouTube audio: {count} files · {size} · {retention}',
   'library.audioCacheKeepForever': 'kept until you clear it',
   'library.audioCacheKeepMinutes': 'kept for about {minutes} min',
   'library.clearAudioCache': 'Clear temporary audio',
@@ -193,8 +191,7 @@ const en = {
   'library.searchPlaceholder': 'Search by title…',
   'library.results': '{count} of {total} {label}',
   'library.noResults': 'Try another title or change the source filter.',
-  'library.deleteConfirm':
-    'Delete “{title}” from the library? This action cannot be undone.',
+  'library.deleteConfirm': 'Delete “{title}” from the library? This action cannot be undone.',
   'library.savedAt': 'Saved {date}',
 
   'song.back': '← Home',
@@ -253,8 +250,7 @@ const en = {
   'share.quickNote':
     'Long songs may be truncated by chat apps. Use Copy chord sheet if you need the complete text.',
   'share.copySheetTitle': 'Copy the chord sheet',
-  'share.copySheetBody':
-    'ChordPro text with chords and lyrics. Paste it into a message or email.',
+  'share.copySheetBody': 'ChordPro text with chords and lyrics. Paste it into a message or email.',
   'share.copySheetAction': 'Copy chord sheet',
   'share.copySheetDone': 'Chord sheet copied.',
   'share.fileTitle': 'Download a song file',
@@ -276,6 +272,7 @@ const en = {
 
   'practice.eyebrow': 'Practice',
   'practice.aria': 'Practice tools',
+  'practice.summary': 'A–B · speed · pitch · microphone',
   'practice.loopGroup': 'A-B loop',
   'practice.markA': 'Mark start A',
   'practice.markB': 'Mark end B',
@@ -305,6 +302,32 @@ const en = {
   'practice.countIn': 'Count-in',
   'practice.counting': 'Counting…',
 
+  'mic.aria': 'Microphone practice',
+  'mic.eyebrow': 'Microphone',
+  'mic.title': 'Practice with your instrument',
+  'mic.description':
+    'Play the chord shown on the timeline. The microphone is analysed in this tab and never uploaded; headphones are recommended.',
+  'mic.start': 'Start microphone',
+  'mic.stop': 'Stop microphone',
+  'mic.statusIdle': 'Microphone off',
+  'mic.statusRequesting': 'Requesting microphone…',
+  'mic.statusListening': 'Listening',
+  'mic.statusDenied': 'Microphone permission denied',
+  'mic.statusUnsupported': 'Microphone unavailable',
+  'mic.statusError': 'Microphone error',
+  'mic.target': 'Play',
+  'mic.waiting': 'Start playback to see the next chord.',
+  'mic.detected': 'Detected: {chord}',
+  'mic.correct': 'Correct',
+  'mic.hitLabel': ', correct',
+  'mic.progress': '{done} of {total} chords',
+  'mic.reset': 'Reset',
+  'mic.deniedHelp': 'Allow microphone access in the browser and try again.',
+  'mic.unsupportedHelp':
+    'This browser does not expose microphone access here. Try localhost, HTTPS or the desktop app.',
+  'mic.errorHelp':
+    'The microphone could not be started. Check that no other app is using it and try again.',
+
   'transport.play': 'Play',
   'transport.pause': 'Pause',
   'transport.position': 'Playback position',
@@ -320,7 +343,8 @@ const en = {
   'grid.autoScroll': 'Auto-scroll',
   'grid.autoScrollTitle': 'Follow playback and scroll the active row',
   'grid.rowCount': '{rows} rows · {bars} bars',
-  'grid.noChords': 'No chords were detected in this audio. You can reanalyze it or upload another file.',
+  'grid.noChords':
+    'No chords were detected in this audio. You can reanalyze it or upload another file.',
   'grid.activeChord': 'Active chord: {chord} at {time}',
   'grid.doubtful': 'uncertain',
   'grid.sounding': 'playing',
@@ -340,8 +364,7 @@ const en = {
   'grid.notEnoughBars': 'There are not enough bars to build this view.',
   'grid.markAHelp': 'Click a bar to mark the start A. Press Escape to cancel.',
   'grid.markBHelp': 'Click a bar to mark the end B. Press Escape to cancel.',
-  'grid.beatHelp':
-    'Click a beat to play from there. Arm A or B to mark the range without playing.',
+  'grid.beatHelp': 'Click a beat to play from there. Arm A or B to mark the range without playing.',
   'grid.barHelpClick':
     'Click a bar to play from there. Arm A or B to mark the range without playing.',
   'grid.lyricsHelp':
@@ -466,8 +489,7 @@ const en = {
   'display.on': 'on',
   'display.off': 'off',
   'display.maximum': 'maximum',
-  'display.summary':
-    'Simplification {simplify}. Reduction {reduce}. Instrument: {instrument}.',
+  'display.summary': 'Simplification {simplify}. Reduction {reduce}. Instrument: {instrument}.',
 
   'details.aria': 'Song details',
   'details.title': 'Song details',
@@ -523,8 +545,7 @@ const en = {
   'player.pitchPreparing': 'Preparing the YouTube audio…',
   'player.pitchAudioFailed':
     'Could not prepare the YouTube audio. The song cannot be played right now.',
-  'player.youtubeTemporary':
-    'YouTube audio is played from a temporary copy on the server.',
+  'player.youtubeTemporary': 'YouTube audio is played from a temporary copy on the server.',
   'player.audioFileHint': 'Use the playback bar above to play this file.',
   'player.audioLoadFailed': 'The audio could not be loaded.',
   'player.audioMissing':
@@ -559,8 +580,7 @@ const en = {
     'YouTube is blocking this server, so it cannot download the video. Upload the audio file instead, or try again later.',
   'apiError.EXTRACTOR_UNAVAILABLE':
     'The local YouTube extractor is offline. Upload the audio file or try again when the device is back online.',
-  'apiError.EXTRACTOR_BUSY':
-    'The local YouTube extractor is busy. Try again in a moment.',
+  'apiError.EXTRACTOR_BUSY': 'The local YouTube extractor is busy. Try again in a moment.',
   'apiError.DURATION_EXCEEDED': 'The audio is too long.',
   'apiError.RATE_LIMITED': 'Too many analyses. Try again later.',
   'apiError.INVALID_AUDIO': 'The audio file is not valid.',
@@ -662,8 +682,7 @@ const es: Record<MessageKey, string> = {
   'app.storageCorrupt':
     'Se encontraron datos ilegibles en el almacenamiento local. Se conservó una copia en cuarentena y la biblioteca se recuperó vacía.',
   'app.songMissing': 'La canción solicitada no existe en esta biblioteca.',
-  'app.preferencesQuota':
-    'No se pudieron guardar las preferencias: el almacenamiento está lleno.',
+  'app.preferencesQuota': 'No se pudieron guardar las preferencias: el almacenamiento está lleno.',
   'app.preferencesFailed': 'No se pudieron guardar las preferencias.',
   'app.songSaved': 'Canción guardada en la biblioteca.',
   'app.saveQuota':
@@ -673,8 +692,7 @@ const es: Record<MessageKey, string> = {
   'app.reanalyzeFailed': 'No se pudo reanalizar la canción.',
   'app.reanalyzingProgress': 'Reanalizando… {progress}%',
   'app.reanalyzed': 'Canción reanalizada con el analizador actual.',
-  'app.reanalyzedNotSaved':
-    'El análisis se actualizó en memoria, pero no se pudo guardar.',
+  'app.reanalyzedNotSaved': 'El análisis se actualizó en memoria, pero no se pudo guardar.',
   'app.backupImported': 'Copia importada: {added} {label}.',
   'app.backupImportFailed': 'No se pudo importar la copia de seguridad.',
   'app.themeLight': '☀ Tema claro',
@@ -692,8 +710,7 @@ const es: Record<MessageKey, string> = {
   'cloud.syncNow': 'Sincronizar ahora',
   'cloud.loaded': 'Biblioteca en la nube cargada.',
   'auth.signInTitle': 'Inicia sesión en Chordifree',
-  'auth.signInBody':
-    'Usa tu cuenta de Google. El acceso está limitado a cuentas aprobadas.',
+  'auth.signInBody': 'Usa tu cuenta de Google. El acceso está limitado a cuentas aprobadas.',
   'auth.googleUnavailable': 'No se pudo cargar el inicio de sesión de Google.',
   'auth.sessionExpired': 'Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.',
   'auth.restrictedTitle': 'Acceso no habilitado',
@@ -703,8 +720,7 @@ const es: Record<MessageKey, string> = {
   'auth.deleteData': 'Borrar datos de la nube',
   'auth.deleteDataConfirm':
     '¿Borrar tus canciones y repertorios de la nube? La copia local de este dispositivo se mantiene. Si no eres administrador, también se quitará tu acceso.',
-  'auth.deleteDataDone':
-    'Datos de la nube borrados: {songs} canciones y {setlists} repertorios.',
+  'auth.deleteDataDone': 'Datos de la nube borrados: {songs} canciones y {setlists} repertorios.',
   'auth.deleteDataFailed': 'No se pudieron borrar tus datos de la nube.',
   'auth.signedInAs': 'Sesión iniciada como {email}',
   'auth.admin': 'Administración',
@@ -744,8 +760,7 @@ const es: Record<MessageKey, string> = {
   'home.youtubeLabel': 'Enlace del video',
   'home.youtubeHostedHint':
     'YouTube puede estar bloqueado en esta instancia. Sube el archivo de audio o usa el extractor opcional.',
-  'home.youtubeHelp':
-    'Se admiten `youtube.com/watch?v=`, `youtu.be/` y `youtube.com/shorts/`.',
+  'home.youtubeHelp': 'Se admiten `youtube.com/watch?v=`, `youtu.be/` y `youtube.com/shorts/`.',
   'home.searchLabel': 'Buscar en YouTube',
   'home.searchPlaceholder': 'Canción, artista o banda',
   'home.searchAction': 'Buscar',
@@ -785,8 +800,7 @@ const es: Record<MessageKey, string> = {
   'home.desktopStep1Title': 'Elige un archivo',
   'home.desktopStep1Body': 'MP3, WAV, M4A, OGG, FLAC, WebM o MP4.',
   'home.desktopStep2Title': 'Analiza en local',
-  'home.desktopStep2Body':
-    'El analizador incluido detecta pulsos, compases, tonalidad y acordes.',
+  'home.desktopStep2Body': 'El analizador incluido detecta pulsos, compases, tonalidad y acordes.',
   'home.desktopStep3Title': 'Corrige y guarda',
   'home.desktopStep3Body': 'Corrige los acordes, añade la letra y guarda en tu biblioteca.',
   'home.legalTitle': 'Aviso legal:',
@@ -846,7 +860,8 @@ const es: Record<MessageKey, string> = {
   'song.detailsTitle': 'Título',
   'song.detailsArtist': 'Artista',
   'song.detailsApply': 'Aplicar',
-  'song.detailsHint': 'Aplicar actualiza esta hoja. Usa Guardar cambios para conservarla en la biblioteca.',
+  'song.detailsHint':
+    'Aplicar actualiza esta hoja. Usa Guardar cambios para conservarla en la biblioteca.',
   'song.exitEdit': 'Salir de edición',
   'song.print': 'Imprimir / PDF',
   'song.printLyrics': 'Letra y acordes',
@@ -897,8 +912,7 @@ const es: Record<MessageKey, string> = {
   'share.copySheetAction': 'Copiar hoja de acordes',
   'share.copySheetDone': 'Hoja de acordes copiada.',
   'share.fileTitle': 'Descarga un archivo de canción',
-  'share.fileBody':
-    'Un archivo .chordifree.json que otra biblioteca de Chordifree puede importar.',
+  'share.fileBody': 'Un archivo .chordifree.json que otra biblioteca de Chordifree puede importar.',
   'share.fileAction': 'Descargar archivo',
   'share.fileDone': 'Archivo de canción descargado.',
   'share.linkTitle': 'Copia un enlace',
@@ -916,6 +930,7 @@ const es: Record<MessageKey, string> = {
 
   'practice.eyebrow': 'Práctica',
   'practice.aria': 'Herramientas de práctica',
+  'practice.summary': 'A–B · velocidad · tono · micrófono',
   'practice.loopGroup': 'Bucle A-B',
   'practice.markA': 'Marcar inicio A',
   'practice.markB': 'Marcar final B',
@@ -941,10 +956,35 @@ const es: Record<MessageKey, string> = {
     'Transpone el audio sin cambiar el tempo. En YouTube se usa audio temporal.',
   'practice.pitchUnavailable': 'El tono del audio no está disponible para este reproductor',
   'practice.metronomeOn': 'Activar o desactivar el clic del metrónomo',
-  'practice.metronomeManual':
-    'Activar o desactivar el clic del metrónomo con el BPM manual',
+  'practice.metronomeManual': 'Activar o desactivar el clic del metrónomo con el BPM manual',
   'practice.countIn': 'Cuenta atrás',
   'practice.counting': 'Contando…',
+
+  'mic.aria': 'Práctica con micrófono',
+  'mic.eyebrow': 'Micrófono',
+  'mic.title': 'Practica con tu instrumento',
+  'mic.description':
+    'Toca el acorde que marca el timeline. El micrófono se analiza en esta pestaña y nunca se sube; se recomiendan auriculares.',
+  'mic.start': 'Activar micrófono',
+  'mic.stop': 'Parar micrófono',
+  'mic.statusIdle': 'Micrófono apagado',
+  'mic.statusRequesting': 'Pidiendo permiso…',
+  'mic.statusListening': 'Escuchando',
+  'mic.statusDenied': 'Permiso de micrófono denegado',
+  'mic.statusUnsupported': 'Micrófono no disponible',
+  'mic.statusError': 'Error de micrófono',
+  'mic.target': 'Toca',
+  'mic.waiting': 'Empieza la reproducción para ver el siguiente acorde.',
+  'mic.detected': 'Detectado: {chord}',
+  'mic.correct': 'Correcto',
+  'mic.hitLabel': ', correcto',
+  'mic.progress': '{done} de {total} acordes',
+  'mic.reset': 'Reiniciar',
+  'mic.deniedHelp': 'Permite el acceso al micrófono en el navegador y vuelve a intentarlo.',
+  'mic.unsupportedHelp':
+    'Este navegador no permite usar el micrófono aquí. Prueba en localhost, HTTPS o la app de escritorio.',
+  'mic.errorHelp':
+    'No se pudo iniciar el micrófono. Comprueba que ninguna otra aplicación lo esté usando e inténtalo de nuevo.',
 
   'transport.play': 'Reproducir',
   'transport.pause': 'Pausar',
@@ -1028,11 +1068,9 @@ const es: Record<MessageKey, string> = {
   'lyrics.save': 'Guardar letra',
   'lyrics.cancel': 'Cancelar',
   'lyrics.anchorStart': 'Anclar inicio',
-  'lyrics.anchorStartTitle':
-    'Insertar el tiempo actual al inicio de la primera línea con texto',
+  'lyrics.anchorStartTitle': 'Insertar el tiempo actual al inicio de la primera línea con texto',
   'lyrics.anchorLine': 'Anclar línea',
-  'lyrics.anchorLineTitle':
-    'Insertar el tiempo actual al inicio de la línea del cursor',
+  'lyrics.anchorLineTitle': 'Insertar el tiempo actual al inicio de la línea del cursor',
   'lyrics.delete': 'Eliminar letra',
   'lyrics.adjust': 'Ajustar acordes',
   'lyrics.adjustDone': 'Terminar ajuste',
@@ -1111,8 +1149,7 @@ const es: Record<MessageKey, string> = {
   'display.on': 'activada',
   'display.off': 'desactivada',
   'display.maximum': 'máxima',
-  'display.summary':
-    'Simplificación {simplify}. Reducción {reduce}. Instrumento: {instrument}.',
+  'display.summary': 'Simplificación {simplify}. Reducción {reduce}. Instrumento: {instrument}.',
 
   'details.aria': 'Detalles de la canción',
   'details.title': 'Detalles de la canción',
@@ -1135,8 +1172,7 @@ const es: Record<MessageKey, string> = {
   'harmonic.progression': 'Progresión',
   'harmonic.progressionAria': 'Progresión por grados',
   'harmonic.noChanges': 'Sin cambios de acorde.',
-  'harmonic.noKey':
-    'No se pudo estimar la tonalidad, así que no hay grados que mostrar.',
+  'harmonic.noKey': 'No se pudo estimar la tonalidad, así que no hay grados que mostrar.',
   'harmonic.averageConfidence': 'Confianza media {percent}',
   'harmonic.degreesCapo':
     'Grados sobre la tonalidad real; la parrilla muestra las formas con capo en el traste {capo}.',
@@ -1222,8 +1258,7 @@ const es: Record<MessageKey, string> = {
   'backup.invalidFormat': 'El archivo no es una copia de seguridad de Chordifree.',
   'backup.unsupportedVersion': 'La copia usa una versión no compatible ({version}).',
   'backup.noSongs': 'La copia no contiene una lista de canciones.',
-  'backup.invalidSong':
-    'La canción {index} de la copia no tiene un formato válido.',
+  'backup.invalidSong': 'La canción {index} de la copia no tiene un formato válido.',
 
   'storage.quota': 'El almacenamiento local está lleno',
   'api.invalidResponse': 'Respuesta del analizador inválida',
@@ -1247,7 +1282,8 @@ const es: Record<MessageKey, string> = {
   'setlists.copy': 'Copiar lista',
   'setlists.copied': 'Lista copiada.',
   'setlists.copyFailed': 'No se pudo copiar la lista.',
-  'setlists.shareNote': 'La lista incluye los títulos. Abre una canción para compartir sus acordes.',
+  'setlists.shareNote':
+    'La lista incluye los títulos. Abre una canción para compartir sus acordes.',
   'setlists.addSong': 'Añadir canción',
   'setlists.addSongPlaceholder': 'Elige una canción…',
   'setlists.removeSong': 'Quitar',
@@ -1281,7 +1317,8 @@ const es: Record<MessageKey, string> = {
   'update.check': 'Buscar actualizaciones',
   'update.current': 'Ya tienes la última versión.',
   'update.failed': 'No se pudieron buscar actualizaciones.',
-  'update.disabled': 'La búsqueda de actualizaciones solo está disponible en la app de escritorio empaquetada.',
+  'update.disabled':
+    'La búsqueda de actualizaciones solo está disponible en la app de escritorio empaquetada.',
 };
 
 export const messages: Record<Language, Record<MessageKey, string>> = { en, es };
