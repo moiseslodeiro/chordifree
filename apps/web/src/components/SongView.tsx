@@ -62,7 +62,7 @@ import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
 import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
-import { MicPractice } from './MicPractice';
+import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
@@ -936,20 +936,23 @@ export function SongView({
                 song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
               }
               embedded
+              trailing={
+                <MicToggle enabled={micEnabled} onToggle={() => setMicEnabled((value) => !value)} />
+              }
             />
-            <MicPractice
-              enabled={micEnabled}
-              status={micPractice.status}
-              target={practiceTarget}
-              detected={micPractice.detected}
-              hit={micPractice.hit}
-              hitCount={micPractice.hits.size}
-              totalChords={totalPracticeChords}
-              notation={song.notation}
-              accidental={accidental}
-              onToggle={() => setMicEnabled((value) => !value)}
-              onReset={micPractice.reset}
-            />
+            {micEnabled ? (
+              <MicPractice
+                status={micPractice.status}
+                target={practiceTarget}
+                detected={micPractice.detected}
+                hit={micPractice.hit}
+                hitCount={micPractice.hits.size}
+                totalChords={totalPracticeChords}
+                notation={song.notation}
+                accidental={accidental}
+                onReset={micPractice.reset}
+              />
+            ) : null}
           </PracticePanel>
         </div>
       ) : (

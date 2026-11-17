@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { tempoFromBeats } from '../grid/beats';
 import type { PlayerAdapter } from '../player/types';
@@ -30,6 +30,7 @@ interface PracticeBarProps {
   onPitchChange: (value: number) => void;
   pitchAvailable: boolean;
   embedded?: boolean;
+  trailing?: ReactNode;
 }
 
 const SPEEDS = PLAYBACK_RATES.map((value) => ({
@@ -85,6 +86,7 @@ export function PracticeBar({
   onPitchChange,
   pitchAvailable,
   embedded = false,
+  trailing,
 }: PracticeBarProps) {
   const t = useT();
   const mobile = useIsMobile();
@@ -435,6 +437,8 @@ export function PracticeBar({
           </select>
         </label>
       </div>
+
+      {trailing ? <div className="ml-auto">{trailing}</div> : null}
 
       {mobile ? (
         <details className="basis-full pt-1">

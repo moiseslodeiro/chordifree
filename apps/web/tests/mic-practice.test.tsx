@@ -13,7 +13,6 @@ describe('MicPractice', () => {
   it('shows the target, the detected chord and the green hit state', () => {
     render(
       <MicPractice
-        enabled
         status="listening"
         target={cMajor}
         detected={cMajor}
@@ -22,7 +21,6 @@ describe('MicPractice', () => {
         totalChords={4}
         notation="english"
         accidental="sharp"
-        onToggle={vi.fn()}
         onReset={vi.fn()}
       />,
     );
@@ -37,7 +35,6 @@ describe('MicPractice', () => {
     const onReset = vi.fn();
     render(
       <MicPractice
-        enabled
         status="denied"
         target={null}
         detected={null}
@@ -46,7 +43,6 @@ describe('MicPractice', () => {
         totalChords={4}
         notation="english"
         accidental="sharp"
-        onToggle={vi.fn()}
         onReset={onReset}
       />,
     );

@@ -3,7 +3,6 @@ import { useT } from '../i18n';
 import type { MicStatus } from '../practice/useMicPractice';
 
 interface MicPracticeProps {
-  enabled: boolean;
   status: MicStatus;
   target: Chord | null;
   detected: Chord | null;
@@ -12,8 +11,12 @@ interface MicPracticeProps {
   totalChords: number;
   notation: Notation;
   accidental: Accidental;
-  onToggle: () => void;
   onReset: () => void;
+}
+
+interface MicToggleProps {
+  enabled: boolean;
+  onToggle: () => void;
 }
 
 const STATUS_KEYS = {
@@ -25,8 +28,42 @@ const STATUS_KEYS = {
   error: 'mic.statusError',
 } as const;
 
+function MicrophoneIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8" />
+    </svg>
+  );
+}
+
+/** Compact trigger that lives in the practice controls row. */
+export function MicToggle({ enabled, onToggle }: MicToggleProps) {
+  const t = useT();
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center gap-2 ${enabled ? 'btn' : 'btn btn-primary'}`}
+      aria-pressed={enabled}
+      onClick={onToggle}
+    >
+      <MicrophoneIcon />
+      {enabled ? t('mic.stop') : t('mic.start')}
+    </button>
+  );
+}
+
+/** Status row shown only while the microphone is active. */
 export function MicPractice({
-  enabled,
   status,
   target,
   detected,
@@ -35,7 +72,6 @@ export function MicPractice({
   totalChords,
   notation,
   accidental,
-  onToggle,
   onReset,
 }: MicPracticeProps) {
   const t = useT();
@@ -46,82 +82,63 @@ export function MicPractice({
   return (
     <section className="border-t border-line pt-4" aria-label={t('mic.aria')}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="eyebrow shrink-0">{t('mic.eyebrow')}</span>
+        <span className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
+          <span
+            aria-hidden="true"
+            className={`h-2 w-2 rounded-full ${
+              status === 'listening'
+                ? 'bg-positive'
+                : status === 'requesting'
+                  ? 'animate-pulse bg-accent'
+                  : 'bg-ink3'
+            }`}
+          />
+          <span aria-live="polite">{statusLabel}</span>
+        </span>
 
-        {enabled ? (
-          <>
-            <span className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
-              <span
-                aria-hidden="true"
-                className={`h-2 w-2 rounded-full ${
-                  status === 'listening'
-                    ? 'bg-positive'
-                    : status === 'requesting'
-                      ? 'animate-pulse bg-accent'
-                      : 'bg-ink3'
-                }`}
-              />
-              <span aria-live="polite">{statusLabel}</span>
+        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="eyebrow">{t('mic.target')}</span>
+          {targetLabel ? (
+            <span
+              className={`display text-xl font-bold leading-none ${
+                hit ? 'text-positive' : 'text-ink'
+              }`}
+            >
+              {targetLabel}
             </span>
+          ) : (
+            <span className="text-xs text-ink3">{t('mic.waiting')}</span>
+          )}
+        </span>
 
-            <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="eyebrow">{t('mic.target')}</span>
-              {targetLabel ? (
-                <span
-                  className={`display text-xl font-bold leading-none ${
-                    hit ? 'text-positive' : 'text-ink'
-                  }`}
-                >
-                  {targetLabel}
-                </span>
-              ) : (
-                <span className="text-xs text-ink3">{t('mic.waiting')}</span>
-              )}
-            </span>
-
-            {detectedLabel ? (
-              <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-                {t('mic.detected', { chord: detectedLabel })}
-              </span>
-            ) : null}
-
-            <span className="flex flex-wrap items-center gap-2">
-              {hit ? (
-                <span className="badge border-positive/60 text-positive" role="status">
-                  ✓ {t('mic.correct')}
-                </span>
-              ) : null}
-              <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-                {t('mic.progress', { done: hitCount, total: totalChords })}
-              </span>
-              {hitCount > 0 ? (
-                <button
-                  type="button"
-                  className="btn min-h-0 px-2.5 py-1 text-[0.68rem]"
-                  onClick={onReset}
-                >
-                  {t('mic.reset')}
-                </button>
-              ) : null}
-            </span>
-          </>
-        ) : (
-          <span className="min-w-0 flex-1 text-xs leading-snug text-ink3">
-            {t('mic.description')}
+        {detectedLabel ? (
+          <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+            {t('mic.detected', { chord: detectedLabel })}
           </span>
-        )}
+        ) : null}
 
-        <button
-          type="button"
-          className={`ml-auto ${enabled ? 'btn' : 'btn btn-primary'}`}
-          aria-pressed={enabled}
-          onClick={onToggle}
-        >
-          {enabled ? t('mic.stop') : t('mic.start')}
-        </button>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          {hit ? (
+            <span className="badge border-positive/60 text-positive" role="status">
+              ✓ {t('mic.correct')}
+            </span>
+          ) : null}
+          <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
+            {t('mic.progress', { done: hitCount, total: totalChords })}
+          </span>
+          {hitCount > 0 ? (
+            <button
+              type="button"
+              className="btn min-h-0 px-2.5 py-1 text-[0.68rem]"
+              onClick={onReset}
+            >
+              {t('mic.reset')}
+            </button>
+          ) : null}
+        </span>
       </div>
 
-      {enabled && (status === 'denied' || status === 'unsupported' || status === 'error') ? (
+      {status === 'denied' || status === 'unsupported' || status === 'error' ? (
         <p className="note note-warning mt-3 text-xs leading-relaxed" role="alert">
           {t(
             status === 'denied'
