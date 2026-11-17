@@ -305,8 +305,7 @@ const en = {
   'mic.aria': 'Microphone practice',
   'mic.eyebrow': 'Microphone',
   'mic.title': 'Practice with your instrument',
-  'mic.description':
-    'Play the chord shown on the timeline. The microphone is analysed in this tab and never uploaded; headphones are recommended.',
+  'mic.description': 'Play the chord shown on the timeline. Local only; headphones recommended.',
   'mic.start': 'Start microphone',
   'mic.stop': 'Stop microphone',
   'mic.statusIdle': 'Microphone off',
@@ -964,7 +963,7 @@ const es: Record<MessageKey, string> = {
   'mic.eyebrow': 'Micrófono',
   'mic.title': 'Practica con tu instrumento',
   'mic.description':
-    'Toca el acorde que marca el timeline. El micrófono se analiza en esta pestaña y nunca se sube; se recomiendan auriculares.',
+    'Toca el acorde que marca el timeline. Solo local; se recomiendan auriculares.',
   'mic.start': 'Activar micrófono',
   'mic.stop': 'Parar micrófono',
   'mic.statusIdle': 'Micrófono apagado',

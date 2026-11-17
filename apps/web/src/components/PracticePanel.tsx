@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
 import { useT } from '../i18n';
-import { useIsMobile } from '../hooks/useIsMobile';
 
 interface PracticePanelProps {
   children: ReactNode;
@@ -8,13 +7,12 @@ interface PracticePanelProps {
 }
 
 /**
- * One disclosure for the practice controls. Open on desktop, collapsed on
- * mobile so the timeline stays within reach.
+ * One disclosure for the practice controls, collapsed by default so the
+ * timeline stays the focus of the song view.
  */
 export function PracticePanel({ children, onOpenChange }: PracticePanelProps) {
   const t = useT();
-  const mobile = useIsMobile();
-  const [open, setOpen] = useState(!mobile);
+  const [open, setOpen] = useState(false);
 
   return (
     <details

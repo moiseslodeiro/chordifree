@@ -45,29 +45,11 @@ export function MicPractice({
 
   return (
     <section className="border-t border-line pt-4" aria-label={t('mic.aria')}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="eyebrow">{t('mic.eyebrow')}</p>
-          <h2 className="mt-1 font-display text-base font-bold leading-tight text-ink">
-            {t('mic.title')}
-          </h2>
-          <p className="mt-1 max-w-[58ch] text-xs leading-relaxed text-ink3">
-            {t('mic.description')}
-          </p>
-        </div>
-        <button
-          type="button"
-          className={enabled ? 'btn' : 'btn btn-primary'}
-          aria-pressed={enabled}
-          onClick={onToggle}
-        >
-          {enabled ? t('mic.stop') : t('mic.start')}
-        </button>
-      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="eyebrow shrink-0">{t('mic.eyebrow')}</span>
 
-      {enabled ? (
-        <div className="mt-4 border-t border-line pt-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        {enabled ? (
+          <>
             <span className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
               <span
                 aria-hidden="true"
@@ -86,14 +68,14 @@ export function MicPractice({
               <span className="eyebrow">{t('mic.target')}</span>
               {targetLabel ? (
                 <span
-                  className={`display text-2xl font-bold leading-none ${
+                  className={`display text-xl font-bold leading-none ${
                     hit ? 'text-positive' : 'text-ink'
                   }`}
                 >
                   {targetLabel}
                 </span>
               ) : (
-                <span className="text-sm text-ink3">{t('mic.waiting')}</span>
+                <span className="text-xs text-ink3">{t('mic.waiting')}</span>
               )}
             </span>
 
@@ -103,7 +85,7 @@ export function MicPractice({
               </span>
             ) : null}
 
-            <span className="ml-auto flex flex-wrap items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               {hit ? (
                 <span className="badge border-positive/60 text-positive" role="status">
                   ✓ {t('mic.correct')}
@@ -113,25 +95,42 @@ export function MicPractice({
                 {t('mic.progress', { done: hitCount, total: totalChords })}
               </span>
               {hitCount > 0 ? (
-                <button type="button" className="btn min-h-0 px-3 py-1.5 text-xs" onClick={onReset}>
+                <button
+                  type="button"
+                  className="btn min-h-0 px-2.5 py-1 text-[0.68rem]"
+                  onClick={onReset}
+                >
                   {t('mic.reset')}
                 </button>
               ) : null}
             </span>
-          </div>
+          </>
+        ) : (
+          <span className="min-w-0 flex-1 text-xs leading-snug text-ink3">
+            {t('mic.description')}
+          </span>
+        )}
 
-          {status === 'denied' || status === 'unsupported' || status === 'error' ? (
-            <p className="note note-warning mt-3 text-xs leading-relaxed" role="alert">
-              {t(
-                status === 'denied'
-                  ? 'mic.deniedHelp'
-                  : status === 'unsupported'
-                    ? 'mic.unsupportedHelp'
-                    : 'mic.errorHelp',
-              )}
-            </p>
-          ) : null}
-        </div>
+        <button
+          type="button"
+          className={`ml-auto ${enabled ? 'btn' : 'btn btn-primary'}`}
+          aria-pressed={enabled}
+          onClick={onToggle}
+        >
+          {enabled ? t('mic.stop') : t('mic.start')}
+        </button>
+      </div>
+
+      {enabled && (status === 'denied' || status === 'unsupported' || status === 'error') ? (
+        <p className="note note-warning mt-3 text-xs leading-relaxed" role="alert">
+          {t(
+            status === 'denied'
+              ? 'mic.deniedHelp'
+              : status === 'unsupported'
+                ? 'mic.unsupportedHelp'
+                : 'mic.errorHelp',
+          )}
+        </p>
       ) : null}
     </section>
   );
