@@ -942,9 +942,29 @@ export function SongView({
 
       <div
         data-testid="song-layout"
-        className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
+        className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-[auto_1fr] lg:items-start"
       >
-        <div data-testid="song-grid-column" className="order-2 min-w-0 lg:order-none">
+        <aside data-testid="song-player-column" className="order-1 lg:col-start-2 lg:row-start-1">
+          <section
+            className="rounded-xl border border-line bg-panel p-3 shadow-sm"
+            aria-label={t('song.playerAria')}
+          >
+            <PlayerHost
+              song={song}
+              audioUrl={audioUrl}
+              forceFake={forceFake}
+              variant="compact"
+              pitch={pitch}
+              onAdapter={handleAdapter}
+              onPlaybackError={setPlaybackError}
+            />
+          </section>
+        </aside>
+
+        <div
+          data-testid="song-grid-column"
+          className="order-2 min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2"
+        >
           {editingLyrics ? (
             <LyricsEditor
               value={lyricsDraft}
@@ -997,24 +1017,9 @@ export function SongView({
 
         <aside
           data-testid="song-tools-column"
-          className="song-tools order-1 space-y-5 lg:order-none lg:sticky lg:top-5"
+          className="song-tools order-3 space-y-5 lg:col-start-2 lg:row-start-2 lg:sticky lg:top-5"
           aria-label={t('song.toolsColumnAria')}
         >
-          <section
-            className="rounded-xl border border-line bg-panel p-3 shadow-sm"
-            aria-label={t('song.playerAria')}
-          >
-            <PlayerHost
-              song={song}
-              audioUrl={audioUrl}
-              forceFake={forceFake}
-              variant="compact"
-              pitch={pitch}
-              onAdapter={handleAdapter}
-              onPlaybackError={setPlaybackError}
-            />
-          </section>
-
           <ActiveChordDiagram
             segments={displaySegments}
             clock={clock}

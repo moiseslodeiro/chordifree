@@ -626,13 +626,14 @@ test.describe('full flow', () => {
     await analyze(page);
 
     const gridColumn = page.getByTestId('song-grid-column');
+    const playerColumn = page.getByTestId('song-player-column');
     const toolsColumn = page.getByTestId('song-tools-column');
     await expect(gridColumn.getByTestId('beat-row-0')).toBeVisible();
     await expect(gridColumn.getByTestId('beat-row-0')).toContainText('00:00');
     await expect(gridColumn.getByTestId('beat-row-0')).toContainText('C1');
     await expect(gridColumn.getByTestId('beat-row-1')).toContainText('00:08');
     await expect(gridColumn.getByTestId('beat-row-1')).toContainText('C3');
-    await expect(toolsColumn.getByRole('region', { name: 'Reproductor' })).toBeVisible();
+    await expect(playerColumn.getByRole('region', { name: 'Reproductor' })).toBeVisible();
     await expect(gridColumn.getByTestId('beat-row-0').getByRole('button')).toHaveCount(8);
     const horizontalOverflow = await gridColumn
       .getByTestId('beat-grid')

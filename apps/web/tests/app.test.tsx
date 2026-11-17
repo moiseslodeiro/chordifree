@@ -161,10 +161,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
-    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
@@ -457,7 +454,7 @@ describe('App', () => {
     expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(4);
   });
 
-  it('lays out the grid on the left and the video with the tools on the right', async () => {
+  it('lays out the grid on the left and the player with the tools on the right', async () => {
     stubApi({
       ...result,
       beats: [0, 1, 2, 3, 4, 5, 6, 7],
@@ -466,9 +463,17 @@ describe('App', () => {
     await analyze();
 
     const gridColumn = screen.getByTestId('song-grid-column');
+    const playerColumn = screen.getByTestId('song-player-column');
     const toolsColumn = screen.getByTestId('song-tools-column');
     expect(within(gridColumn).getByTestId('beat-row-0')).toBeInTheDocument();
-    expect(within(toolsColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
+    expect(within(playerColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
+    // On mobile the player comes first, then the grid, then the song tools.
+    expect(
+      playerColumn.compareDocumentPosition(gridColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      gridColumn.compareDocumentPosition(toolsColumn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
     expect(details).toBeInTheDocument();
     const activeChord = within(toolsColumn).getByText('Acorde activo');
@@ -557,16 +562,12 @@ describe('App', () => {
 
     render(<App />);
 
-    expect(
-      await screen.findByRole('heading', { name: 'Analyze a song' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Analyze a song' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Detect chords' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'ES' }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Analiza una canción' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Analiza una canción' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Detectar acordes' })).toBeInTheDocument();
   });
 
@@ -590,9 +591,7 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Probar la demo' }));
 
-    expect(
-      await screen.findByRole('heading', { name: /Chordifree demo/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Chordifree demo/ })).toBeInTheDocument();
     expect(screen.getByTestId('beat-cell-0')).toHaveTextContent('C');
     expect(screen.getByRole('button', { name: 'Guardar en biblioteca' })).toBeInTheDocument();
   });
