@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { stubAuthConfig } from './support';
 
@@ -626,13 +626,14 @@ test.describe('full flow', () => {
     await analyze(page);
 
     const gridColumn = page.getByTestId('song-grid-column');
+    const playerColumn = page.getByTestId('song-player-column');
     const toolsColumn = page.getByTestId('song-tools-column');
     await expect(gridColumn.getByTestId('beat-row-0')).toBeVisible();
     await expect(gridColumn.getByTestId('beat-row-0')).toContainText('00:00');
     await expect(gridColumn.getByTestId('beat-row-0')).toContainText('C1');
     await expect(gridColumn.getByTestId('beat-row-1')).toContainText('00:08');
     await expect(gridColumn.getByTestId('beat-row-1')).toContainText('C3');
-    await expect(toolsColumn.getByRole('region', { name: 'Reproductor' })).toBeVisible();
+    await expect(playerColumn.getByRole('region', { name: 'Reproductor' })).toBeVisible();
     await expect(gridColumn.getByTestId('beat-row-0').getByRole('button')).toHaveCount(8);
     const horizontalOverflow = await gridColumn
       .getByTestId('beat-grid')
@@ -646,6 +647,34 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('chord-row-0')).toBeVisible();
     await page.getByRole('button', { name: 'Parrilla' }).click();
     await expect(page.getByTestId('beat-row-0')).toBeVisible();
+  });
+
+  test('keeps the player and the song tools stacked in the right rail', async ({ page }) => {
+    await analyze(page);
+
+    const player = await page.getByTestId('song-player-column').boundingBox();
+    const active = await page.getByTestId('song-active-chord').boundingBox();
+    expect(player).not.toBeNull();
+    expect(active).not.toBeNull();
+    expect(active!.y).toBeGreaterThan(player!.y);
+    expect(active!.y - (player!.y + player!.height)).toBeLessThan(40);
+  });
+
+  test('keeps the mobile order of player, grid, tools and harmony', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await analyze(page);
+
+    const top = async (locator: Locator) => (await locator.boundingBox())?.y ?? -1;
+    const player = await top(page.getByTestId('song-player-column'));
+    const grid = await top(page.getByTestId('song-grid-column'));
+    const active = await top(page.getByTestId('song-active-chord'));
+    const details = await top(page.getByRole('region', { name: 'Detalles de la canción' }));
+    const harmony = await top(page.getByTestId('song-harmony-column'));
+
+    expect(player).toBeLessThan(grid);
+    expect(grid).toBeLessThan(active);
+    expect(active).toBeLessThan(details);
+    expect(details).toBeLessThan(harmony);
   });
 });
 

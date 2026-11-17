@@ -630,7 +630,8 @@ p {
   *::after {
     scroll-behavior: auto !important;
     /* Keep colour and opacity feedback; drop spatial movement. */
-    transition-property: color, background-color, border-color, outline-color, box-shadow, opacity !important;
+    transition-property:
+      color, background-color, border-color, outline-color, box-shadow, opacity !important;
     transition-duration: 120ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -914,6 +915,8 @@ body.performance-mode .song-details-form,
 body.performance-mode .song-controls,
 body.performance-mode .song-toolbar,
 body.performance-mode .song-tools,
+body.performance-mode [data-testid='song-player-column'],
+body.performance-mode [data-testid='song-harmony-column'],
 body.performance-mode .print-sheet {
   display: none !important;
 }

@@ -47,9 +47,7 @@ describe('HarmonicAnalysis', () => {
       />,
     );
 
-    expect(
-      screen.getByText('Confianza media 60% · 1 de 2 acordes dudosos'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Confianza media 60% · 1 de 2 acordes dudosos')).toBeInTheDocument();
     expect(screen.getByText(/Los acordes marcados con «\?»/)).toBeInTheDocument();
   });
 
@@ -78,6 +76,7 @@ describe('HarmonicAnalysis', () => {
       screen.getByText('No se pudo estimar la tonalidad, así que no hay grados que mostrar.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Progresión por grados' })).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Acordes de la canción' })).toBeInTheDocument();
   });
 
   it('indicates that the grid uses capo shapes', () => {

@@ -93,6 +93,7 @@ export function Home({
         ['02', t('home.step2Title'), t('home.step2Body')],
         ['03', t('home.step3Title'), t('home.step3Body')],
       ];
+  const showLegalNote = !desktop || mode === 'youtube';
 
   const submitYoutube = async (input = url) => {
     setProblem(null);
@@ -215,21 +216,20 @@ export function Home({
           </p>
 
           <div className="mt-8 flex flex-wrap border-b border-line" role="tablist">
-            {(desktop
-              ? (['upload', 'youtube'] as const)
-              : (['youtube', 'upload'] as const)
-            ).map((value, index, list) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={mode === value}
-                className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
-                onClick={() => setMode(value)}
-              >
-                {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
-              </button>
-            ))}
+            {(desktop ? (['upload', 'youtube'] as const) : (['youtube', 'upload'] as const)).map(
+              (value, index, list) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === value}
+                  className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
+                  onClick={() => setMode(value)}
+                >
+                  {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
+                </button>
+              ),
+            )}
           </div>
 
           <form
@@ -391,9 +391,7 @@ export function Home({
                   onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                   disabled={busy}
                 />
-                <p className="text-xs leading-relaxed text-ink3">
-                  {t('home.uploadHelp')}
-                </p>
+                <p className="text-xs leading-relaxed text-ink3">{t('home.uploadHelp')}</p>
               </div>
             )}
 
@@ -436,7 +434,11 @@ export function Home({
           </div>
         </div>
 
-        <aside className="flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
+        <aside
+          className={`flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10 ${
+            showLegalNote ? 'lg:justify-between' : ''
+          }`}
+        >
           {desktop ? (
             <div>
               <p className="eyebrow">{t('home.desktopLocalTitle')}</p>
@@ -444,9 +446,7 @@ export function Home({
                 <span aria-hidden="true" className="h-2 w-2 rounded-full bg-positive" />
                 {t('home.desktopLocalStatus')}
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-ink3">
-                {t('home.desktopLocalBody')}
-              </p>
+              <p className="mt-2 text-xs leading-relaxed text-ink3">{t('home.desktopLocalBody')}</p>
             </div>
           ) : (
             <div>
@@ -493,9 +493,7 @@ export function Home({
                     {number}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-snug text-ink">
-                      {title}
-                    </span>
+                    <span className="block text-sm font-medium leading-snug text-ink">{title}</span>
                     <span className="mt-0.5 block text-xs leading-relaxed text-ink3">{body}</span>
                   </span>
                 </li>
@@ -503,8 +501,8 @@ export function Home({
             </ol>
           </div>
 
-          {!desktop || mode === 'youtube' ? (
-            <div className="note note-info mt-auto text-xs leading-relaxed">
+          {showLegalNote ? (
+            <div className="note note-info text-xs leading-relaxed">
               <strong className="font-semibold text-ink">{t('home.legalTitle')}</strong>{' '}
               {t('home.legalBody')}
             </div>
