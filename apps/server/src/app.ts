@@ -160,6 +160,12 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   );
   app.use(cors({ origin: config.corsOrigin }));
   app.use(express.json({ limit: '1mb' }));
+  app.use((_req, res, next) => {
+    // The microphone is used by the local practice helper; camera and
+    // geolocation are never needed.
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
+    next();
+  });
   app.use('/api', sameOriginWriteGuard(config));
 
   app.get('/api/health', async (_req, res) => {
