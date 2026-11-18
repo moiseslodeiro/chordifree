@@ -170,6 +170,11 @@ stored.
 Deleting an account removes the shares it owns, its nickname and its library; versions it
 published in shares owned by other users remain there with its nickname.
 
+Abuse limits: share identifiers are 128-bit random hex, reads are limited to 120 per minute
+per account, writes to 40, each account owns at most 200 shares and one snapshot cannot
+exceed 256 KB. The cloud library sync and the account-deletion route have their own rate
+limits, and the analysis activity feed is administrator-only.
+
 ## Access and OAuth
 
 - Add/remove accounts in `#/admin`. Administrators come from `ADMIN_EMAILS`.

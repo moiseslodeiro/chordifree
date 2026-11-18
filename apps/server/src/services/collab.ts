@@ -10,6 +10,8 @@ import { ApiError } from '../errors';
 
 /** Newer revisions are discarded so a long collaboration stays small. */
 export const MAX_REVISIONS = 100;
+/** One account cannot flood the instance with shares. */
+export const MAX_SHARES_PER_USER = 200;
 
 export interface CollabAuthor {
   uid: string;
@@ -27,6 +29,7 @@ export interface CollabStore {
     song: Song,
   ): Promise<CollabRevision>;
   deleteOwnedBy(uid: string): Promise<void>;
+  countOwnedBy(uid: string): Promise<number>;
 }
 
 function clone<T>(value: T): T {
@@ -123,6 +126,14 @@ export class MemoryCollabStore implements CollabStore {
     for (const [id, entry] of this.shares) {
       if (entry.share.ownerUid === uid) this.shares.delete(id);
     }
+  }
+
+  async countOwnedBy(uid: string): Promise<number> {
+    let count = 0;
+    for (const entry of this.shares.values()) {
+      if (entry.share.ownerUid === uid) count += 1;
+    }
+    return count;
   }
 
   private view(id: string): CollabShare {
@@ -244,6 +255,15 @@ export class FirestoreCollabStore implements CollabStore {
 
     await this.trim(shareRef).catch(() => undefined);
     return revision;
+  }
+
+  async countOwnedBy(uid: string): Promise<number> {
+    const shares = await this.firestore
+      .collection(this.collection)
+      .where('ownerUid', '==', uid)
+      .limit(MAX_SHARES_PER_USER + 1)
+      .get();
+    return shares.size;
   }
 
   async deleteOwnedBy(uid: string): Promise<void> {
