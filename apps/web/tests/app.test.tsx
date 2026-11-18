@@ -50,6 +50,9 @@ function stubApi(analysis: typeof result = result) {
     if (url.endsWith('/audio') && init?.method === 'POST') {
       return response({ url: '/demo.wav' });
     }
+    if (url === '/demo.wav') {
+      return new Response(new Blob(['audio'], { type: 'audio/wav' }), { status: 200 });
+    }
     if (init?.method === 'POST') {
       return response({
         id: 'job-1',

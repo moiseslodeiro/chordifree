@@ -58,6 +58,13 @@ export function PlayerHost({
         : 'missing';
 
   useEffect(() => {
+    const url = temporary?.url;
+    return () => {
+      if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+    };
+  }, [temporary?.url]);
+
+  useEffect(() => {
     if (!videoId || forceFake) {
       setPreparing(false);
       return;
@@ -166,15 +173,11 @@ export function PlayerHost({
       ) : null}
 
       {mode === 'missing' ? (
-        <div className="note note-warning text-sm leading-relaxed">
-          {t('player.audioMissing')}
-        </div>
+        <div className="note note-warning text-sm leading-relaxed">{t('player.audioMissing')}</div>
       ) : null}
 
       {!videoId && mode === 'audio' ? (
-        <div className="note note-info text-sm leading-relaxed">
-          {t('player.audioFileHint')}
-        </div>
+        <div className="note note-info text-sm leading-relaxed">{t('player.audioFileHint')}</div>
       ) : null}
 
       {videoId && preparing ? (
@@ -196,20 +199,14 @@ export function PlayerHost({
           role="alert"
         >
           <span>{t('player.pitchAudioFailed')}</span>
-          <button
-            type="button"
-            className="btn min-h-0 px-3 py-1.5 text-xs"
-            onClick={retryAudio}
-          >
+          <button type="button" className="btn min-h-0 px-3 py-1.5 text-xs" onClick={retryAudio}>
             {t('common.retry')}
           </button>
         </div>
       ) : null}
 
       {videoId && temporaryUrl && !preparing && !prepareFailed ? (
-        <div className="note note-info text-sm leading-relaxed">
-          {t('player.youtubeTemporary')}
-        </div>
+        <div className="note note-info text-sm leading-relaxed">{t('player.youtubeTemporary')}</div>
       ) : null}
     </div>
   );

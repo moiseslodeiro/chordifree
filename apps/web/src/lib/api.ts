@@ -277,7 +277,18 @@ export function prepareYoutubeAudio(
     if (!body.url) {
       throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), response.status);
     }
-    return { url: body.url, ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}) };
+
+    // An <audio> element cannot send the Bearer token. Fetch the temporary
+    // audio with the normal headers and hand the player a same-origin blob.
+    const audio = await fetch(body.url, { headers: authHeaders() });
+    if (!audio.ok) {
+      throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), audio.status);
+    }
+    const blob = await audio.blob();
+    return {
+      url: URL.createObjectURL(blob),
+      ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}),
+    };
   })();
   audioPreparations.set(videoId, request);
   void request
