@@ -120,6 +120,11 @@ export function useCollab({
         return shareRef.current;
       }
       try {
+        if (target.collabId) {
+          const existing = await getCollabShare(target.collabId);
+          adopt(existing);
+          return existing;
+        }
         const created = await createCollabShare(target);
         adopt(created);
         return created;
