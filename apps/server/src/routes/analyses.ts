@@ -6,11 +6,13 @@ import { z } from 'zod';
 import type { AppConfig } from '../config';
 import { ApiError, errorBody, toApiError } from '../errors';
 import type { JobQueue } from '../jobs/queue';
-import type { Job, JobStore } from '../jobs/store';
+import type { Job, JobRequester, JobStore } from '../jobs/store';
 import { analyzeUpload, analyzeYoutube } from '../services/analysis';
 import type { AnalyzerClient } from '../services/analyzer';
 import type { TemporaryAudioCache } from '../services/audio-cache';
 import type { AnalysisCacheStore } from '../services/analysis-cache';
+import type { AnalysisLogStore } from '../services/analysis-log';
+import { resolveNickname, type ProfileStore } from '../services/profiles';
 import { isAllowedAudioExtension, looksLikeAudio } from '../services/audio-signature';
 import type { MediaTools } from '../services/media';
 import type { AnalysisResult } from '../types';
@@ -31,6 +33,20 @@ export interface AnalysesRouterDeps {
   analyzer: AnalyzerClient;
   audioCache: TemporaryAudioCache;
   analysisCache: AnalysisCacheStore;
+  analysisLog: AnalysisLogStore;
+  profiles: ProfileStore;
+}
+
+async function requesterFor(
+  user: { uid: string; email: string } | undefined,
+  deps: AnalysesRouterDeps,
+): Promise<JobRequester | undefined> {
+  if (!user) return undefined;
+  return {
+    uid: user.uid,
+    email: user.email,
+    nickname: await resolveNickname(deps.profiles, user),
+  };
 }
 
 function startJob(
@@ -55,6 +71,24 @@ function startJob(
           if (job.source.type === 'youtube') {
             await deps.analysisCache
               .set(job.source.videoId, result.analyzerVersion, result)
+              .catch(() => undefined);
+          }
+          if (job.requestedBy) {
+            const logSource = result.source;
+            await deps.analysisLog
+              .record({
+                ...job.requestedBy,
+                kind: logSource.type,
+                ...(logSource.type === 'youtube'
+                  ? {
+                      videoId: logSource.videoId,
+                      ...(logSource.title ? { title: logSource.title } : {}),
+                    }
+                  : { filename: logSource.filename }),
+                duration: result.duration,
+                chords: result.segments.filter((segment) => segment.chord !== null).length,
+                analyzerVersion: result.analyzerVersion,
+              })
               .catch(() => undefined);
           }
           deps.store.update(job.id, { status: 'done', progress: 100, result });
@@ -111,7 +145,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
 
         await mkdir(deps.config.tempDir, { recursive: true });
         const source = { type: 'upload' as const, filename: originalname };
-        const job = deps.store.create(source);
+        const job = deps.store.create(source, await requesterFor(req.authUser, deps));
         startJob(job, (report) => analyzeUpload(originalname, buffer, deps, report), deps);
         res.status(202).json(deps.store.toView(job));
         return;
@@ -149,7 +183,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
       }
 
       await mkdir(deps.config.tempDir, { recursive: true });
-      const job = deps.store.create(source);
+      const job = deps.store.create(source, await requesterFor(req.authUser, deps));
       startJob(job, (report) => analyzeYoutube(videoId, deps, report), deps);
       res.status(202).json(deps.store.toView(job));
     } catch (error) {

@@ -8,6 +8,12 @@ export interface JobError {
   message: string;
 }
 
+export interface JobRequester {
+  uid: string;
+  email: string;
+  nickname: string;
+}
+
 export interface Job {
   id: string;
   status: JobStatus;
@@ -17,6 +23,7 @@ export interface Job {
   updatedAt: number;
   result?: AnalysisResult;
   error?: JobError;
+  requestedBy?: JobRequester;
 }
 
 export interface JobView {
@@ -45,7 +52,7 @@ export class JobStore {
     private readonly now: () => number = Date.now,
   ) {}
 
-  create(source: AnalysisSource): Job {
+  create(source: AnalysisSource, requestedBy?: JobRequester): Job {
     const timestamp = this.now();
     const job: Job = {
       id: randomUUID(),
@@ -54,6 +61,7 @@ export class JobStore {
       source,
       createdAt: timestamp,
       updatedAt: timestamp,
+      ...(requestedBy ? { requestedBy } : {}),
     };
     this.jobs.set(job.id, job);
     return job;

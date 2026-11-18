@@ -8,6 +8,7 @@ import type {
   RuntimeConfig,
 } from '@chordifree/contracts';
 import type {
+  AnalysisLogEntry,
   AnalysisResult,
   AnalysisView,
   CollabRevision,
@@ -21,6 +22,7 @@ import type {
 
 export type {
   AccessEntry,
+  AnalysisLogEntry,
   AuthConfig,
   AuthMe,
   AuthUser,
@@ -185,6 +187,15 @@ export async function getRuntimeConfig(signal?: AbortSignal): Promise<RuntimeCon
 export async function listAccessEntries(signal?: AbortSignal): Promise<AccessEntry[]> {
   const response = await fetch('/api/admin/access', { signal, headers: authHeaders() });
   const body = await parseResponse<{ entries?: AccessEntry[] }>(response);
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
+/** Newest first. Only administrators can read the activity feed. */
+export async function listAnalysisRuns(limit = 100): Promise<AnalysisLogEntry[]> {
+  const response = await fetch(`/api/admin/analyses?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ entries?: AnalysisLogEntry[] }>(response);
   return Array.isArray(body.entries) ? body.entries : [];
 }
 

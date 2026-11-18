@@ -141,6 +141,15 @@ a 90-day `expiresAt` TTL and is removed automatically. Clicking **Reanalyze** se
 
 The cache stores only chords, beats and analysis metadata; it never stores audio.
 
+## Analysis activity
+
+Every completed analysis is recorded in `chordifree_analysis_log` with the account that
+started it (`uid`, email and nickname), the source, the YouTube title or uploaded filename,
+the duration, the chord count and the analyzer version. Administrators see the newest 100
+entries in **Administration → Recent analyses**. Entries expire after 90 days and are
+deleted when the account is deleted. Cache hits are not logged again because no new analysis
+ran.
+
 ## Collaborative songs
 
 In online mode, **More actions → Collaborate** shares a song and copies a link. The instances

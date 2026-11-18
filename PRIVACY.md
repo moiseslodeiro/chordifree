@@ -55,6 +55,10 @@ Shared songs are stored separately:
 - `chordifree_shared/{shareId}/revisions/{revisionId}`: one snapshot of the song per save,
   with the author's nickname and the date. The last 100 versions are kept.
 - `chordifree_profiles/{uid}`: the optional nickname.
+- `chordifree_analysis_log/{id}`: one entry per completed analysis with your account (UID,
+  email and nickname), the analysed song or file, the duration, the chord count and the
+  analyzer version. Administrators can see the newest entries in the administration page.
+  Entries are removed after 90 days and when you delete your cloud data.
 
 Anyone signed in to the instance who has the link can read those versions and publish new
 ones. Deleting your cloud data also deletes the shares you own and your nickname; versions
@@ -89,7 +93,7 @@ the saved song.
 ### Deleting your cloud data
 
 From the account menu, **Delete cloud data** removes the signed-in user's songs, setlists,
-nickname and owned shares from Firestore. If the account is not an administrator, its allowlist entry is removed too;
+nickname, owned shares and analysis activity from Firestore. If the account is not an administrator, its allowlist entry is removed too;
 administrators keep access because they are declared in `ADMIN_EMAILS` and may need to keep
 managing the instance.
 

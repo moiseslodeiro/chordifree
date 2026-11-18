@@ -84,6 +84,8 @@ The [`deploy/gcp`](deploy/gcp/README.md) stack adds an optional online mode:
   the history, compare the changes and load any version. A stale save is rejected instead of
   overwriting the newer work.
 - **Nickname:** chosen on first sign-in and editable in the account menu.
+- **Admin activity**: administrators see which songs were analyzed, when, and by which
+  account.
 - **Account deletion:** from the account menu, a user can delete their cloud library. A
   non-admin also loses allowlist access; the local copy stays on the device.
 - **Private analyzer** on Cloud Run. Only the server service account can invoke it, using a
