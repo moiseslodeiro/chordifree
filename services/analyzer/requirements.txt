@@ -5,6 +5,6 @@ numpy>=1.26,<3
 # Essentia 2.0.1 (latest stable) is from 2014, is not on PyPI and does not
 # include NNLSChroma/LogSpectrum. We pin the exact beta the analyzer is validated with.
 essentia==2.1b6.dev1389
-onnxruntime>=1.20,<2
+onnxruntime>=1.32.0,<2
 pytest==9.2.0
 httpx==0.28.1
