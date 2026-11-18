@@ -6,7 +6,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('audio pitch', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'AudioWorklet is verified in Chromium');
+  test.skip(
+    ({ browserName }) => browserName !== 'chromium',
+    'AudioWorklet is verified in Chromium',
+  );
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
@@ -45,15 +48,14 @@ test.describe('audio pitch', () => {
     await page.getByRole('button', { name: 'Try the demo' }).click();
     await expect(page.getByRole('heading', { name: 'Chordifree demo · C G Am F' })).toBeVisible();
 
+    await page.getByTestId('practice-summary').click();
     const pitch = page.getByLabel('Audio pitch in semitones');
     await expect(pitch).toBeEnabled();
     await pitch.selectOption('4');
 
     await page.getByRole('button', { name: 'Play' }).click();
     await expect
-      .poll(() =>
-        page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0),
-      )
+      .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.5);
 
     const state = await page.evaluate(() => {
@@ -77,9 +79,7 @@ test.describe('audio pitch', () => {
     await page.getByRole('button', { name: 'Try the demo' }).click();
     await page.getByRole('button', { name: 'Play' }).click();
     await expect
-      .poll(() =>
-        page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0),
-      )
+      .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.25);
 
     const state = await page.evaluate(() => {
@@ -96,7 +96,10 @@ test.describe('audio pitch', () => {
 });
 
 test.describe('YouTube temporary audio', () => {
-  test.skip(({ browserName }) => browserName !== 'chromium', 'AudioWorklet is verified in Chromium');
+  test.skip(
+    ({ browserName }) => browserName !== 'chromium',
+    'AudioWorklet is verified in Chromium',
+  );
 
   test('plays YouTube from the thumbnail and the top player', async ({ page }) => {
     await page.addInitScript(() => {
@@ -186,6 +189,7 @@ test.describe('YouTube temporary audio', () => {
     await expect(audio).toHaveAttribute('src', '/api/youtube/dQw4w9WgXcQ/audio');
     await expect(audio).not.toHaveAttribute('controls');
 
+    await page.getByTestId('practice-summary').click();
     await page.getByLabel('Audio pitch in semitones').selectOption('4');
     await expect(page.getByText(/YouTube audio is played from a temporary copy/)).toBeVisible();
 

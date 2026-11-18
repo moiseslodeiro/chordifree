@@ -61,6 +61,14 @@ async function analyze(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
 }
 
+async function openPractice(page: Page): Promise<void> {
+  const panel = page.locator('.practice-panel');
+  if (!(await panel.evaluate((element) => element.hasAttribute('open')))) {
+    await page.getByTestId('practice-summary').click();
+    await expect(panel).toHaveAttribute('open', '');
+  }
+}
+
 test.describe('full flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
@@ -200,6 +208,7 @@ test.describe('full flow', () => {
 
   test('keeps the A-B range but resets speed and pitch on reload', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
     await page.getByTestId('beat-cell-0').click();
@@ -219,6 +228,7 @@ test.describe('full flow', () => {
     await page.reload();
 
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
+    await openPractice(page);
     await expect(page.getByRole('button', { name: 'Bucle', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -399,6 +409,7 @@ test.describe('full flow', () => {
 
   test('without A or B mode, clicking plays from the selected bar', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByTestId('beat-cell-8').click();
 
@@ -412,6 +423,7 @@ test.describe('full flow', () => {
 
   test('sets A or B, previews the bar and marks without playing', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
     await page.getByTestId('beat-cell-8').hover();
@@ -452,6 +464,7 @@ test.describe('full flow', () => {
 
   test('playback starts at A and stops at B when looping is off', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
     await page.getByTestId('beat-cell-0').click();
@@ -600,11 +613,11 @@ test.describe('full flow', () => {
   });
 
   test('moves secondary controls into disclosures on mobile', async ({ page }) => {
-    await analyze(page);
     await page.setViewportSize({ width: 390, height: 844 });
+    await analyze(page);
 
     await expect(page.getByText('Más ajustes')).toBeVisible();
-    await expect(page.getByText('Más práctica')).toBeVisible();
+    await expect(page.getByText('Más práctica')).not.toBeVisible();
     await expect(page.getByText('Alteraciones')).not.toBeVisible();
     await expect(page.getByRole('button', { name: 'Metrónomo' })).not.toBeVisible();
 
@@ -617,6 +630,8 @@ test.describe('full flow', () => {
     await expect(page.getByLabel('Instrumento')).toBeVisible();
     await expect(page.getByLabel('Capo')).toBeVisible();
 
+    await page.getByTestId('practice-summary').click();
+    await expect(page.getByText('Más práctica')).toBeVisible();
     await page.getByText('Más práctica').click();
     await expect(page.getByRole('button', { name: 'Metrónomo' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cuenta atrás' })).toBeVisible();
