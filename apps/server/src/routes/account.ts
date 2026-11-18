@@ -33,8 +33,10 @@ export function createAccountRouter(
       }
 
       const counts = await store.clear(user.uid);
-      await cleanup.collab?.deleteOwnedBy(user.uid);
-      await cleanup.profiles?.clear(user.uid);
+      // The library is already gone; a failure while cleaning the optional
+      // collaboration data must not turn the request into a 500.
+      await cleanup.collab?.deleteOwnedBy(user.uid).catch(() => undefined);
+      await cleanup.profiles?.clear(user.uid).catch(() => undefined);
       const isAdmin = auth.isAdmin(user);
       const accessRemoved = isAdmin ? false : await auth.access.remove(user.email);
 
