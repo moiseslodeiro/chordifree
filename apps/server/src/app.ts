@@ -58,7 +58,7 @@ interface ExtractorHealth {
 async function checkExtractor(url: string): Promise<ExtractorHealth> {
   try {
     const response = await fetch(`${url.replace(/\/+$/, '')}/health`, {
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return { ok: false };
     const body = (await response.json()) as {
