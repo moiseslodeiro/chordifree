@@ -5,6 +5,7 @@ import { ApiError } from '../src/errors';
 import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
 import { makeAnalyzer, makeConfig, makeTempDir, makeTools } from './helpers';
+import { MemoryAnalysisCache } from '../src/services/analysis-cache';
 
 async function buildApp(overrides: Parameters<typeof createApp>[0] = {}) {
   const tempDir = await makeTempDir();
@@ -36,7 +37,35 @@ describe('GET /api/youtube/search', () => {
 
     expect(response.status).toBe(200);
     expect(searchYoutube).toHaveBeenCalledWith('rick astley');
-    expect(response.body).toEqual({ results });
+    expect(response.body).toEqual({
+      results: results.map((result) => ({ ...result, analyzed: false })),
+    });
+  });
+
+  it('marks videos that already have a cached analysis', async () => {
+    const results = [
+      {
+        videoId: 'dQw4w9WgXcQ',
+        title: 'Never Gonna Give You Up',
+        thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+      },
+    ];
+    const analysisCache = new MemoryAnalysisCache();
+    await analysisCache.set('dQw4w9WgXcQ', 'essentia-test', {
+      source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+      duration: 213,
+      segments: [],
+      analyzerVersion: 'essentia-test',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    const app = await buildApp({
+      tools: makeTools({ searchYoutube: async () => results }),
+      analysisCache,
+    });
+
+    const response = await request(app).get('/api/youtube/search').query({ q: 'rick astley' });
+    expect(response.status).toBe(200);
+    expect(response.body.results[0]).toMatchObject({ analyzed: true });
   });
 
   it('trims the query before searching', async () => {

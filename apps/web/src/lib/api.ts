@@ -101,11 +101,12 @@ export async function getHealth(signal?: AbortSignal): Promise<{
 export async function createYoutubeAnalysis(
   youtubeUrl: string,
   signal?: AbortSignal,
+  force = false,
 ): Promise<AnalysisView> {
   const response = await fetch('/api/analyses', {
     method: 'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ youtubeUrl }),
+    body: JSON.stringify({ youtubeUrl, ...(force ? { force: true } : {}) }),
     signal,
   });
   return parseResponse(response);

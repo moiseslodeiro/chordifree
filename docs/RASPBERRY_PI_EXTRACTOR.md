@@ -263,6 +263,10 @@ When the extractor is configured, `GET /api/health` adds:
 The home screen shows **YouTube extractor: Available / Unavailable / Checking** only when the
 API reports `features.youtube === "extractor"`. Local and direct-YouTube modes do not show it.
 
+Completed analyses are also cached in Firestore, so a previously analyzed video is reused
+without calling the Pi again. Search results show **Analyzed** and the action changes to
+**Open**. Reanalyze explicitly bypasses the cache.
+
 ## 7. Operations
 
 ### Update

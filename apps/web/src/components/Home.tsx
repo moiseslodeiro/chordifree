@@ -291,6 +291,7 @@ export function Home({
                       <ul className="space-y-2">
                         {results.map((item) => {
                           const analyzing = analyzingId === item.videoId;
+                          const analyzed = item.analyzed === true;
                           const meta = [
                             item.uploader,
                             typeof item.duration === 'number'
@@ -318,26 +319,35 @@ export function Home({
                                 className="h-[4.5rem] w-32 shrink-0 rounded-md bg-panel object-cover"
                               />
                               <div className="min-w-0 flex-1">
-                                <p
-                                  className="truncate text-sm font-semibold leading-snug text-ink"
-                                  title={item.title}
-                                >
-                                  {item.title}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p
+                                    className="truncate text-sm font-semibold leading-snug text-ink"
+                                    title={item.title}
+                                  >
+                                    {item.title}
+                                  </p>
+                                  {analyzed ? (
+                                    <span className="badge shrink-0 border-positive/60 text-positive">
+                                      ✓ {t('home.analyzed')}
+                                    </span>
+                                  ) : null}
+                                </div>
                                 {meta ? (
                                   <p className="mt-0.5 truncate text-xs text-ink3">{meta}</p>
                                 ) : null}
                               </div>
                               <button
                                 type="button"
-                                className="btn btn-primary shrink-0"
+                                className={analyzed ? 'btn shrink-0' : 'btn btn-primary shrink-0'}
                                 onClick={() => void loadSearchResult(item)}
                                 disabled={busy}
                                 aria-busy={analyzing || undefined}
                                 aria-label={
                                   analyzing
                                     ? t('home.analyzingVideo', { title: item.title })
-                                    : t('home.analyzeVideo', { title: item.title })
+                                    : analyzed
+                                      ? t('home.openVideo', { title: item.title })
+                                      : t('home.analyzeVideo', { title: item.title })
                                 }
                               >
                                 {analyzing ? (
@@ -348,6 +358,8 @@ export function Home({
                                     />
                                     {t('home.analyzing')}
                                   </>
+                                ) : analyzed ? (
+                                  t('home.openResult')
                                 ) : (
                                   t('home.analyzeResult')
                                 )}

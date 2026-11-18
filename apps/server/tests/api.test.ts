@@ -6,6 +6,7 @@ import { createApp } from '../src/app';
 import { ApiError } from '../src/errors';
 import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
+import { MemoryAnalysisCache } from '../src/services/analysis-cache';
 import {
   defaultRawAnalysis,
   makeAnalyzer,
@@ -92,6 +93,41 @@ describe('POST /api/analyses', () => {
     expect(second.status).toBe(202);
     expect(second.body.id).toBe(first.body.id);
     expect(probes).toBe(1);
+  });
+
+  it('reuses a persistent analysis across app instances', async () => {
+    const analysisCache = new MemoryAnalysisCache();
+    const first = await buildApp({ analysisCache });
+    const created = await request(first)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+    expect(created.status).toBe(202);
+    await waitFor(first, created.body.id, 'done');
+
+    let probes = 0;
+    const second = await buildApp({
+      analysisCache,
+      tools: makeTools({
+        probeYoutube: async () => {
+          probes += 1;
+          throw new Error('the extractor should not be called');
+        },
+      }),
+    });
+    const cached = await request(second)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+
+    expect(cached.status).toBe(202);
+    expect(cached.body.status).toBe('done');
+    expect(cached.body.result.analyzerVersion).toBe('essentia-test');
+    expect(probes).toBe(0);
+
+    const forced = await request(second)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', force: true });
+    expect(forced.status).toBe(202);
+    expect(forced.body.status).toBe('queued');
   });
 
   it('does not reuse a cached result from another analyzer version', async () => {

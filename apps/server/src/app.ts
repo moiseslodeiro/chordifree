@@ -28,6 +28,11 @@ import {
 } from './services/auth';
 import { audioCacheDirectory, TemporaryAudioCache } from './services/audio-cache';
 import { createLyricsClient, type LyricsClient } from './services/lyrics';
+import {
+  FirestoreAnalysisCache,
+  MemoryAnalysisCache,
+  type AnalysisCacheStore,
+} from './services/analysis-cache';
 import { createMediaTools, type MediaTools } from './services/media';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +47,7 @@ export interface AppDependencies {
   audioCache: TemporaryAudioCache;
   auth: AuthContext;
   cloudLibrary: CloudLibraryStore | null;
+  analysisCache: AnalysisCacheStore;
   webDist: string;
 }
 
@@ -135,6 +141,11 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       (config.authMode === 'google'
         ? new FirestoreCloudLibraryStore(createFirestore(config))
         : null),
+    analysisCache:
+      options.analysisCache ??
+      (config.authMode === 'google'
+        ? new FirestoreAnalysisCache(createFirestore(config))
+        : new MemoryAnalysisCache()),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -148,7 +159,12 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", 'https://accounts.google.com'],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+            'https://accounts.google.com',
+          ],
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           mediaSrc: ["'self'", 'blob:', 'data:'],
@@ -209,7 +225,15 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
-  app.use('/api/youtube', createYoutubeRouter({ tools: deps.tools, audioCache: deps.audioCache }));
+  app.use(
+    '/api/youtube',
+    createYoutubeRouter({
+      tools: deps.tools,
+      audioCache: deps.audioCache,
+      analysisCache: deps.analysisCache,
+      analyzerVersion: config.analyzerVersion,
+    }),
+  );
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));

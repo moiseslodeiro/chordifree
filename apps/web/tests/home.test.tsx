@@ -247,6 +247,53 @@ describe('Home', () => {
     );
   });
 
+  it('marks cached results and opens them with the Open action', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith('/api/youtube/search')) {
+        return response({
+          results: [
+            {
+              videoId: 'dQw4w9WgXcQ',
+              title: 'Never Gonna Give You Up',
+              uploader: 'Rick Astley',
+              duration: 213,
+              thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+              analyzed: true,
+            },
+          ],
+        });
+      }
+      if (init?.method === 'POST') {
+        return response({
+          id: 'job-6',
+          status: 'done',
+          progress: 100,
+          source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+          result: analysisResult(),
+        });
+      }
+      return response({
+        id: 'job-6',
+        status: 'done',
+        progress: 100,
+        result: analysisResult(),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { onAnalyzed } = renderHome();
+
+    fireEvent.change(screen.getByLabelText('Buscar en YouTube'), {
+      target: { value: 'rick astley' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(await screen.findByText(/Analizado|Analyzed/)).toBeInTheDocument();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Abrir Never Gonna Give You Up|Open Never/ }),
+    );
+    await waitFor(() => expect(onAnalyzed).toHaveBeenCalledTimes(1));
+  });
+
   it('shows the analyzing state on the result while the job starts', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {

@@ -65,6 +65,15 @@ resource "google_firestore_database" "default" {
   depends_on = [google_project_service.services]
 }
 
+# Analysis results carry a 90-day expiresAt; Firestore removes them automatically.
+resource "google_firestore_field" "analysis_cache_expires" {
+  project    = var.project_id
+  database   = google_firestore_database.default.name
+  collection = "chordifree_analysis"
+  field      = "expiresAt"
+  ttl_config {}
+}
+
 # Dedicated runtime accounts: the server can write Firestore and call the
 # analyzer, while the analyzer gets no project roles at all.
 resource "google_service_account" "server" {
