@@ -14,11 +14,15 @@ await build({
   logLevel: 'info',
   outfile: path.join(here, 'dist/server.mjs'),
   // Some Express dependencies (depd) call require() dynamically. Bundled CJS
-  // modules need a real require in ESM output.
+  // modules need a real require in ESM output. google-gax (through Firestore)
+  // also reads __dirname, which does not exist in an ES module, so provide the
+  // Node 20.11+ equivalents from import.meta.
   banner: {
     js: [
       "import { createRequire as __createRequire } from 'node:module';",
       'const require = __createRequire(import.meta.url);',
+      'const __filename = import.meta.filename;',
+      'const __dirname = import.meta.dirname;',
     ].join(' '),
   },
 });
