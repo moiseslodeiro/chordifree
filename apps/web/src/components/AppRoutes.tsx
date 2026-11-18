@@ -70,6 +70,7 @@ interface AppRoutesProps {
   onLoadCollabRevision: (revisionId: string) => Promise<CollabRevision | null>;
   onApplyCollabRevision: (revision: CollabRevision) => void;
   onRefreshCollab: () => void;
+  onOpenAnalysis: (videoId: string) => Promise<boolean>;
 }
 
 export function AppRoutes({
@@ -119,6 +120,7 @@ export function AppRoutes({
   onLoadCollabRevision,
   onApplyCollabRevision,
   onRefreshCollab,
+  onOpenAnalysis,
 }: AppRoutesProps) {
   const t = useT();
   if (route.name === 'collab') {
@@ -171,7 +173,9 @@ export function AppRoutes({
   }
 
   if (route.name === 'admin') {
-    return <AdminAccess onBack={() => onNavigate({ name: 'library' })} />;
+    return (
+      <AdminAccess onBack={() => onNavigate({ name: 'library' })} onOpenVideo={onOpenAnalysis} />
+    );
   }
 
   if (route.name === 'setlists') {

@@ -258,7 +258,7 @@ export function Home({
                     <input
                       id="youtube-search"
                       type="search"
-                      className="field"
+                      className="field min-w-0"
                       placeholder={t('home.searchPlaceholder')}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
@@ -303,7 +303,7 @@ export function Home({
                           return (
                             <li
                               key={item.videoId}
-                              className={`flex items-center gap-3 rounded-lg border p-2 ${
+                              className={`grid grid-cols-[auto_1fr] items-center gap-3 rounded-lg border p-2 sm:flex ${
                                 analyzing
                                   ? 'border-accent/50 bg-accent/5'
                                   : 'border-line bg-panel-2/60'
@@ -316,7 +316,7 @@ export function Home({
                                 height={72}
                                 loading="lazy"
                                 referrerPolicy="no-referrer"
-                                className="h-[4.5rem] w-32 shrink-0 rounded-md bg-panel object-cover"
+                                className="h-14 w-24 shrink-0 rounded-md bg-panel object-cover sm:h-[4.5rem] sm:w-32"
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -338,7 +338,9 @@ export function Home({
                               </div>
                               <button
                                 type="button"
-                                className={analyzed ? 'btn shrink-0' : 'btn btn-primary shrink-0'}
+                                className={`col-span-2 w-full justify-center sm:col-span-1 sm:w-auto ${
+                                  analyzed ? 'btn' : 'btn btn-primary'
+                                }`}
                                 onClick={() => void loadSearchResult(item)}
                                 disabled={busy}
                                 aria-busy={analyzing || undefined}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminAccess } from '../src/components/AdminAccess';
 
@@ -61,13 +61,19 @@ describe('AdminAccess', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<AdminAccess onBack={vi.fn()} />);
+    const onOpenVideo = vi.fn(async () => true);
+    render(<AdminAccess onBack={vi.fn()} onOpenVideo={onOpenVideo} />);
 
     expect(await screen.findByText('Análisis recientes')).toBeInTheDocument();
     expect(await screen.findByText('Canción de prueba')).toBeInTheDocument();
     expect(screen.getByText(/por Fulanito · friend@example.com/)).toBeInTheDocument();
     expect(screen.getByText('ensayo.wav')).toBeInTheDocument();
     expect(screen.getByText(/por Admin · admin@example.com/)).toBeInTheDocument();
+
+    const openButtons = screen.getAllByRole('button', { name: 'Ir a la canción' });
+    expect(openButtons).toHaveLength(1);
+    fireEvent.click(openButtons[0]!);
+    await waitFor(() => expect(onOpenVideo).toHaveBeenCalledWith('dQw4w9WgXcQ'));
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/admin/analyses?limit=100',
       expect.objectContaining({ headers: expect.any(Object) }),
