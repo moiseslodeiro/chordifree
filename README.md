@@ -16,10 +16,10 @@ Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to
 
 ## Two ways to run it
 
-| Mode | Sign-in | Library | Best for |
-|---|---|---|---|
-| Local / desktop | None | Browser local storage or the desktop app | Practice on one machine, offline use |
-| Private online (GCP) | Google, restricted to an allowlist | Firestore, per user | A small multi-device instance you host |
+| Mode                 | Sign-in                            | Library                                  | Best for                               |
+| -------------------- | ---------------------------------- | ---------------------------------------- | -------------------------------------- |
+| Local / desktop      | None                               | Browser local storage or the desktop app | Practice on one machine, offline use   |
+| Private online (GCP) | Google, restricted to an allowlist | Firestore, per user                      | A small multi-device instance you host |
 
 Local mode is the default and stays account-free. The online mode is opt-in: it does not
 remove the local library or the desktop workflow.
@@ -118,7 +118,9 @@ sudo ./install.sh          # systemd, recommended for a Pi 2
 ```
 
 Then expose `127.0.0.1:8010` with Cloudflare Tunnel or Tailscale Funnel and set
-`YOUTUBE_EXTRACTOR_URL` / `YOUTUBE_EXTRACTOR_TOKEN` in Terraform.
+`YOUTUBE_EXTRACTOR_URL` / `YOUTUBE_EXTRACTOR_TOKEN` in Terraform. The complete headless
+installation and tunnel walkthrough is in
+[`docs/RASPBERRY_PI_EXTRACTOR.md`](docs/RASPBERRY_PI_EXTRACTOR.md).
 
 ## Features
 
@@ -175,31 +177,31 @@ The analyzer downloads its ONNX models on the first analysis. To prefetch them, 
 
 Copy `.env.example` to `.env` and adjust as needed.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | `3001` | Express API port |
-| `HOST` | `127.0.0.1` | Bind address; use `0.0.0.0` only inside a container or behind a proxy |
-| `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
-| `ANALYZER_URL` | `http://localhost:8001` | Internal analyzer URL |
-| `MAX_DURATION_SECONDS` | `900` | Maximum audio/video length |
-| `MAX_UPLOAD_BYTES` | `26214400` | Maximum upload size (25 MB) |
-| `RATE_LIMIT_MAX` | `60` | Analysis requests per window and IP |
-| `RATE_LIMIT_WINDOW_MS` | `3600000` | Rate-limit window |
-| `TRUST_PROXY` | `0` | Trusted reverse-proxy hops; set `1` behind nginx/Caddy |
-| `TEMP_DIR` | `./.tmp` | Temporary audio and analysis working directory |
-| `AUDIO_CACHE_TTL_MINUTES` | auto | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
-| `YTDLP_PATH` | `yt-dlp` | yt-dlp binary |
-| `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
-| `FFPROBE_PATH` | `ffprobe` | ffprobe binary |
-| `ANALYZER_VERSION` | `essentia-1.6` | Cache-busting analyzer version |
-| `ANALYZER_DOWNLOAD_MODELS` | `1` | Allow runtime model download |
-| `AUTH_MODE` | `none` | `none` for local/desktop, `google` for the hosted allowlisted instance |
-| `GOOGLE_CLIENT_ID` | empty | OAuth Web client ID used to verify Google ID tokens |
-| `ADMIN_EMAILS` | empty | Comma-separated administrators; always allowed and able to manage access |
-| `GOOGLE_CLOUD_PROJECT` | empty | Project for Firestore (allowlist and cloud libraries) |
-| `FIRESTORE_DATABASE` | `(default)` | Firestore database ID |
-| `ANALYZER_AUTH` | `token` | `google` makes the server call the analyzer with a Cloud Run ID token |
-| `ANALYZER_TOKEN` | empty | Shared token when `ANALYZER_AUTH=token` |
+| Variable                   | Default                 | Purpose                                                                                                        |
+| -------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | `3001`                  | Express API port                                                                                               |
+| `HOST`                     | `127.0.0.1`             | Bind address; use `0.0.0.0` only inside a container or behind a proxy                                          |
+| `CORS_ORIGIN`              | `http://localhost:5173` | Allowed browser origin                                                                                         |
+| `ANALYZER_URL`             | `http://localhost:8001` | Internal analyzer URL                                                                                          |
+| `MAX_DURATION_SECONDS`     | `900`                   | Maximum audio/video length                                                                                     |
+| `MAX_UPLOAD_BYTES`         | `26214400`              | Maximum upload size (25 MB)                                                                                    |
+| `RATE_LIMIT_MAX`           | `60`                    | Analysis requests per window and IP                                                                            |
+| `RATE_LIMIT_WINDOW_MS`     | `3600000`               | Rate-limit window                                                                                              |
+| `TRUST_PROXY`              | `0`                     | Trusted reverse-proxy hops; set `1` behind nginx/Caddy                                                         |
+| `TEMP_DIR`                 | `./.tmp`                | Temporary audio and analysis working directory                                                                 |
+| `AUDIO_CACHE_TTL_MINUTES`  | auto                    | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
+| `YTDLP_PATH`               | `yt-dlp`                | yt-dlp binary                                                                                                  |
+| `FFMPEG_PATH`              | `ffmpeg`                | ffmpeg binary                                                                                                  |
+| `FFPROBE_PATH`             | `ffprobe`               | ffprobe binary                                                                                                 |
+| `ANALYZER_VERSION`         | `essentia-1.6`          | Cache-busting analyzer version                                                                                 |
+| `ANALYZER_DOWNLOAD_MODELS` | `1`                     | Allow runtime model download                                                                                   |
+| `AUTH_MODE`                | `none`                  | `none` for local/desktop, `google` for the hosted allowlisted instance                                         |
+| `GOOGLE_CLIENT_ID`         | empty                   | OAuth Web client ID used to verify Google ID tokens                                                            |
+| `ADMIN_EMAILS`             | empty                   | Comma-separated administrators; always allowed and able to manage access                                       |
+| `GOOGLE_CLOUD_PROJECT`     | empty                   | Project for Firestore (allowlist and cloud libraries)                                                          |
+| `FIRESTORE_DATABASE`       | `(default)`             | Firestore database ID                                                                                          |
+| `ANALYZER_AUTH`            | `token`                 | `google` makes the server call the analyzer with a Cloud Run ID token                                          |
+| `ANALYZER_TOKEN`           | empty                   | Shared token when `ANALYZER_AUTH=token`                                                                        |
 
 ## Architecture
 
@@ -310,7 +312,6 @@ desktop app does check the latest GitHub release on startup and shows a dismissi
 notice with a download link; set `CHORDIFREE_DISABLE_UPDATE_CHECK=1` to disable the
 check. Only the app version and the public GitHub release metadata are involved.
 
-
 ## Landing page (GitHub Pages)
 
 The project site lives in `site/` and is plain HTML, CSS and a small JavaScript file.
@@ -365,7 +366,6 @@ Spanish documentation: [`README.es.md`](README.es.md).
 - [Security policy](SECURITY.md)
 - [Privacy](PRIVACY.md)
 - [Terms of use](TERMS.md)
-
 
 ---
 

@@ -115,6 +115,10 @@ OAuth client ID, administrator emails and the extractor token.
 
 ## YouTube extractor
 
+The full Raspberry Pi installation, headless boot files, Tailscale Funnel, Cloudflare named
+tunnel and token rotation are documented in
+[`RASPBERRY_PI_EXTRACTOR.md`](RASPBERRY_PI_EXTRACTOR.md).
+
 On the Pi:
 
 ```bash

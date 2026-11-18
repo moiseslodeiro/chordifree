@@ -26,6 +26,8 @@ interface HomeProps {
   preferences: Preferences;
   analyzerVersion: string;
   analyzerStatus: 'ok' | 'down' | 'unknown';
+  extractorStatus?: 'ok' | 'down' | 'unknown';
+  extractorVersion?: string;
   libraryCount: number;
   notice: AppNotice | null;
   onDismissNotice: () => void;
@@ -54,6 +56,8 @@ export function Home({
   preferences,
   analyzerVersion,
   analyzerStatus,
+  extractorStatus = 'unknown',
+  extractorVersion,
   libraryCount,
   notice,
   onDismissNotice,
@@ -480,6 +484,31 @@ export function Home({
                 >
                   {t('home.analyzerHelp')}
                 </a>
+              ) : null}
+              {youtubeMode === 'extractor' ? (
+                <div className="mt-4 border-t border-line pt-4">
+                  <p className="eyebrow">{t('home.extractorStatus')}</p>
+                  <p className="mt-3 flex items-center gap-2 font-display text-xl font-bold leading-none text-ink">
+                    <span
+                      aria-hidden="true"
+                      className={`h-2 w-2 rounded-full ${
+                        extractorStatus === 'ok'
+                          ? 'bg-positive'
+                          : extractorStatus === 'down'
+                            ? 'bg-accent'
+                            : 'bg-ink3'
+                      }`}
+                    />
+                    {extractorStatus === 'ok'
+                      ? t('home.available')
+                      : extractorStatus === 'down'
+                        ? t('home.unavailable')
+                        : t('home.checking')}
+                  </p>
+                  <p className="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-ink3">
+                    {t('home.extractorRemote', { version: extractorVersion ?? '—' })}
+                  </p>
+                </div>
               ) : null}
             </div>
           )}

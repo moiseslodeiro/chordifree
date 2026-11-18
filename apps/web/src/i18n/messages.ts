@@ -128,6 +128,8 @@ const en = {
   'home.library': 'Library ({count})',
   'home.analyzerStatus': 'Analyzer status',
   'home.analyzerHelp': 'How to start the analyzer',
+  'home.extractorStatus': 'YouTube extractor',
+  'home.extractorRemote': 'Remote · {version}',
   'home.radioHint':
     'This looks like a YouTube Mix or radio. Open the individual video and paste its direct link; the seed video may not be available.',
   'home.available': 'Available',
@@ -781,6 +783,8 @@ const es: Record<MessageKey, string> = {
   'home.library': 'Biblioteca ({count})',
   'home.analyzerStatus': 'Estado del analizador',
   'home.analyzerHelp': 'Cómo iniciar el analizador',
+  'home.extractorStatus': 'Extractor de YouTube',
+  'home.extractorRemote': 'Remoto · {version}',
   'home.radioHint':
     'Esto parece un Mix o radio de YouTube. Abre el vídeo individual y pega su enlace directo; el vídeo semilla puede no estar disponible.',
   'home.available': 'Disponible',

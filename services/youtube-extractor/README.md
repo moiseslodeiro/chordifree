@@ -5,6 +5,9 @@ Raspberry Pi at home). Chordifree on Cloud Run calls it only for YouTube: probin
 and downloading the audio. The analyzer stays in Cloud Run, so the Pi does not need Essentia,
 ONNX or a lot of RAM.
 
+For a complete headless Raspberry Pi installation and tunnel walkthrough, see
+[`docs/RASPBERRY_PI_EXTRACTOR.md`](../../docs/RASPBERRY_PI_EXTRACTOR.md).
+
 ```text
 Browser -> Cloud Run (web + API + analyzer)
                   |
@@ -185,12 +188,12 @@ and download. If it is not set, it uses the local `yt-dlp` as before.
 
 ## Endpoints
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/health` | No | `{ status, extractorVersion }` |
-| POST | `/probe` | `X-Chordifree-Token` | `{ videoId }` → `{ duration, title? }` |
-| GET | `/search?q=` | `X-Chordifree-Token` | `{ results: [...] }` |
-| POST | `/download` | `X-Chordifree-Token` | `{ videoId }` → audio file |
+| Method | Path         | Auth                 | Description                            |
+| ------ | ------------ | -------------------- | -------------------------------------- |
+| GET    | `/health`    | No                   | `{ status, extractorVersion }`         |
+| POST   | `/probe`     | `X-Chordifree-Token` | `{ videoId }` → `{ duration, title? }` |
+| GET    | `/search?q=` | `X-Chordifree-Token` | `{ results: [...] }`                   |
+| POST   | `/download`  | `X-Chordifree-Token` | `{ videoId }` → audio file             |
 
 Errors use `{ "error": { "code": "...", "message": "..." } }`.
 

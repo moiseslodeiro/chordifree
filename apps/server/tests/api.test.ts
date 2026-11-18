@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { ApiError } from '../src/errors';
@@ -280,7 +280,9 @@ describe('POST /api/analyses', () => {
   });
 
   it('rejects files that exceed the maximum size', async () => {
-    const app = await buildApp({ config: makeConfig({ maxUploadBytes: 16, tempDir: await makeTempDir() }) });
+    const app = await buildApp({
+      config: makeConfig({ maxUploadBytes: 16, tempDir: await makeTempDir() }),
+    });
     const response = await request(app)
       .post('/api/analyses')
       .attach('file', wavBuffer(64), { filename: 'grande.wav', contentType: 'audio/wav' });
@@ -365,7 +367,11 @@ describe('GET /api/analyses/:id', () => {
 describe('rate limiting', () => {
   it('returns 429 with Retry-After when the limit is exceeded', async () => {
     const app = await buildApp({
-      config: makeConfig({ rateLimitMax: 1, rateLimitWindowMs: 60_000, tempDir: await makeTempDir() }),
+      config: makeConfig({
+        rateLimitMax: 1,
+        rateLimitWindowMs: 60_000,
+        tempDir: await makeTempDir(),
+      }),
     });
     const first = await request(app)
       .post('/api/analyses')
@@ -398,6 +404,58 @@ describe('GET /api/health', () => {
     const response = await request(app).get('/api/health');
     expect(response.status).toBe(200);
     expect(response.body.analyzer).toBe('down');
+  });
+
+  it('reports the remote extractor when configured', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ status: 'ok', extractorVersion: '0.1.0' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const app = await buildApp({
+        config: makeConfig({
+          tempDir: await makeTempDir(),
+          youtubeExtractorUrl: 'https://extractor.example',
+          youtubeExtractorToken: 'token',
+        }),
+      });
+      const response = await request(app).get('/api/health');
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ extractor: 'ok', extractorVersion: '0.1.0' });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://extractor.example/health',
+        expect.objectContaining({ signal: expect.anything() }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('marks the remote extractor as down without failing health', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('offline');
+      }),
+    );
+    try {
+      const app = await buildApp({
+        config: makeConfig({
+          tempDir: await makeTempDir(),
+          youtubeExtractorUrl: 'https://extractor.example',
+          youtubeExtractorToken: 'token',
+        }),
+      });
+      const response = await request(app).get('/api/health');
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ status: 'ok', extractor: 'down' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
@@ -460,7 +518,6 @@ describe('analyzer response normalization', () => {
     expect(body.result.beatsPerBar).toBe(4);
   });
 });
-
 
 describe('DELETE /api/analyses/:id', () => {
   it('deletes the job and makes it unavailable', async () => {

@@ -234,9 +234,7 @@ describe('Home', () => {
       document.querySelector('img[src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"]'),
     ).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Analizar Never Gonna Give You Up' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Analizar Never Gonna Give You Up' }));
 
     await waitFor(() => expect(onAnalyzed).toHaveBeenCalledTimes(1));
     expect(onAnalyzed.mock.calls[0]?.[0].source).toMatchObject({
@@ -331,6 +329,16 @@ describe('Home', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
 
     expect(await screen.findByText('Sin resultados. Prueba otra búsqueda.')).toBeInTheDocument();
+  });
+
+  it('shows the remote extractor status only in extractor mode', () => {
+    renderHome({
+      youtubeMode: 'extractor',
+      extractorStatus: 'ok',
+      extractorVersion: '0.1.0',
+    });
+    expect(screen.getByText(/Extractor de YouTube|YouTube extractor/)).toBeInTheDocument();
+    expect(screen.getByText(/Remoto · 0\.1\.0|Remote · 0\.1\.0/)).toBeInTheDocument();
   });
 
   it('hides the analyzer status on desktop and starts with upload', () => {

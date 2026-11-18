@@ -14,10 +14,7 @@ import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
 import { createAccountRouter } from './routes/account';
 import { createConfigRouter } from './routes/config';
-import {
-  FirestoreCloudLibraryStore,
-  type CloudLibraryStore,
-} from './services/cloud-library';
+import { FirestoreCloudLibraryStore, type CloudLibraryStore } from './services/cloud-library';
 import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
 import {
@@ -29,10 +26,7 @@ import {
   requireAllowed,
   type AuthContext,
 } from './services/auth';
-import {
-  audioCacheDirectory,
-  TemporaryAudioCache,
-} from './services/audio-cache';
+import { audioCacheDirectory, TemporaryAudioCache } from './services/audio-cache';
 import { createLyricsClient, type LyricsClient } from './services/lyrics';
 import { createMediaTools, type MediaTools } from './services/media';
 
@@ -53,6 +47,31 @@ export interface AppDependencies {
 
 export interface CreateAppOptions extends Partial<AppDependencies> {
   config?: AppConfig;
+}
+
+interface ExtractorHealth {
+  ok: boolean;
+  version?: string;
+}
+
+/** Checks the optional residential extractor without making /api/health fail. */
+async function checkExtractor(url: string): Promise<ExtractorHealth> {
+  try {
+    const response = await fetch(`${url.replace(/\/+$/, '')}/health`, {
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!response.ok) return { ok: false };
+    const body = (await response.json()) as {
+      status?: string;
+      extractorVersion?: string;
+    };
+    return {
+      ok: body.status === 'ok',
+      ...(body.extractorVersion ? { version: body.extractorVersion } : {}),
+    };
+  } catch {
+    return { ok: false };
+  }
 }
 
 /**
@@ -92,9 +111,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
   const tools = options.tools ?? createMediaTools(config);
   const analyzerTokenProvider =
-    config.analyzerAuth === 'google'
-      ? createGoogleIdTokenProvider(config.analyzerUrl)
-      : undefined;
+    config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
@@ -102,12 +119,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     tools,
     analyzer:
       options.analyzer ??
-      createAnalyzerClient(
-        config.analyzerUrl,
-        fetch,
-        config.analyzerToken,
-        analyzerTokenProvider,
-      ),
+      createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken, analyzerTokenProvider),
     lyrics: options.lyrics ?? createLyricsClient(fetch),
     audioCache:
       options.audioCache ??
@@ -169,11 +181,22 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api', sameOriginWriteGuard(config));
 
   app.get('/api/health', async (_req, res) => {
-    const health = await deps.analyzer.health();
+    const [health, extractor] = await Promise.all([
+      deps.analyzer.health(),
+      deps.config.youtubeExtractorUrl
+        ? checkExtractor(deps.config.youtubeExtractorUrl)
+        : Promise.resolve(null),
+    ]);
     res.json({
       status: 'ok',
       analyzer: health.ok ? 'ok' : 'down',
       analyzerVersion: health.version ?? config.analyzerVersion,
+      ...(extractor
+        ? {
+            extractor: extractor.ok ? 'ok' : 'down',
+            ...(extractor.version ? { extractorVersion: extractor.version } : {}),
+          }
+        : {}),
     });
   });
 
