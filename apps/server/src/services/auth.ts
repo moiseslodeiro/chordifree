@@ -1,11 +1,12 @@
 import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { Firestore } from '@google-cloud/firestore';
 import { GoogleAuth, OAuth2Client } from 'google-auth-library';
 import { z } from 'zod';
 import type { AccessEntry, AuthUser } from '@chordifree/contracts';
 import type { AppConfig } from '../config';
-import { ApiError } from '../errors';
+import { ApiError, errorBody } from '../errors';
 
 export type { AccessEntry, AuthUser } from '@chordifree/contracts';
 
@@ -256,8 +257,29 @@ export function requireAdmin(auth: AuthContext) {
 
 const EmailSchema = z.object({ email: z.string().trim().email() });
 
+function authLimiter() {
+  return rateLimit({
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
+    windowMs: 60_000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, res) => {
+      res.setHeader('Retry-After', '60');
+      res
+        .status(429)
+        .json(errorBody('RATE_LIMITED', 'Too many authentication requests. Try again later.'));
+    },
+  });
+}
+
 export function createAuthRouter(auth: AuthContext): Router {
   const router = Router();
+  router.use(authLimiter());
+  router.use((_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
 
   router.get('/config', (_req, res) => {
     res.json({
@@ -284,6 +306,11 @@ export function createAuthRouter(auth: AuthContext): Router {
 
 export function createAdminRouter(auth: AuthContext): Router {
   const router = Router();
+  router.use(authLimiter());
+  router.use((_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
   router.use(authenticateUser(auth), requireAdmin(auth));
 
   router.get('/access', async (_req, res, next) => {
