@@ -2,6 +2,13 @@ import { Router } from 'express';
 import { ApiError } from '../errors';
 import type { AuthContext } from '../services/auth';
 import type { CloudLibraryStore } from '../services/cloud-library';
+import type { CollabStore } from '../services/collab';
+import type { ProfileStore } from '../services/profiles';
+
+export interface AccountCleanupStores {
+  profiles?: ProfileStore;
+  collab?: CollabStore;
+}
 
 /**
  * Delete the signed-in user's cloud library. Non-admins also lose their
@@ -11,6 +18,7 @@ import type { CloudLibraryStore } from '../services/cloud-library';
 export function createAccountRouter(
   auth: AuthContext,
   store: CloudLibraryStore | null,
+  cleanup: AccountCleanupStores = {},
 ): Router {
   const router = Router();
 
@@ -25,6 +33,8 @@ export function createAccountRouter(
       }
 
       const counts = await store.clear(user.uid);
+      await cleanup.collab?.deleteOwnedBy(user.uid);
+      await cleanup.profiles?.clear(user.uid);
       const isAdmin = auth.isAdmin(user);
       const accessRemoved = isAdmin ? false : await auth.access.remove(user.email);
 

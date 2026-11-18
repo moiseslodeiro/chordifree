@@ -6,9 +6,13 @@ export type {
   AnalysisSource,
   AnalysisStatus,
   AnalysisView,
+  CollabRevision,
+  CollabRevisionSummary,
+  CollabShare,
   LyricsResult,
   Setlist,
   Song,
+  UserProfile,
   YoutubeSearchResult,
 } from '@chordifree/contracts';
 

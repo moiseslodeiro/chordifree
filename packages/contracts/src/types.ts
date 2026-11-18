@@ -59,6 +59,37 @@ export interface Song {
   accidentalPreference: AccidentalPreference;
   createdAt: string;
   updatedAt: string;
+  /** Set when the song is shared for collaborative editing. */
+  collabId?: string;
+}
+
+export interface UserProfile {
+  nickname: string;
+  /** False when the nickname still comes from the Google account. */
+  custom: boolean;
+}
+
+export interface CollabRevisionSummary {
+  id: string;
+  authorUid: string;
+  authorNickname: string;
+  createdAt: string;
+}
+
+export interface CollabShare {
+  id: string;
+  songId: string;
+  ownerUid: string;
+  ownerNickname: string;
+  currentRevisionId: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Newest first. */
+  revisions: CollabRevisionSummary[];
+}
+
+export interface CollabRevision extends CollabRevisionSummary {
+  song: Song;
 }
 
 export interface Setlist {

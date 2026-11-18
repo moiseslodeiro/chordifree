@@ -1,11 +1,20 @@
 import type { AuthValue } from '../auth/AuthProvider';
+import { useT } from '../i18n';
 import type { AudioCacheState } from '../hooks/useAudioCache';
 import type { HealthState } from '../hooks/useHealth';
 import { analysisCacheStats } from '../storage/library';
 import type { StorageLike } from '../storage/keys';
 import type { HistoryMap } from '../storage/history';
 import type { CloudStatus } from '../sync/useCloudLibrary';
-import type { AppNotice, Preferences, Setlist, Song, SongSummary } from '../types';
+import type {
+  AppNotice,
+  CollabRevision,
+  CollabShare,
+  Preferences,
+  Setlist,
+  Song,
+  SongSummary,
+} from '../types';
 import type { Route } from '../routing';
 import { AdminAccess } from './AdminAccess';
 import { Home } from './Home';
@@ -53,6 +62,14 @@ interface AppRoutesProps {
   onCreateSetlistWithSong: (name: string, song: Song) => void;
   onReanalyze: (song: Song) => void;
   onPreferences: (patch: Partial<Preferences>) => void;
+  collabShare: CollabShare | null;
+  collabLoading: boolean;
+  collabUid: string | null;
+  canCollaborate: boolean;
+  onShareCollab: (song: Song) => Promise<string | null>;
+  onLoadCollabRevision: (revisionId: string) => Promise<CollabRevision | null>;
+  onApplyCollabRevision: (revision: CollabRevision) => void;
+  onRefreshCollab: () => void;
 }
 
 export function AppRoutes({
@@ -94,7 +111,24 @@ export function AppRoutes({
   onCreateSetlistWithSong,
   onReanalyze,
   onPreferences,
+  collabShare,
+  collabLoading,
+  collabUid,
+  canCollaborate,
+  onShareCollab,
+  onLoadCollabRevision,
+  onApplyCollabRevision,
+  onRefreshCollab,
 }: AppRoutesProps) {
+  const t = useT();
+  if (route.name === 'collab') {
+    return (
+      <p className="py-24 text-center text-sm text-ink3" role="status">
+        {t('collab.opening')}
+      </p>
+    );
+  }
+
   if (route.name === 'home') {
     return (
       <Home
@@ -195,6 +229,15 @@ export function AppRoutes({
         onBack={() => onNavigate({ name: 'home' })}
         onOpenLibrary={() => onNavigate({ name: 'library' })}
         onPreferences={onPreferences}
+        language={preferences.language}
+        collabShare={collabShare}
+        collabLoading={collabLoading}
+        collabUid={collabUid}
+        canCollaborate={canCollaborate}
+        onShareCollab={onShareCollab}
+        onLoadCollabRevision={onLoadCollabRevision}
+        onApplyCollabRevision={onApplyCollabRevision}
+        onRefreshCollab={onRefreshCollab}
       />
     );
   }
