@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { deleteAccount } from './lib/api';
+import { createYoutubeAnalysis, deleteAccount } from './lib/api';
 import { isDesktopApp } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT } from './i18n';
@@ -28,7 +28,7 @@ import { useCollab } from './collab/useCollab';
 import { NicknameDialog } from './components/NicknameDialog';
 import { audioUrlForSong } from './lib/songState';
 import { hashFor, type Route } from './routing';
-import type { AppNotice, CollabRevision, Song } from './types';
+import { songFromResult, type AppNotice, type CollabRevision, type Song } from './types';
 
 export default function App() {
   const t = useT();
@@ -215,6 +215,25 @@ export default function App() {
     [collab.share, saveSong, setSong, songRef],
   );
 
+  const openAnalyzedVideo = useCallback(
+    async (videoId: string) => {
+      const existing = library
+        .exportSongs()
+        .find((item) => item.source.type === 'youtube' && item.source.videoId === videoId);
+      if (existing) {
+        openSong(existing, audioUrlForSong(existing));
+        return true;
+      }
+      const result = await analysisRunner.run((signal) =>
+        createYoutubeAnalysis(`https://youtu.be/${videoId}`, signal),
+      );
+      if (!result) return false;
+      openSong(songFromResult(result, preferences), null);
+      return true;
+    },
+    [analysisRunner, library, openSong, preferences],
+  );
+
   const [openedCollabId, setOpenedCollabId] = useState<string | null>(null);
   const openCollabLink = collab.openFromLink;
   useEffect(() => {
@@ -370,6 +389,7 @@ export default function App() {
           onLoadCollabRevision={collab.loadRevision}
           onApplyCollabRevision={handleApplyCollab}
           onRefreshCollab={() => void collab.refresh()}
+          onOpenAnalysis={openAnalyzedVideo}
         />
       </main>
 

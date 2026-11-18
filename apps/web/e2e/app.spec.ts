@@ -130,6 +130,43 @@ test.describe('full flow', () => {
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
 
+  test('keeps the search result action inside a small viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.route('**/api/youtube/search**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            {
+              videoId: 'dQw4w9WgXcQ',
+              title: 'Never Gonna Give You Up',
+              uploader: 'Rick Astley',
+              duration: 213,
+              thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+            },
+          ],
+        }),
+      }),
+    );
+    await page.goto('/?fakePlayer=1');
+
+    await page.getByLabel('Buscar en YouTube').fill('rick astley');
+    await page.getByRole('button', { name: 'Buscar' }).click();
+
+    const analyze = page.getByRole('button', { name: 'Analizar Never Gonna Give You Up' });
+    await expect(analyze).toBeVisible();
+    const box = await analyze.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
   test('analyzes, switches to Spanish notation, transposes, edits, saves and reloads', async ({
     page,
   }) => {

@@ -13,6 +13,7 @@ import { useConfirm } from './ConfirmDialog';
 
 interface AdminAccessProps {
   onBack: () => void;
+  onOpenVideo: (videoId: string) => Promise<boolean>;
 }
 
 function formatDate(value: string, language: 'en' | 'es'): string {
@@ -37,7 +38,7 @@ function formatDateTime(value: string, language: 'en' | 'es'): string {
   });
 }
 
-export function AdminAccess({ onBack }: AdminAccessProps) {
+export function AdminAccess({ onBack, onOpenVideo }: AdminAccessProps) {
   const t = useT();
   const language = useLanguage();
   const auth = useAuth();
@@ -50,6 +51,7 @@ export function AdminAccess({ onBack }: AdminAccessProps) {
   const [runs, setRuns] = useState<AnalysisLogEntry[]>([]);
   const [runsLoading, setRunsLoading] = useState(true);
   const [runsProblem, setRunsProblem] = useState<string | null>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,6 +95,21 @@ export function AdminAccess({ onBack }: AdminAccessProps) {
       setProblem(t('admin.addFailed'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openRun = async (run: AnalysisLogEntry) => {
+    if (!run.videoId || openingId !== null) return;
+    setOpeningId(run.id);
+    setRunsProblem(null);
+    try {
+      if (!(await onOpenVideo(run.videoId))) {
+        setRunsProblem(t('admin.openSongFailed'));
+      }
+    } catch {
+      setRunsProblem(t('admin.openSongFailed'));
+    } finally {
+      setOpeningId(null);
     }
   };
 
@@ -250,6 +267,16 @@ export function AdminAccess({ onBack }: AdminAccessProps) {
                     {t('admin.activityChords', { count: run.chords })}
                   </p>
                 </div>
+                {run.kind === 'youtube' && run.videoId ? (
+                  <button
+                    type="button"
+                    className="btn shrink-0"
+                    disabled={openingId !== null}
+                    onClick={() => void openRun(run)}
+                  >
+                    {openingId === run.id ? t('admin.openingSong') : t('admin.openSong')}
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>

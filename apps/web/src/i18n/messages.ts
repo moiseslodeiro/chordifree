@@ -72,6 +72,9 @@ const en = {
   'auth.admin': 'Administration',
   'auth.loading': 'Checking your session…',
   'auth.error': 'Could not verify your session.',
+  'admin.openSong': 'Open song',
+  'admin.openingSong': 'Opening…',
+  'admin.openSongFailed': 'Could not open the song.',
   'admin.activityTitle': 'Recent analyses',
   'admin.activityDescription':
     'Songs analyzed on this instance and the account that started each analysis. The log is kept for 90 days.',
@@ -776,6 +779,9 @@ const es: Record<MessageKey, string> = {
   'auth.admin': 'Administración',
   'auth.loading': 'Comprobando tu sesión…',
   'auth.error': 'No se pudo verificar tu sesión.',
+  'admin.openSong': 'Ir a la canción',
+  'admin.openingSong': 'Abriendo…',
+  'admin.openSongFailed': 'No se pudo abrir la canción.',
   'admin.activityTitle': 'Análisis recientes',
   'admin.activityDescription':
     'Canciones analizadas en esta instancia y la cuenta que inició cada análisis. El registro se conserva 90 días.',
