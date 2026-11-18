@@ -4,14 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseChord, type ChordSegment } from '@chordifree/chords';
 import { FakePlayerAdapter } from '../src/player/fake';
 import { AudioPlayerAdapter, pitchShiftLatency } from '../src/player/audio';
-import { loadYouTubeApi, YouTubePlayerAdapter } from '../src/player/youtube';
 import { PlaybackClock } from '../src/sync/clock';
-import {
-  useBeatIndex,
-  useIsBeatActive,
-  useIsRowActive,
-  usePlaybackIndex,
-} from '../src/sync/hooks';
+import { useBeatIndex, useIsBeatActive, useIsRowActive, usePlaybackIndex } from '../src/sync/hooks';
 import { videoIdFromUrl } from '../src/lib/youtube';
 
 const audioMock = vi.hoisted(() => {
@@ -282,82 +276,6 @@ describe('AudioPlayerAdapter pitch shift', () => {
     expect(pitchShiftLatency(1.5)).toBeCloseTo(0.12, 6);
     expect(pitchShiftLatency(2)).toBeCloseTo(0.16, 6);
     expect(pitchShiftLatency(Number.NaN)).toBeCloseTo(0.08, 6);
-  });
-});
-
-describe('YouTubePlayerAdapter', () => {
-  it('creates the player and delegates play, pause and seek', async () => {
-    const calls: string[] = [];
-    const handlers: { stateChange?: (event: { data: number }) => void } = {};
-
-    class PlayerMock {
-      constructor(_id: string, options: Record<string, any>) {
-        handlers.stateChange = options.events.onStateChange;
-      }
-      getCurrentTime() {
-        return 42;
-      }
-      seekTo(seconds: number) {
-        calls.push(`seek:${seconds}`);
-      }
-      playVideo() {
-        calls.push('play');
-      }
-      pauseVideo() {
-        calls.push('pause');
-      }
-      getPlayerState() {
-        return 1;
-      }
-      getPlaybackRate() {
-        return 1;
-      }
-      setPlaybackRate(rate: number) {
-        calls.push(`rate:${rate}`);
-      }
-      destroy() {
-        calls.push('destroy');
-      }
-    }
-
-    window.YT = {
-      Player: PlayerMock as never,
-      PlayerState: { PLAYING: 1, ENDED: 0 },
-    };
-
-    await loadYouTubeApi();
-
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const onError = vi.fn();
-    const adapter = new YouTubePlayerAdapter(container, 'dQw4w9WgXcQ', onError);
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    adapter.seekTo(12);
-    adapter.play();
-    adapter.pause();
-    expect(calls).toEqual(['seek:12', 'play', 'pause']);
-    expect(adapter.getCurrentTime()).toBe(42);
-
-    adapter.setPlaybackRate(0.5);
-    adapter.setPlaybackRate(9);
-    expect(calls).toContain('rate:0.5');
-    expect(calls).toContain('rate:2');
-    expect(adapter.getPlaybackRate()).toBe(1);
-
-    const listener = vi.fn();
-    adapter.onStateChange(listener);
-    handlers.stateChange?.({ data: 1 });
-    expect(adapter.isPlaying()).toBe(true);
-    expect(listener).toHaveBeenCalledWith(true);
-
-    adapter.destroy();
-    expect(calls).toContain('destroy');
-    container.remove();
-    delete window.YT;
   });
 });
 

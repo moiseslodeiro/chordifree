@@ -196,12 +196,9 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           mediaSrc: ["'self'", 'blob:', 'data:'],
-          frameSrc: [
-            "'self'",
-            'https://accounts.google.com',
-            'https://www.youtube.com',
-            'https://www.youtube-nocookie.com',
-          ],
+          // The embedded YouTube player was replaced by the temporary audio
+          // player; only Google Identity Services needs a frame.
+          frameSrc: ["'self'", 'https://accounts.google.com'],
           connectSrc: ["'self'", 'https://accounts.google.com'],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],

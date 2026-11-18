@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { ApiError } from '../errors';
+import rateLimit from 'express-rate-limit';
+import { ApiError, errorBody } from '../errors';
 import type { AuthContext } from '../services/auth';
 import type { CloudLibraryStore } from '../services/cloud-library';
 import type { AnalysisLogStore } from '../services/analysis-log';
@@ -23,8 +24,19 @@ export function createAccountRouter(
   cleanup: AccountCleanupStores = {},
 ): Router {
   const router = Router();
+  const limiter = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
+    handler: (_req, res) => {
+      res.setHeader('Retry-After', '60');
+      res.status(429).json(errorBody('RATE_LIMITED', 'Too many account requests.'));
+    },
+  });
 
-  router.delete('/', async (req, res, next) => {
+  router.delete('/', limiter, async (req, res, next) => {
     try {
       if (!store) {
         throw new ApiError('CLOUD_DISABLED', 'The cloud library is not enabled');
