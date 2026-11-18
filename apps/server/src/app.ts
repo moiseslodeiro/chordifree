@@ -12,6 +12,7 @@ import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
+import { createAdminAnalysesRouter } from './routes/admin-analyses';
 import { createCollabRouter } from './routes/collab';
 import { createProfileRouter } from './routes/profile';
 import { createAccountRouter } from './routes/account';
@@ -38,6 +39,11 @@ import {
 import { createMediaTools, type MediaTools } from './services/media';
 import { FirestoreCollabStore, MemoryCollabStore, type CollabStore } from './services/collab';
 import { FirestoreProfileStore, MemoryProfileStore, type ProfileStore } from './services/profiles';
+import {
+  FirestoreAnalysisLogStore,
+  MemoryAnalysisLogStore,
+  type AnalysisLogStore,
+} from './services/analysis-log';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -54,6 +60,7 @@ export interface AppDependencies {
   analysisCache: AnalysisCacheStore;
   profiles: ProfileStore;
   collab: CollabStore;
+  analysisLog: AnalysisLogStore;
   webDist: string;
 }
 
@@ -162,6 +169,11 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       (config.authMode === 'google'
         ? new FirestoreCollabStore(createFirestore(config))
         : new MemoryCollabStore()),
+    analysisLog:
+      options.analysisLog ??
+      (config.authMode === 'google'
+        ? new FirestoreAnalysisLogStore(createFirestore(config))
+        : new MemoryAnalysisLogStore()),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -235,6 +247,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api/config', createConfigRouter(deps.config, deps.cloudLibrary));
   app.use('/api/auth', createAuthRouter(deps.auth));
   app.use('/api/admin', createAdminRouter(deps.auth));
+  app.use('/api/admin/analyses', createAdminAnalysesRouter(deps.auth, deps.analysisLog));
   app.use('/api', requireAllowed(deps.auth));
 
   app.use(
@@ -242,6 +255,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     createAccountRouter(deps.auth, deps.cloudLibrary, {
       profiles: deps.profiles,
       collab: deps.collab,
+      analysisLog: deps.analysisLog,
     }),
   );
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));

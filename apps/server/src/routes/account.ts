@@ -2,12 +2,14 @@ import { Router } from 'express';
 import { ApiError } from '../errors';
 import type { AuthContext } from '../services/auth';
 import type { CloudLibraryStore } from '../services/cloud-library';
+import type { AnalysisLogStore } from '../services/analysis-log';
 import type { CollabStore } from '../services/collab';
 import type { ProfileStore } from '../services/profiles';
 
 export interface AccountCleanupStores {
   profiles?: ProfileStore;
   collab?: CollabStore;
+  analysisLog?: AnalysisLogStore;
 }
 
 /**
@@ -37,6 +39,7 @@ export function createAccountRouter(
       // collaboration data must not turn the request into a 500.
       await cleanup.collab?.deleteOwnedBy(user.uid).catch(() => undefined);
       await cleanup.profiles?.clear(user.uid).catch(() => undefined);
+      await cleanup.analysisLog?.removeByUid(user.uid).catch(() => undefined);
       const isAdmin = auth.isAdmin(user);
       const accessRemoved = isAdmin ? false : await auth.access.remove(user.email);
 

@@ -2,6 +2,7 @@ import type { AccidentalPreference, Notation } from '@chordifree/chords';
 import type { AnalysisResult, AnalysisSource, Song } from '@chordifree/contracts';
 
 export type {
+  AnalysisLogEntry,
   AnalysisResult,
   AnalysisSource,
   AnalysisStatus,

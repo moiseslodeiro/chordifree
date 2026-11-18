@@ -92,6 +92,22 @@ export interface CollabRevision extends CollabRevisionSummary {
   song: Song;
 }
 
+/** One completed analysis, used by the administrator activity viewer. */
+export interface AnalysisLogEntry {
+  id: string;
+  uid: string;
+  email: string;
+  nickname: string;
+  kind: 'youtube' | 'upload' | 'sheet';
+  videoId?: string;
+  filename?: string;
+  title?: string;
+  duration: number;
+  chords: number;
+  analyzerVersion: string;
+  createdAt: string;
+}
+
 export interface Setlist {
   id: string;
   name: string;
