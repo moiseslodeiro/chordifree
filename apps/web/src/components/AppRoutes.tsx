@@ -102,6 +102,8 @@ export function AppRoutes({
         preferences={preferences}
         analyzerVersion={health.version}
         analyzerStatus={health.status}
+        extractorStatus={health.extractor}
+        extractorVersion={health.extractorVersion}
         libraryCount={songs.length}
         notice={notice}
         onDismissNotice={onDismissNotice}

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { stubAuthConfig } from './support';
 
@@ -172,7 +173,7 @@ test.describe('YouTube temporary audio', () => {
         return;
       }
       await route.fulfill({
-        path: 'public/demo.wav',
+        body: readFileSync('public/demo.wav'),
         contentType: 'audio/wav',
       });
     });
@@ -186,7 +187,7 @@ test.describe('YouTube temporary audio', () => {
     expect(prepares).toBe(1);
 
     const audio = page.locator('audio');
-    await expect(audio).toHaveAttribute('src', '/api/youtube/dQw4w9WgXcQ/audio');
+    await expect(audio).toHaveAttribute('src', /^blob:/);
     await expect(audio).not.toHaveAttribute('controls');
 
     await page.getByTestId('practice-summary').click();
@@ -197,7 +198,7 @@ test.describe('YouTube temporary audio', () => {
     await expect.poll(() => audio.evaluate((element) => element.currentTime)).toBeGreaterThan(0.25);
 
     await page.getByLabel('Audio pitch in semitones').selectOption('0');
-    await expect(audio).toHaveAttribute('src', '/api/youtube/dQw4w9WgXcQ/audio');
+    await expect(audio).toHaveAttribute('src', /^blob:/);
     expect(prepares).toBe(1);
   });
 });

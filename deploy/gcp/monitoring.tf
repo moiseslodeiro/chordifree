@@ -7,7 +7,7 @@ resource "google_monitoring_notification_channel" "email" {
   display_name = "${var.name_prefix} alerts"
   type         = "email"
   labels = {
-    email = local.alert_email
+    email_address = local.alert_email
   }
 }
 

@@ -14,10 +14,7 @@ import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
 import { createAccountRouter } from './routes/account';
 import { createConfigRouter } from './routes/config';
-import {
-  FirestoreCloudLibraryStore,
-  type CloudLibraryStore,
-} from './services/cloud-library';
+import { FirestoreCloudLibraryStore, type CloudLibraryStore } from './services/cloud-library';
 import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
 import {
@@ -29,11 +26,13 @@ import {
   requireAllowed,
   type AuthContext,
 } from './services/auth';
-import {
-  audioCacheDirectory,
-  TemporaryAudioCache,
-} from './services/audio-cache';
+import { audioCacheDirectory, TemporaryAudioCache } from './services/audio-cache';
 import { createLyricsClient, type LyricsClient } from './services/lyrics';
+import {
+  FirestoreAnalysisCache,
+  MemoryAnalysisCache,
+  type AnalysisCacheStore,
+} from './services/analysis-cache';
 import { createMediaTools, type MediaTools } from './services/media';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -48,11 +47,37 @@ export interface AppDependencies {
   audioCache: TemporaryAudioCache;
   auth: AuthContext;
   cloudLibrary: CloudLibraryStore | null;
+  analysisCache: AnalysisCacheStore;
   webDist: string;
 }
 
 export interface CreateAppOptions extends Partial<AppDependencies> {
   config?: AppConfig;
+}
+
+interface ExtractorHealth {
+  ok: boolean;
+  version?: string;
+}
+
+/** Checks the optional residential extractor without making /api/health fail. */
+async function checkExtractor(url: string): Promise<ExtractorHealth> {
+  try {
+    const response = await fetch(`${url.replace(/\/+$/, '')}/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return { ok: false };
+    const body = (await response.json()) as {
+      status?: string;
+      extractorVersion?: string;
+    };
+    return {
+      ok: body.status === 'ok',
+      ...(body.extractorVersion ? { version: body.extractorVersion } : {}),
+    };
+  } catch {
+    return { ok: false };
+  }
 }
 
 /**
@@ -92,9 +117,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
   const tools = options.tools ?? createMediaTools(config);
   const analyzerTokenProvider =
-    config.analyzerAuth === 'google'
-      ? createGoogleIdTokenProvider(config.analyzerUrl)
-      : undefined;
+    config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
@@ -102,12 +125,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     tools,
     analyzer:
       options.analyzer ??
-      createAnalyzerClient(
-        config.analyzerUrl,
-        fetch,
-        config.analyzerToken,
-        analyzerTokenProvider,
-      ),
+      createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken, analyzerTokenProvider),
     lyrics: options.lyrics ?? createLyricsClient(fetch),
     audioCache:
       options.audioCache ??
@@ -123,6 +141,11 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       (config.authMode === 'google'
         ? new FirestoreCloudLibraryStore(createFirestore(config))
         : null),
+    analysisCache:
+      options.analysisCache ??
+      (config.authMode === 'google'
+        ? new FirestoreAnalysisCache(createFirestore(config))
+        : new MemoryAnalysisCache()),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -136,7 +159,12 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", 'https://accounts.google.com'],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+            'https://accounts.google.com',
+          ],
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           mediaSrc: ["'self'", 'blob:', 'data:'],
@@ -169,11 +197,22 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api', sameOriginWriteGuard(config));
 
   app.get('/api/health', async (_req, res) => {
-    const health = await deps.analyzer.health();
+    const [health, extractor] = await Promise.all([
+      deps.analyzer.health(),
+      deps.config.youtubeExtractorUrl
+        ? checkExtractor(deps.config.youtubeExtractorUrl)
+        : Promise.resolve(null),
+    ]);
     res.json({
       status: 'ok',
       analyzer: health.ok ? 'ok' : 'down',
       analyzerVersion: health.version ?? config.analyzerVersion,
+      ...(extractor
+        ? {
+            extractor: extractor.ok ? 'ok' : 'down',
+            ...(extractor.version ? { extractorVersion: extractor.version } : {}),
+          }
+        : {}),
     });
   });
 
@@ -186,7 +225,15 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
-  app.use('/api/youtube', createYoutubeRouter({ tools: deps.tools, audioCache: deps.audioCache }));
+  app.use(
+    '/api/youtube',
+    createYoutubeRouter({
+      tools: deps.tools,
+      audioCache: deps.audioCache,
+      analysisCache: deps.analysisCache,
+      analyzerVersion: config.analyzerVersion,
+    }),
+  );
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));

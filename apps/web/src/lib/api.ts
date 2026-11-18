@@ -58,9 +58,9 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 401 && typeof window !== 'undefined') {
     window.dispatchEvent(new Event('chordifree:unauthorized'));
   }
-  const body = (await response.json().catch(() => null)) as
-    | { error?: { code?: string; message?: string } }
-    | null;
+  const body = (await response.json().catch(() => null)) as {
+    error?: { code?: string; message?: string };
+  } | null;
   if (!response.ok) {
     throw new ApiClientError(
       body?.error?.code ?? 'ANALYSIS_FAILED',
@@ -74,13 +74,24 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export async function getHealth(signal?: AbortSignal): Promise<{
   analyzer: 'ok' | 'down';
   analyzerVersion: string;
+  extractor?: 'ok' | 'down';
+  extractorVersion?: string;
 }> {
   try {
     const response = await fetch('/api/health', { signal, headers: authHeaders() });
-    const body = await parseResponse<{ analyzer?: string; analyzerVersion?: string }>(response);
+    const body = await parseResponse<{
+      analyzer?: string;
+      analyzerVersion?: string;
+      extractor?: string;
+      extractorVersion?: string;
+    }>(response);
     return {
       analyzer: body.analyzer === 'ok' ? 'ok' : 'down',
       analyzerVersion: body.analyzerVersion ?? 'unknown',
+      ...(body.extractor === 'ok' || body.extractor === 'down'
+        ? { extractor: body.extractor }
+        : {}),
+      ...(body.extractorVersion ? { extractorVersion: body.extractorVersion } : {}),
     };
   } catch {
     return { analyzer: 'down', analyzerVersion: 'unknown' };
@@ -90,11 +101,12 @@ export async function getHealth(signal?: AbortSignal): Promise<{
 export async function createYoutubeAnalysis(
   youtubeUrl: string,
   signal?: AbortSignal,
+  force = false,
 ): Promise<AnalysisView> {
   const response = await fetch('/api/analyses', {
     method: 'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ youtubeUrl }),
+    body: JSON.stringify({ youtubeUrl, ...(force ? { force: true } : {}) }),
     signal,
   });
   return parseResponse(response);
@@ -266,12 +278,25 @@ export function prepareYoutubeAudio(
     if (!body.url) {
       throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), response.status);
     }
-    return { url: body.url, ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}) };
+
+    // An <audio> element cannot send the Bearer token. Fetch the temporary
+    // audio with the normal headers and hand the player a same-origin blob.
+    const audio = await fetch(body.url, { headers: authHeaders() });
+    if (!audio.ok) {
+      throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), audio.status);
+    }
+    const blob = await audio.blob();
+    return {
+      url: URL.createObjectURL(blob),
+      ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}),
+    };
   })();
   audioPreparations.set(videoId, request);
-  void request.finally(() => {
-    if (audioPreparations.get(videoId) === request) audioPreparations.delete(videoId);
-  }).catch(() => undefined);
+  void request
+    .finally(() => {
+      if (audioPreparations.get(videoId) === request) audioPreparations.delete(videoId);
+    })
+    .catch(() => undefined);
   return withAbort(request, signal);
 }
 
@@ -346,10 +371,7 @@ export interface PollOptions {
   onUpdate?: (view: AnalysisView) => void;
 }
 
-export async function pollAnalysis(
-  id: string,
-  options: PollOptions = {},
-): Promise<AnalysisResult> {
+export async function pollAnalysis(id: string, options: PollOptions = {}): Promise<AnalysisResult> {
   const interval = options.intervalMs ?? 1000;
   for (;;) {
     if (options.signal?.aborted) throw new DOMException('Aborted', 'AbortError');

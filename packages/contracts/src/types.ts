@@ -1,8 +1,4 @@
-import type {
-  AccidentalPreference,
-  ChordSegment,
-  Notation,
-} from '@chordifree/chords';
+import type { AccidentalPreference, ChordSegment, Notation } from '@chordifree/chords';
 
 export type AnalysisSource =
   | { type: 'youtube'; videoId: string; title?: string }
@@ -87,6 +83,7 @@ export interface YoutubeSearchResult {
   uploader?: string;
   duration?: number;
   thumbnail: string;
+  analyzed?: boolean;
 }
 
 export interface LyricsResult {

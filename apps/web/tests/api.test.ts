@@ -38,9 +38,7 @@ afterEach(() => {
 
 describe('HTTP client', () => {
   it('creates a YouTube analysis with JSON', async () => {
-    const fetchMock = vi.fn(async () =>
-      response({ id: 'job-1', status: 'queued', progress: 0 }),
-    );
+    const fetchMock = vi.fn(async () => response({ id: 'job-1', status: 'queued', progress: 0 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(createYoutubeAnalysis('https://youtu.be/dQw4w9WgXcQ')).resolves.toMatchObject({
@@ -72,17 +70,26 @@ describe('HTTP client', () => {
   });
 
   it('prepares the temporary audio of a YouTube video', async () => {
-    const fetchMock = vi.fn(async () =>
-      response({ url: '/api/youtube/dQw4w9WgXcQ/audio', expiresAt: '2026-01-01T01:00:00.000Z' }),
-    );
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return response({
+          url: '/api/youtube/dQw4w9WgXcQ/audio',
+          expiresAt: '2026-01-01T01:00:00.000Z',
+        });
+      }
+      return new Response(new Blob(['audio'], { type: 'audio/wav' }), { status: 200 });
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(prepareYoutubeAudio('dQw4w9WgXcQ')).resolves.toEqual({
-      url: '/api/youtube/dQw4w9WgXcQ/audio',
+      url: 'blob:test',
       expiresAt: '2026-01-01T01:00:00.000Z',
     });
-    expect(fetchMock).toHaveBeenCalledWith('/api/youtube/dQw4w9WgXcQ/audio', {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/youtube/dQw4w9WgXcQ/audio', {
       method: 'POST',
+      headers: {},
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/youtube/dQw4w9WgXcQ/audio', {
       headers: {},
     });
   });
@@ -180,7 +187,10 @@ describe('HTTP client', () => {
     );
     await expect(getHealth()).resolves.toEqual({ analyzer: 'ok', analyzerVersion: 'v1' });
 
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new Error('sin red'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new Error('sin red'))),
+    );
     await expect(getHealth()).resolves.toEqual({ analyzer: 'down', analyzerVersion: 'unknown' });
   });
 });

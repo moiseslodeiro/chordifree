@@ -26,6 +26,8 @@ interface HomeProps {
   preferences: Preferences;
   analyzerVersion: string;
   analyzerStatus: 'ok' | 'down' | 'unknown';
+  extractorStatus?: 'ok' | 'down' | 'unknown';
+  extractorVersion?: string;
   libraryCount: number;
   notice: AppNotice | null;
   onDismissNotice: () => void;
@@ -54,6 +56,8 @@ export function Home({
   preferences,
   analyzerVersion,
   analyzerStatus,
+  extractorStatus = 'unknown',
+  extractorVersion,
   libraryCount,
   notice,
   onDismissNotice,
@@ -287,6 +291,7 @@ export function Home({
                       <ul className="space-y-2">
                         {results.map((item) => {
                           const analyzing = analyzingId === item.videoId;
+                          const analyzed = item.analyzed === true;
                           const meta = [
                             item.uploader,
                             typeof item.duration === 'number'
@@ -314,26 +319,35 @@ export function Home({
                                 className="h-[4.5rem] w-32 shrink-0 rounded-md bg-panel object-cover"
                               />
                               <div className="min-w-0 flex-1">
-                                <p
-                                  className="truncate text-sm font-semibold leading-snug text-ink"
-                                  title={item.title}
-                                >
-                                  {item.title}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p
+                                    className="truncate text-sm font-semibold leading-snug text-ink"
+                                    title={item.title}
+                                  >
+                                    {item.title}
+                                  </p>
+                                  {analyzed ? (
+                                    <span className="badge shrink-0 border-positive/60 text-positive">
+                                      ✓ {t('home.analyzed')}
+                                    </span>
+                                  ) : null}
+                                </div>
                                 {meta ? (
                                   <p className="mt-0.5 truncate text-xs text-ink3">{meta}</p>
                                 ) : null}
                               </div>
                               <button
                                 type="button"
-                                className="btn btn-primary shrink-0"
+                                className={analyzed ? 'btn shrink-0' : 'btn btn-primary shrink-0'}
                                 onClick={() => void loadSearchResult(item)}
                                 disabled={busy}
                                 aria-busy={analyzing || undefined}
                                 aria-label={
                                   analyzing
                                     ? t('home.analyzingVideo', { title: item.title })
-                                    : t('home.analyzeVideo', { title: item.title })
+                                    : analyzed
+                                      ? t('home.openVideo', { title: item.title })
+                                      : t('home.analyzeVideo', { title: item.title })
                                 }
                               >
                                 {analyzing ? (
@@ -344,6 +358,8 @@ export function Home({
                                     />
                                     {t('home.analyzing')}
                                   </>
+                                ) : analyzed ? (
+                                  t('home.openResult')
                                 ) : (
                                   t('home.analyzeResult')
                                 )}
@@ -480,6 +496,31 @@ export function Home({
                 >
                   {t('home.analyzerHelp')}
                 </a>
+              ) : null}
+              {youtubeMode === 'extractor' ? (
+                <div className="mt-4 border-t border-line pt-4">
+                  <p className="eyebrow">{t('home.extractorStatus')}</p>
+                  <p className="mt-3 flex items-center gap-2 font-display text-xl font-bold leading-none text-ink">
+                    <span
+                      aria-hidden="true"
+                      className={`h-2 w-2 rounded-full ${
+                        extractorStatus === 'ok'
+                          ? 'bg-positive'
+                          : extractorStatus === 'down'
+                            ? 'bg-accent'
+                            : 'bg-ink3'
+                      }`}
+                    />
+                    {extractorStatus === 'ok'
+                      ? t('home.available')
+                      : extractorStatus === 'down'
+                        ? t('home.unavailable')
+                        : t('home.checking')}
+                  </p>
+                  <p className="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-ink3">
+                    {t('home.extractorRemote', { version: extractorVersion ?? '—' })}
+                  </p>
+                </div>
               ) : null}
             </div>
           )}

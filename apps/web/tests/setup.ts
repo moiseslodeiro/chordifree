@@ -60,6 +60,7 @@ if (!globalThis.crypto?.randomUUID) {
 if (!globalThis.URL.createObjectURL) {
   globalThis.URL.createObjectURL = () => 'blob:test';
   globalThis.URL.revokeObjectURL = () => undefined;
+  globalThis.URL.revokeObjectURL = () => undefined;
 }
 
 if (!globalThis.requestAnimationFrame) {

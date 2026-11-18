@@ -115,6 +115,10 @@ OAuth client ID, administrator emails and the extractor token.
 
 ## YouTube extractor
 
+The full Raspberry Pi installation, headless boot files, Tailscale Funnel, Cloudflare named
+tunnel and token rotation are documented in
+[`RASPBERRY_PI_EXTRACTOR.md`](RASPBERRY_PI_EXTRACTOR.md).
+
 On the Pi:
 
 ```bash
@@ -126,6 +130,16 @@ curl -fsS http://127.0.0.1:8010/health
 If it is offline, YouTube analysis fails with `EXTRACTOR_UNAVAILABLE`; audio uploads still
 work. Rotate `EXTRACTOR_TOKEN` in `/etc/chordifree-extractor.env` and `terraform.tfvars`, then
 restart the Pi service and re-apply Terraform.
+
+## Analysis cache
+
+Completed YouTube analyses are stored in Firestore in `chordifree_analysis`, keyed by
+`videoId + analyzerVersion`. A repeated analysis returns the stored result without calling the
+extractor, and the YouTube search results mark those videos as **Analyzed**. The document has
+a 90-day `expiresAt` TTL and is removed automatically. Clicking **Reanalyze** sends
+`force: true` and bypasses the cache, replacing the stored result.
+
+The cache stores only chords, beats and analysis metadata; it never stores audio.
 
 ## Access and OAuth
 

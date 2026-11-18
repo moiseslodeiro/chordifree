@@ -154,7 +154,7 @@ export function useLibraryActions({
     setReanalyzingId(target.id);
     onNotice({ message: t('app.reanalyzingProgress', { progress: 0 }), tone: 'info' });
     const result = await analysisRunner.run((signal) =>
-      createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal),
+      createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal, true),
     );
     setReanalyzingId(null);
     if (!result) {
