@@ -20,6 +20,8 @@ export interface LibraryActionsOptions {
   replaceAudioUrl: (url: string | null) => void;
   refreshLibrary: () => void;
   onNotice: (notice: AppNotice) => void;
+  /** Called after every successful save, including reanalysis. */
+  onSongSaved?: (song: Song) => void;
 }
 
 export interface LibraryActions {
@@ -44,6 +46,7 @@ export function useLibraryActions({
   replaceAudioUrl,
   refreshLibrary,
   onNotice,
+  onSongSaved,
 }: LibraryActionsOptions): LibraryActions {
   const t = useT();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export function useLibraryActions({
       setSavedSong(target);
       refreshLibrary();
       onNotice({ message: t('app.songSaved'), tone: 'success' });
+      onSongSaved?.(target);
     } catch (error) {
       onNotice({
         message: error instanceof StorageQuotaError ? t('app.saveQuota') : t('app.saveFailed'),
@@ -185,6 +189,7 @@ export function useLibraryActions({
       setSavedSong(updated);
       refreshLibrary();
       onNotice({ message: t('app.reanalyzed'), tone: 'success' });
+      onSongSaved?.(updated);
     } catch {
       onNotice({ message: t('app.reanalyzedNotSaved'), tone: 'warning' });
     }

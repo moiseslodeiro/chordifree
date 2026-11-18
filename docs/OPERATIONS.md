@@ -141,6 +141,26 @@ a 90-day `expiresAt` TTL and is removed automatically. Clicking **Reanalyze** se
 
 The cache stores only chords, beats and analysis metadata; it never stores audio.
 
+## Collaborative songs
+
+In online mode, **More actions → Collaborate** shares a song and copies a link. The instances
+keep:
+
+- `chordifree_shared/{shareId}`: owner, original song ID, current revision and timestamps.
+- `chordifree_shared/{shareId}/revisions/{revisionId}`: one song snapshot per save with the
+  author UID, nickname and date. The latest 100 revisions are kept.
+- `chordifree_profiles/{uid}`: the nickname shown on revisions. Without it, the server falls
+  back to the Google name.
+
+Every signed-in account on the allowlist with the link can open the shared song and publish
+a version. A save sends the revision it was based on; if someone saved first, the API answers
+`409 CONFLICT` and the client reloads the history instead of overwriting. Loading an older
+version publishes it as a new revision, so the history is never rewritten. No audio is
+stored.
+
+Deleting an account removes the shares it owns, its nickname and its library; versions it
+published in shares owned by other users remain there with its nickname.
+
 ## Access and OAuth
 
 - Add/remove accounts in `#/admin`. Administrators come from `ADMIN_EMAILS`.

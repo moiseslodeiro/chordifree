@@ -8,6 +8,8 @@ interface AppHeaderProps {
   auth: AuthValue;
   desktop: boolean;
   preferences: Preferences;
+  nickname: string | null;
+  onEditNickname: () => void;
   onNavigate: (route: Route) => void;
   onPreferences: (patch: Partial<Preferences>) => void;
   onDeleteCloudData: () => void;
@@ -17,6 +19,8 @@ export function AppHeader({
   auth,
   desktop,
   preferences,
+  nickname,
+  onEditNickname,
   onNavigate,
   onPreferences,
   onDeleteCloudData,
@@ -81,11 +85,12 @@ export function AppHeader({
         </button>
         {auth.mode === 'google' ? (
           <ActionMenu
-            label={auth.user?.name ?? auth.user?.email ?? t('auth.signInTitle')}
+            label={nickname ?? auth.user?.name ?? auth.user?.email ?? t('auth.signInTitle')}
             items={[
               ...(auth.admin
                 ? [{ label: t('auth.admin'), onSelect: () => onNavigate({ name: 'admin' }) }]
                 : []),
+              { label: t('nickname.edit'), onSelect: onEditNickname },
               { label: t('auth.deleteData'), onSelect: onDeleteCloudData },
               { label: t('auth.signOut'), onSelect: auth.signOut },
             ]}

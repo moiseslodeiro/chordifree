@@ -12,6 +12,8 @@ import { JobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
+import { createCollabRouter } from './routes/collab';
+import { createProfileRouter } from './routes/profile';
 import { createAccountRouter } from './routes/account';
 import { createConfigRouter } from './routes/config';
 import { FirestoreCloudLibraryStore, type CloudLibraryStore } from './services/cloud-library';
@@ -34,6 +36,8 @@ import {
   type AnalysisCacheStore,
 } from './services/analysis-cache';
 import { createMediaTools, type MediaTools } from './services/media';
+import { FirestoreCollabStore, MemoryCollabStore, type CollabStore } from './services/collab';
+import { FirestoreProfileStore, MemoryProfileStore, type ProfileStore } from './services/profiles';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -48,6 +52,8 @@ export interface AppDependencies {
   auth: AuthContext;
   cloudLibrary: CloudLibraryStore | null;
   analysisCache: AnalysisCacheStore;
+  profiles: ProfileStore;
+  collab: CollabStore;
   webDist: string;
 }
 
@@ -146,6 +152,16 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       (config.authMode === 'google'
         ? new FirestoreAnalysisCache(createFirestore(config))
         : new MemoryAnalysisCache()),
+    profiles:
+      options.profiles ??
+      (config.authMode === 'google'
+        ? new FirestoreProfileStore(createFirestore(config))
+        : new MemoryProfileStore()),
+    collab:
+      options.collab ??
+      (config.authMode === 'google'
+        ? new FirestoreCollabStore(createFirestore(config))
+        : new MemoryCollabStore()),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -221,8 +237,16 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api/admin', createAdminRouter(deps.auth));
   app.use('/api', requireAllowed(deps.auth));
 
-  app.use('/api/account', createAccountRouter(deps.auth, deps.cloudLibrary));
+  app.use(
+    '/api/account',
+    createAccountRouter(deps.auth, deps.cloudLibrary, {
+      profiles: deps.profiles,
+      collab: deps.collab,
+    }),
+  );
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
+  app.use('/api/profile', createProfileRouter(deps.auth, deps.profiles));
+  app.use('/api/collab', createCollabRouter({ collab: deps.collab, profiles: deps.profiles }));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
   app.use(

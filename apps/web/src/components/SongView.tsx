@@ -20,7 +20,7 @@ import {
   type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
-import type { Setlist } from '../types';
+import type { CollabRevision, CollabShare, Setlist } from '../types';
 import { useT } from '../i18n';
 import { useConfirm } from './ConfirmDialog';
 import { fetchLyrics } from '../lib/api';
@@ -57,6 +57,7 @@ import { ActionMenu, type ActionMenuItem } from './ActionMenu';
 import { AddToSetlistDialog } from './AddToSetlistDialog';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
+import { CollabPanel } from './CollabPanel';
 import { DisplayControls } from './DisplayControls';
 import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
@@ -95,6 +96,15 @@ interface SongViewProps {
   onBack: () => void;
   onOpenLibrary: () => void;
   onPreferences: (patch: Partial<Preferences>) => void;
+  language: Preferences['language'];
+  collabShare: CollabShare | null;
+  collabLoading: boolean;
+  collabUid: string | null;
+  canCollaborate: boolean;
+  onShareCollab: (song: Song) => Promise<string | null>;
+  onLoadCollabRevision: (revisionId: string) => Promise<CollabRevision | null>;
+  onApplyCollabRevision: (revision: CollabRevision) => void;
+  onRefreshCollab: () => void;
 }
 
 export function SongView({
@@ -121,6 +131,15 @@ export function SongView({
   onBack,
   onOpenLibrary,
   onPreferences,
+  language,
+  collabShare,
+  collabLoading,
+  collabUid,
+  canCollaborate,
+  onShareCollab,
+  onLoadCollabRevision,
+  onApplyCollabRevision,
+  onRefreshCollab,
 }: SongViewProps) {
   const t = useT();
   const confirm = useConfirm();
@@ -818,6 +837,37 @@ export function SongView({
                           setShareOpen(true);
                         },
                       },
+                      ...(canCollaborate && saved
+                        ? ([
+                            {
+                              label: t('collab.shareAction'),
+                              onSelect: () => {
+                                void (async () => {
+                                  const url = await onShareCollab(song);
+                                  if (!url) {
+                                    setShareNotice({
+                                      message: t('collab.createFailed'),
+                                      tone: 'warning',
+                                    });
+                                    return;
+                                  }
+                                  try {
+                                    await navigator.clipboard.writeText(url);
+                                    setShareNotice({
+                                      message: t('collab.linkCopied'),
+                                      tone: 'success',
+                                    });
+                                  } catch {
+                                    setShareNotice({
+                                      message: t('collab.linkReady', { url }),
+                                      tone: 'warning',
+                                    });
+                                  }
+                                })();
+                              },
+                            },
+                          ] satisfies ActionMenuItem[])
+                        : []),
                     ] satisfies ActionMenuItem[])
                   : []),
                 ...(!editing && !editingLyrics && printRows.length > 0
@@ -1081,6 +1131,35 @@ export function SongView({
               />
             </section>
           </div>
+
+          {collabShare ? (
+            <div className="order-2 lg:order-none">
+              <CollabPanel
+                share={collabShare}
+                song={song}
+                currentUid={collabUid}
+                language={language}
+                loading={collabLoading}
+                onCopyLink={() => {
+                  const url = `${window.location.origin}${window.location.pathname}#/collab/${collabShare.id}`;
+                  void navigator.clipboard
+                    .writeText(url)
+                    .then(() =>
+                      setShareNotice({ message: t('collab.linkCopied'), tone: 'success' }),
+                    )
+                    .catch(() =>
+                      setShareNotice({
+                        message: t('collab.linkReady', { url }),
+                        tone: 'warning',
+                      }),
+                    );
+                }}
+                onRefresh={onRefreshCollab}
+                onLoadRevision={onLoadCollabRevision}
+                onApply={onApplyCollabRevision}
+              />
+            </div>
+          ) : null}
 
           <div data-testid="song-active-chord" className="order-3 lg:order-none">
             <ActiveChordDiagram

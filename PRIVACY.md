@@ -35,8 +35,9 @@ allowlist.
   date it was added and, optionally, which administrator added it.
 - Administrators are configured with `ADMIN_EMAILS` and are always allowed. They can add or
   remove other accounts from the Administration page.
-- Name and picture are used by the account menu in the browser; the application does not
-  create a separate user profile document for them.
+- The optional nickname is stored in `chordifree_profiles/{uid}` and is shown on the
+  collaborations you edit. Without a nickname, the account menu uses the name and picture
+  returned by Google.
 - The ID token is kept in `sessionStorage` for the browser tab session. It expires after
   about an hour; the app asks you to sign in again.
 
@@ -47,6 +48,18 @@ For an approved account, the online library is stored in the operator's Firestor
 - `chordifree_users/{uid}/songs/{songId}`: the song, including chords, lyrics, detected
   segments, transposition, capo and notation preferences.
 - `chordifree_users/{uid}/setlists/{setlistId}`: setlists and their ordered song IDs.
+
+Shared songs are stored separately:
+
+- `chordifree_shared/{shareId}`: the owner, the original song ID and the current version.
+- `chordifree_shared/{shareId}/revisions/{revisionId}`: one snapshot of the song per save,
+  with the author's nickname and the date. The last 100 versions are kept.
+- `chordifree_profiles/{uid}`: the optional nickname.
+
+Anyone signed in to the instance who has the link can read those versions and publish new
+ones. Deleting your cloud data also deletes the shares you own and your nickname; versions
+published in someone else's share stay there with your nickname. The versions contain chords,
+lyrics and metadata, never audio.
 
 Practice history, the active A–B range, the playback position, the theme, the language and
 the local analysis cache stay in the browser/device. They are not part of the cloud
@@ -75,8 +88,8 @@ the saved song.
 
 ### Deleting your cloud data
 
-From the account menu, **Delete cloud data** removes the signed-in user's songs and setlists
-from Firestore. If the account is not an administrator, its allowlist entry is removed too;
+From the account menu, **Delete cloud data** removes the signed-in user's songs, setlists,
+nickname and owned shares from Firestore. If the account is not an administrator, its allowlist entry is removed too;
 administrators keep access because they are declared in `ADMIN_EMAILS` and may need to keep
 managing the instance.
 

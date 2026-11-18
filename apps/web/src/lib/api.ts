@@ -10,9 +10,12 @@ import type {
 import type {
   AnalysisResult,
   AnalysisView,
+  CollabRevision,
+  CollabShare,
   LyricsResult,
   Setlist,
   Song,
+  UserProfile,
   YoutubeSearchResult,
 } from '../types';
 
@@ -22,8 +25,11 @@ export type {
   AuthMe,
   AuthUser,
   CloudLibrarySnapshot,
+  CollabRevision,
+  CollabShare,
   DeleteAccountResult,
   RuntimeConfig,
+  UserProfile,
 } from '@chordifree/contracts';
 import { normalizeLyricsText } from '../lyrics/normalize';
 
@@ -232,6 +238,59 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
     headers: authHeaders(),
   });
   return parseResponse<DeleteAccountResult>(response);
+}
+
+export async function getProfile(): Promise<UserProfile> {
+  const response = await fetch('/api/profile', { headers: authHeaders() });
+  return parseResponse<UserProfile>(response);
+}
+
+export async function saveProfile(nickname: string): Promise<UserProfile> {
+  const response = await fetch('/api/profile', {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ nickname }),
+  });
+  return parseResponse<UserProfile>(response);
+}
+
+/** Shares a song for collaborative editing and returns its revision history. */
+export async function createCollabShare(song: Song): Promise<CollabShare> {
+  const response = await fetch('/api/collab', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ song }),
+  });
+  return parseResponse<CollabShare>(response);
+}
+
+export async function getCollabShare(id: string): Promise<CollabShare> {
+  const response = await fetch(`/api/collab/${encodeURIComponent(id)}`, {
+    headers: authHeaders(),
+  });
+  return parseResponse<CollabShare>(response);
+}
+
+export async function getCollabRevision(id: string, revisionId: string): Promise<CollabRevision> {
+  const response = await fetch(
+    `/api/collab/${encodeURIComponent(id)}/revisions/${encodeURIComponent(revisionId)}`,
+    { headers: authHeaders() },
+  );
+  return parseResponse<CollabRevision>(response);
+}
+
+/** Publishes a revision based on the last version the client saw. */
+export async function saveCollabRevision(
+  id: string,
+  baseRevisionId: string,
+  song: Song,
+): Promise<CollabRevision> {
+  const response = await fetch(`/api/collab/${encodeURIComponent(id)}/revisions`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ baseRevisionId, song }),
+  });
+  return parseResponse<CollabRevision>(response);
 }
 
 const audioPreparations = new Map<string, Promise<{ url: string; expiresAt?: string }>>();
