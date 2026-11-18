@@ -148,7 +148,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", 'https://accounts.google.com'],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           mediaSrc: ["'self'", 'blob:', 'data:'],
