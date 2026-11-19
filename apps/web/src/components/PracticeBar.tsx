@@ -438,7 +438,11 @@ export function PracticeBar({
         </label>
       </div>
 
-      {trailing ? <div className="ml-auto">{trailing}</div> : null}
+      {trailing ? (
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {trailing}
+        </div>
+      ) : null}
 
       {mobile ? (
         <details className="basis-full pt-1">

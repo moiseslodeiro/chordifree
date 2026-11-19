@@ -229,6 +229,7 @@ const en = {
   'song.printLyrics': 'Lyrics & chords',
   'song.chordpro': 'Export ChordPro',
   'song.score': 'Export score (MusicXML)',
+  'song.midi': 'MIDI',
   'song.share': 'Share',
   'song.reanalyze': 'Reanalyze',
   'song.reanalyzing': 'Reanalyzing',
@@ -344,7 +345,7 @@ const en = {
 
   'practice.eyebrow': 'Practice',
   'practice.aria': 'Practice tools',
-  'practice.summary': 'A–B · speed · pitch · microphone',
+  'practice.summary': 'A–B · speed · pitch · karaoke · microphone',
   'practice.loopGroup': 'A-B loop',
   'practice.markA': 'Mark start A',
   'practice.markB': 'Mark end B',
@@ -364,6 +365,8 @@ const en = {
   'practice.bpm': 'BPM',
   'practice.bpmLabel': 'Metronome BPM',
   'practice.metronome': 'Metronome',
+  'practice.karaoke': 'Karaoke',
+  'practice.karaokeHint': 'Removes the center channel so you can sing over the song',
   'practice.pitch': 'Song pitch',
   'practice.pitchLabel': 'Audio pitch in semitones',
   'practice.pitchTitle':
@@ -957,6 +960,7 @@ const es: Record<MessageKey, string> = {
   'song.printLyrics': 'Letra y acordes',
   'song.chordpro': 'Exportar ChordPro',
   'song.score': 'Exportar partitura (MusicXML)',
+  'song.midi': 'MIDI',
   'song.share': 'Compartir',
   'song.reanalyze': 'Reanalizar',
   'song.reanalyzing': 'Reanalizando',
@@ -1073,7 +1077,7 @@ const es: Record<MessageKey, string> = {
 
   'practice.eyebrow': 'Práctica',
   'practice.aria': 'Herramientas de práctica',
-  'practice.summary': 'A–B · velocidad · tono · micrófono',
+  'practice.summary': 'A–B · velocidad · tono · karaoke · micrófono',
   'practice.loopGroup': 'Bucle A-B',
   'practice.markA': 'Marcar inicio A',
   'practice.markB': 'Marcar final B',
@@ -1093,6 +1097,8 @@ const es: Record<MessageKey, string> = {
   'practice.bpm': 'BPM',
   'practice.bpmLabel': 'BPM del metrónomo',
   'practice.metronome': 'Metrónomo',
+  'practice.karaoke': 'Karaoke',
+  'practice.karaokeHint': 'Quita el canal central para cantar sobre la canción',
   'practice.pitch': 'Tono de la canción',
   'practice.pitchLabel': 'Tono del audio en semitonos',
   'practice.pitchTitle':

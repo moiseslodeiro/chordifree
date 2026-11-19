@@ -12,6 +12,7 @@ interface PlayerHostProps {
   forceFake: boolean;
   variant?: 'default' | 'compact';
   pitch: number;
+  karaoke?: boolean;
   onAdapter: (adapter: PlayerAdapter | null) => void;
   onPlaybackError: (message: string) => void;
 }
@@ -27,6 +28,7 @@ export function PlayerHost({
   forceFake,
   variant = 'default',
   pitch,
+  karaoke = false,
   onAdapter,
   onPlaybackError,
 }: PlayerHostProps) {
@@ -37,6 +39,8 @@ export function PlayerHost({
   const adapterRef = useRef<PlayerAdapter | null>(null);
   const pitchRef = useRef(pitch);
   pitchRef.current = pitch;
+  const karaokeRef = useRef(karaoke);
+  karaokeRef.current = karaoke;
 
   const [temporary, setTemporary] = useState<TemporaryAudio | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -104,6 +108,7 @@ export function PlayerHost({
 
     if (adapter) {
       adapter.setPitch?.(pitchRef.current);
+      adapter.setKaraoke?.(karaokeRef.current);
       adapterRef.current = adapter;
       adapterCallback.current(adapter);
     }
@@ -117,6 +122,10 @@ export function PlayerHost({
   useEffect(() => {
     adapterRef.current?.setPitch?.(pitch);
   }, [pitch]);
+
+  useEffect(() => {
+    adapterRef.current?.setKaraoke?.(karaoke);
+  }, [karaoke]);
 
   const audioError = () => {
     if (videoId) {

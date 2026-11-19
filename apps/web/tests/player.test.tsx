@@ -19,7 +19,7 @@ const audioMock = vi.hoisted(() => {
     connect(): void;
     disconnect(): void;
   };
-  type FakeSource = { connected: boolean; connect(): void };
+  type FakeSource = { connected: boolean; connect(): void; disconnect(): void };
 
   const contexts: FakeAudioContext[] = [];
   const nodes: FakeNode[] = [];
@@ -75,6 +75,9 @@ const audioMock = vi.hoisted(() => {
         connected: false,
         connect: () => {
           source.connected = true;
+        },
+        disconnect: () => {
+          source.connected = false;
         },
       };
       this.sources.push(source);

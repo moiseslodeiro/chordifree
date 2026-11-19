@@ -36,6 +36,7 @@ import {
   whatsappShareUrl,
 } from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
+import { buildMidi, downloadMidi } from '../lib/midi';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { detectSections } from '../sections/detect';
@@ -156,6 +157,7 @@ export function SongView({
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [karaoke, setKaraoke] = useState(false);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     message: string;
@@ -713,6 +715,12 @@ export function SongView({
     downloadMusicXml(`${base}.musicxml`, content);
   };
 
+  const exportMidiFile = () => {
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    downloadMidi(`${base}.mid`, buildMidi({ ...song, segments: practiceSegments, sections }, bpm));
+  };
+
   const exportChordProFile = () => {
     const content = chordProContent();
     const base =
@@ -884,6 +892,7 @@ export function SongView({
                   ? ([
                       { label: t('song.print'), onSelect: () => window.print() },
                       { label: t('song.score'), onSelect: exportScoreFile },
+                      { label: t('song.midi'), onSelect: exportMidiFile },
                       { label: t('song.chordpro'), onSelect: exportChordProFile },
                     ] satisfies ActionMenuItem[])
                   : []),
@@ -997,7 +1006,23 @@ export function SongView({
               }
               embedded
               trailing={
-                <MicToggle enabled={micEnabled} onToggle={() => setMicEnabled((value) => !value)} />
+                <>
+                  {typeof adapter.setKaraoke === 'function' ? (
+                    <button
+                      type="button"
+                      className="practice-toggle"
+                      aria-pressed={karaoke}
+                      title={t('practice.karaokeHint')}
+                      onClick={() => setKaraoke((value) => !value)}
+                    >
+                      {t('practice.karaoke')}
+                    </button>
+                  ) : null}
+                  <MicToggle
+                    enabled={micEnabled}
+                    onToggle={() => setMicEnabled((value) => !value)}
+                  />
+                </>
               }
             />
             {micEnabled ? (
@@ -1136,6 +1161,7 @@ export function SongView({
                 forceFake={forceFake}
                 variant="compact"
                 pitch={pitch}
+                karaoke={karaoke}
                 onAdapter={handleAdapter}
                 onPlaybackError={setPlaybackError}
               />

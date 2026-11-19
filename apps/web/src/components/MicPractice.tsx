@@ -50,12 +50,7 @@ function MicrophoneIcon() {
 export function MicToggle({ enabled, onToggle }: MicToggleProps) {
   const t = useT();
   return (
-    <button
-      type="button"
-      className={`inline-flex items-center gap-2 ${enabled ? 'btn' : 'btn btn-primary'}`}
-      aria-pressed={enabled}
-      onClick={onToggle}
-    >
+    <button type="button" className="practice-toggle" aria-pressed={enabled} onClick={onToggle}>
       <MicrophoneIcon />
       {enabled ? t('mic.stop') : t('mic.start')}
     </button>

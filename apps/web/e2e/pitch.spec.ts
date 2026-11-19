@@ -75,6 +75,42 @@ test.describe('audio pitch', () => {
     await page.getByRole('button', { name: 'Pause' }).click();
   });
 
+  test('routes the audio through the karaoke matrix and back', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    page.on('pageerror', (error) => errors.push(error.message));
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Try the demo' }).click();
+    await page.getByTestId('practice-summary').click();
+
+    const karaoke = page.getByRole('button', { name: 'Karaoke' });
+    await expect(karaoke).toHaveAttribute('aria-pressed', 'false');
+    await karaoke.click();
+    await expect(karaoke).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Play' }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
+      .toBeGreaterThan(0.3);
+
+    const worklets = await page.evaluate(
+      () => (window as Window & { __worklets?: string[] }).__worklets ?? [],
+    );
+    expect(worklets).toContainEqual(expect.stringContaining('soundtouch-processor.js'));
+
+    await karaoke.click();
+    await expect(karaoke).toHaveAttribute('aria-pressed', 'false');
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('audio')?.paused ?? true))
+      .toBe(false);
+    expect(errors).toEqual([]);
+
+    await page.getByRole('button', { name: 'Pause' }).click();
+  });
+
   test('keeps the native audio path when no pitch is selected', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Try the demo' }).click();

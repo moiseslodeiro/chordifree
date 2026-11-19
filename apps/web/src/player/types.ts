@@ -9,6 +9,8 @@ export interface PlayerAdapter {
   setPlaybackRate?(rate: number): void;
   /** Audio pitch in semitones, independent from the chord transposition. */
   setPitch?(semitones: number): void;
+  /** Center-channel cancellation for a karaoke-style backing track. */
+  setKaraoke?(enabled: boolean): void;
   destroy(): void;
 }
 

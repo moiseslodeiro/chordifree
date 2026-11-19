@@ -45,7 +45,15 @@ export class AudioPlayerAdapter implements PlayerAdapter {
   private pitch = 0;
   private context: AudioContext | null = null;
   private shifter: SoundTouchNodeType | null = null;
+  private source: MediaElementAudioSourceNode | null = null;
   private graph: Promise<void> | null = null;
+  private karaoke = false;
+  private karaokeGraph: {
+    splitter: ChannelSplitterNode;
+    left: GainNode;
+    right: GainNode;
+    sum: GainNode;
+  } | null = null;
 
   constructor(source: string | HTMLAudioElement) {
     this.ownsElement = typeof source === 'string';
@@ -74,8 +82,8 @@ export class AudioPlayerAdapter implements PlayerAdapter {
 
   play(): void {
     // Start immediately; the worklet is wired in parallel on the first play.
-    // Without a pitch shift the element stays on the native audio path.
-    if (this.pitch !== 0) void this.ensureGraph();
+    // Without a pitch shift or karaoke the element stays on the native path.
+    if (this.pitch !== 0 || this.karaoke) void this.ensureGraph();
     if (this.context?.state === 'suspended') void this.context.resume();
     void this.audio.play().catch(() => undefined);
   }
@@ -116,6 +124,22 @@ export class AudioPlayerAdapter implements PlayerAdapter {
     if (next !== 0) void this.ensureGraph();
   }
 
+  /**
+   * Removes the center-panned content (usually the lead vocal) by subtracting
+   * the right channel from the left one. It needs the Web Audio graph, so it
+   * shares the pitch-shifter path and its latency compensation.
+   */
+  setKaraoke(enabled: boolean): void {
+    const next = Boolean(enabled);
+    if (next === this.karaoke) return;
+    this.karaoke = next;
+    if (this.shifter && this.source) {
+      this.connectInput(this.shifter);
+      return;
+    }
+    if (next) void this.ensureGraph();
+  }
+
   onStateChange(listener: (playing: boolean) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -131,6 +155,14 @@ export class AudioPlayerAdapter implements PlayerAdapter {
       // The context may already be closed.
     }
     this.shifter = null;
+    try {
+      this.karaokeGraph?.sum.disconnect();
+      this.source?.disconnect();
+    } catch {
+      // The context may already be closed.
+    }
+    this.karaokeGraph = null;
+    this.source = null;
     void this.context?.close().catch(() => undefined);
     this.context = null;
     this.graph = null;
@@ -164,9 +196,9 @@ export class AudioPlayerAdapter implements PlayerAdapter {
         shifter.pitchSemitones.value = this.pitch;
         shifter.playbackRate.value = this.audio.playbackRate || 1;
         shifter.connect(context.destination);
-        const source = context.createMediaElementSource(this.audio);
-        source.connect(shifter);
+        this.source = context.createMediaElementSource(this.audio);
         this.shifter = shifter;
+        this.connectInput(shifter);
         this.audio.preservesPitch = false;
       } catch {
         // Leave the element on the normal audio path.
@@ -176,6 +208,33 @@ export class AudioPlayerAdapter implements PlayerAdapter {
       }
     })();
     return this.graph;
+  }
+
+  /** Routes the element into the shifter, optionally through the karaoke matrix. */
+  private connectInput(target: AudioNode): void {
+    if (!this.source || !this.context) return;
+    this.source.disconnect();
+    this.karaokeGraph?.sum.disconnect();
+    if (!this.karaoke) {
+      this.source.connect(target);
+      return;
+    }
+    let graph = this.karaokeGraph;
+    if (!graph) {
+      const splitter = this.context.createChannelSplitter(2);
+      const left = this.context.createGain();
+      const right = this.context.createGain();
+      const sum = this.context.createGain();
+      right.gain.value = -1;
+      splitter.connect(left, 0);
+      splitter.connect(right, 1);
+      left.connect(sum);
+      right.connect(sum);
+      graph = { splitter, left, right, sum };
+      this.karaokeGraph = graph;
+    }
+    this.source.connect(graph.splitter);
+    graph.sum.connect(target);
   }
 
   private latency(): number {
