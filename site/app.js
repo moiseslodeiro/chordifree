@@ -4,6 +4,7 @@ const spanish = {
   'a11y.skip': 'Saltar al contenido',
   'nav.features': 'Funciones',
   'nav.timeline': 'Línea de tiempo',
+  'nav.compare': 'Comparativa',
   'nav.run': 'Ejecutar',
   'nav.faq': 'Preguntas',
   'nav.github': 'GitHub',
@@ -75,6 +76,29 @@ const spanish = {
   'product.caption2': 'El pulso activo sigue la reproducción',
   'product.caption3': 'Haz clic en un compás para saltar o repetir',
   'product.caption4': 'Diagrama del acorde actual',
+
+  'compare.eyebrow': 'Comparativa',
+  'compare.title': 'Cómo se compara.',
+  'compare.lead':
+    'Chordifree cubre todo el ciclo de práctica y mantiene el audio y la biblioteca de tu lado. Símbolos: ✓ sí, ~ limitado o de pago, — no.',
+  'compare.caption':
+    'Comparativa de funciones entre Chordifree, Chordify, Moises y Ultimate Guitar.',
+  'compare.feature': 'Función',
+  'compare.sync': 'Acordes sincronizados',
+  'compare.edit': 'Hoja de acordes editable',
+  'compare.export': 'ChordPro · MusicXML · MIDI',
+  'compare.karaoke': 'Karaoke / quitar la voz',
+  'compare.stems': 'Mezclador de cuatro pistas',
+  'compare.offline': 'Funciona sin conexión',
+  'compare.open': 'Código abierto / autoalojado',
+  'compare.free': 'Gratis sin cuenta',
+  'compare.web': 'Funciona en el navegador',
+  'compare.yes': 'Sí',
+  'compare.no': 'No',
+  'compare.limited': 'Limitado o de pago',
+  'compare.desktop': 'Sí, con el plugin de escritorio',
+  'compare.note':
+    '✓ sí · ~ limitado o de pago · — no. * El mezclador de cuatro pistas necesita el plugin opcional de escritorio. Las funciones dependen del plan y pueden cambiar.',
 
   'how.eyebrow': 'Del audio a la práctica',
   'how.title': 'Tres pasos, sin cuenta obligatoria.',
