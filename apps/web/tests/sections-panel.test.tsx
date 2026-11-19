@@ -18,10 +18,11 @@ describe('SectionsPanel', () => {
     render(
       <SectionsPanel sections={sections} currentTime={45} onSeek={onSeek} onChange={vi.fn()} />,
     );
+    fireEvent.click(screen.getByText('Secciones'));
 
     expect(screen.getByText('Intro')).toBeInTheDocument();
     expect(screen.getByText('Estrofa')).toBeInTheDocument();
-    expect(screen.getByText('Estribillo')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Estribillo · 00:40' })).toBeInTheDocument();
 
     const active = screen.getByRole('button', { name: 'Estribillo · 00:40' });
     expect(active).toHaveAttribute('aria-current');
@@ -35,6 +36,7 @@ describe('SectionsPanel', () => {
     render(
       <SectionsPanel sections={sections} currentTime={0} onSeek={vi.fn()} onChange={onChange} />,
     );
+    fireEvent.click(screen.getByText('Secciones'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Renombrar sección: Estrofa' }));
     const input = screen.getByPlaceholderText('Nombre de la sección');
@@ -53,6 +55,7 @@ describe('SectionsPanel', () => {
     render(
       <SectionsPanel sections={sections} currentTime={0} onSeek={vi.fn()} onChange={onChange} />,
     );
+    fireEvent.click(screen.getByText('Secciones'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Renombrar sección: Intro' }));
     fireEvent.click(screen.getByRole('button', { name: '✕' }));
@@ -68,6 +71,7 @@ describe('SectionsPanel', () => {
     render(
       <SectionsPanel sections={sections} currentTime={20} onSeek={onSeek} onChange={vi.fn()} />,
     );
+    fireEvent.click(screen.getByText('Secciones'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Sección siguiente' }));
     expect(onSeek).toHaveBeenLastCalledWith(40);

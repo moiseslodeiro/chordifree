@@ -1228,6 +1228,16 @@ export function SongView({
             </section>
           </div>
 
+          <div data-testid="song-active-chord" className="order-2 lg:order-none">
+            <ActiveChordDiagram
+              segments={displaySegments}
+              clock={clock}
+              instrument={instrument}
+              notation={song.notation}
+              accidental={accidental}
+            />
+          </div>
+
           {song.sections !== undefined || sections.length > 0 ? (
             <div data-testid="song-sections" className="order-2 lg:order-none">
               <SectionsPanel
@@ -1297,16 +1307,6 @@ export function SongView({
                 />
               ) : null}
             </AudioControls>
-          </div>
-
-          <div data-testid="song-active-chord" className="order-3 lg:order-none">
-            <ActiveChordDiagram
-              segments={displaySegments}
-              clock={clock}
-              instrument={instrument}
-              notation={song.notation}
-              accidental={accidental}
-            />
           </div>
 
           <div className="order-4 lg:order-none">

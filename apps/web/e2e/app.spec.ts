@@ -193,6 +193,7 @@ test.describe('full flow', () => {
 
     const panel = page.getByTestId('sections-panel');
     await expect(panel).toBeVisible();
+    await panel.getByText('Secciones').click();
     await expect(panel.getByRole('button', { name: 'Estrofa · 00:00' })).toBeVisible();
     await expect(panel.getByRole('button', { name: 'Estrofa · 00:16' })).toBeVisible();
     const outro = panel.getByRole('button', { name: 'Final · 00:40' });
@@ -773,18 +774,18 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-row-0')).toBeVisible();
   });
 
-  test('keeps the player, audio controls and tools stacked in the right rail', async ({ page }) => {
+  test('keeps the player, active chord and tools stacked in the right rail', async ({ page }) => {
     await analyze(page);
 
     const player = await page.getByTestId('song-player-column').boundingBox();
-    const audio = await page.getByTestId('song-audio').boundingBox();
     const active = await page.getByTestId('song-active-chord').boundingBox();
+    const audio = await page.getByTestId('song-audio').boundingBox();
     expect(player).not.toBeNull();
-    expect(audio).not.toBeNull();
     expect(active).not.toBeNull();
-    expect(audio!.y).toBeGreaterThan(player!.y);
-    expect(audio!.y - (player!.y + player!.height)).toBeLessThan(40);
-    expect(active!.y).toBeGreaterThan(audio!.y);
+    expect(audio).not.toBeNull();
+    expect(active!.y).toBeGreaterThan(player!.y);
+    expect(active!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(audio!.y).toBeGreaterThan(active!.y);
   });
 
   test('keeps the mobile order of player, grid, tools and harmony', async ({ page }) => {

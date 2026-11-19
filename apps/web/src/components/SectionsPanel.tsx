@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
-import { SECTION_LABELS, type SectionLabel } from '../sections/detect';
+import { activeSectionAt, SECTION_LABELS, type SectionLabel } from '../sections/detect';
 import type { SongSection } from '../types';
 
 interface SectionsPanelProps {
@@ -57,16 +57,21 @@ export function SectionsPanel({ sections, currentTime, onSeek, onChange }: Secti
     setEditing(null);
   };
 
+  const active = activeSectionAt(sections, currentTime);
   return (
-    <section
-      className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-      aria-label={t('sections.title')}
+    <details
+      className="sections-panel overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
       data-testid="sections-panel"
     >
-      <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-        {t('sections.title')}
-      </h2>
-      <div className="px-4 py-3">
+      <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
+        <span className="font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
+          {t('sections.title')}
+        </span>
+        <span className="eyebrow">
+          {active ? displayLabel(active.label, t) : t('sections.count', { count: sections.length })}
+        </span>
+      </summary>
+      <div className="border-t border-line px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-ink3">{t('sections.auto')}</p>
           <div className="flex gap-1">
@@ -168,6 +173,6 @@ export function SectionsPanel({ sections, currentTime, onSeek, onChange }: Secti
           </ol>
         )}
       </div>
-    </section>
+    </details>
   );
 }
