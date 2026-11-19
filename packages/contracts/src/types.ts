@@ -10,6 +10,13 @@ export interface VocalRegion {
   end: number;
 }
 
+/** A named stretch of the timeline: intro, verse, chorus, bridge or custom. */
+export interface SongSection {
+  label: string;
+  start: number;
+  end: number;
+}
+
 export interface AnalysisResult {
   source: AnalysisSource;
   duration: number;
@@ -45,6 +52,8 @@ export interface Song {
   beatsPerBar?: number;
   /** Detected regions with sung vocals, used to align the lyrics. */
   vocalRegions?: VocalRegion[];
+  /** Named song sections, auto-detected and user editable. */
+  sections?: SongSection[];
   /** Virtual capo: chords are shown transposed -capo semitones. */
   capo?: number;
   /** Optional plain-text lyrics, with significant line breaks. */

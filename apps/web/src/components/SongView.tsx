@@ -20,7 +20,7 @@ import {
   type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
-import type { CollabRevision, CollabShare, Setlist } from '../types';
+import type { CollabRevision, CollabShare, Setlist, SongSection } from '../types';
 import { useT } from '../i18n';
 import { useConfirm } from './ConfirmDialog';
 import { fetchLyrics } from '../lib/api';
@@ -38,13 +38,14 @@ import {
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
+import { detectSections } from '../sections/detect';
 import { barRangeAt } from '../practice/range';
 import { useMicPractice } from '../practice/useMicPractice';
 import { usePracticeSession } from '../practice/usePracticeSession';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
-import { usePlaybackIndex } from '../sync/hooks';
+import { usePlaybackIndex, usePlaybackTime } from '../sync/hooks';
 import {
   supportsCapo,
   type AppNotice,
@@ -65,6 +66,7 @@ import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
 import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
+import { SectionsPanel } from './SectionsPanel';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
@@ -318,6 +320,7 @@ export function SongView({
     [displaySegments, effectiveCapo],
   );
   const practiceIndex = usePlaybackIndex(clock);
+  const currentTime = usePlaybackTime(clock) ?? 0;
   const micPractice = useMicPractice({
     enabled: micEnabled,
     songId: song.id,
@@ -365,6 +368,9 @@ export function SongView({
     },
     [song.notation, song.accidentalPreference],
   );
+
+  /** Sections are auto-detected once, then owned by the user. */
+  const sections = useMemo(() => song.sections ?? detectSections(song), [song]);
 
   const printLyrics = useMemo(
     () =>
@@ -479,6 +485,10 @@ export function SongView({
     setMarkMode(null);
     adapter?.seekTo(time);
     clock?.tickOnce();
+  };
+
+  const updateSections = (next: SongSection[]) => {
+    onChange({ ...song, sections: next });
   };
 
   /**
@@ -1131,6 +1141,17 @@ export function SongView({
               />
             </section>
           </div>
+
+          {song.sections !== undefined || sections.length > 0 ? (
+            <div data-testid="song-sections" className="order-2 lg:order-none">
+              <SectionsPanel
+                sections={song.sections ?? sections}
+                currentTime={currentTime}
+                onSeek={seek}
+                onChange={updateSections}
+              />
+            </div>
+          ) : null}
 
           {collabShare ? (
             <div className="order-2 lg:order-none">

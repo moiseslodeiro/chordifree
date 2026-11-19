@@ -47,6 +47,17 @@ function isVocalRegion(value: unknown): boolean {
   );
 }
 
+function isSection(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.label === 'string' &&
+    value.label.trim().length > 0 &&
+    typeof value.start === 'number' &&
+    typeof value.end === 'number' &&
+    value.end > value.start
+  );
+}
+
 export function isSong(value: unknown): value is Song {
   if (!isRecord(value)) return false;
   return (
@@ -64,6 +75,8 @@ export function isSong(value: unknown): value is Song {
     (value.beatsPerBar === undefined || typeof value.beatsPerBar === 'number') &&
     (value.vocalRegions === undefined ||
       (Array.isArray(value.vocalRegions) && value.vocalRegions.every(isVocalRegion))) &&
+    (value.sections === undefined ||
+      (Array.isArray(value.sections) && value.sections.every(isSection))) &&
     (value.capo === undefined || typeof value.capo === 'number') &&
     (value.lyrics === undefined || typeof value.lyrics === 'string') &&
     (value.lyricChordOffsets === undefined ||
