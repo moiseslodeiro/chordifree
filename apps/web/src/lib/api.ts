@@ -370,6 +370,167 @@ export function prepareYoutubeAudio(
   return withAbort(request, signal);
 }
 
+export interface StemsStatus {
+  available: boolean;
+  name?: string;
+  version?: string;
+  stems?: string[];
+  error?: string;
+}
+
+export interface StemNote {
+  start: number;
+  end: number;
+  pitch: number;
+  velocity?: number;
+}
+
+export interface StemJobView {
+  id: string;
+  videoId: string;
+  title?: string;
+  status: 'queued' | 'processing' | 'done' | 'cancelled' | 'error';
+  stems: string[];
+  /** Stems with transcribed notes, for example bass and drums. */
+  midi?: string[];
+  error?: { code: string; message: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getStemsStatus(signal?: AbortSignal): Promise<StemsStatus> {
+  const response = await fetch('/api/stems', { signal, headers: authHeaders() });
+  return parseResponse<StemsStatus>(response);
+}
+
+export async function startStems(videoId: string, title?: string): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/${encodeURIComponent(videoId)}`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(title ? { title } : {}),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+export interface StemCacheEntry {
+  key: string;
+  videoId: string;
+  title?: string;
+  plugin: string;
+  stems: string[];
+  midi: string[];
+  createdAt: string;
+  bytes: number;
+}
+
+export async function listStemCache(signal?: AbortSignal): Promise<StemCacheEntry[]> {
+  const response = await fetch('/api/stems/cache', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ entries?: StemCacheEntry[] }>(response);
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
+/** Returns null when the video has not been separated yet. */
+export async function getStemCache(
+  videoId: string,
+  signal?: AbortSignal,
+): Promise<StemCacheEntry | null> {
+  const response = await fetch(`/api/stems/cache/${encodeURIComponent(videoId)}`, {
+    signal,
+    headers: authHeaders(),
+  });
+  if (response.status === 404) return null;
+  return parseResponse<StemCacheEntry>(response);
+}
+
+export async function clearStemCache(): Promise<number> {
+  const response = await fetch('/api/stems/cache', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ removed?: number }>(response);
+  return body.removed ?? 0;
+}
+
+export async function removeStemCache(videoId: string): Promise<number> {
+  const response = await fetch(`/api/stems/cache/${encodeURIComponent(videoId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ removed?: number }>(response);
+  return body.removed ?? 0;
+}
+
+export async function listStemJobs(signal?: AbortSignal): Promise<StemJobView[]> {
+  const response = await fetch('/api/stems/jobs', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ jobs?: StemJobView[] }>(response);
+  return Array.isArray(body.jobs) ? body.jobs : [];
+}
+
+export async function cancelStemJob(id: string): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/jobs/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+export async function getStemNotes(
+  id: string,
+  stem: string,
+  signal?: AbortSignal,
+): Promise<StemNote[]> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(id)}/notes/${encodeURIComponent(stem)}`,
+    { signal, headers: authHeaders() },
+  );
+  const body = await parseResponse<{ notes?: StemNote[] }>(response);
+  return Array.isArray(body.notes) ? body.notes : [];
+}
+
+export async function getStemsJob(id: string, signal?: AbortSignal): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/jobs/${encodeURIComponent(id)}`, {
+    signal,
+    headers: authHeaders(),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+/** An <audio> element cannot send the Bearer token, so the stem is fetched as a blob. */
+export async function prepareStemAudio(
+  jobId: string,
+  stem: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(jobId)}/${encodeURIComponent(stem)}`,
+    { signal, headers: authHeaders() },
+  );
+  if (!response.ok) {
+    throw new ApiClientError('STEMS_NOT_READY', t('stems.loadFailed'), response.status);
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+export async function downloadStem(jobId: string, stem: string, filename: string): Promise<void> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(jobId)}/${encodeURIComponent(stem)}`,
+    { headers: authHeaders() },
+  );
+  if (!response.ok) {
+    throw new ApiClientError('STEMS_NOT_READY', t('stems.loadFailed'), response.status);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchLyrics(
   params: { title: string; artist?: string; duration?: number },
   signal?: AbortSignal,

@@ -1,10 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { stubAuthConfig } from './support';
+import { stubAuthConfig, stubStems } from './support';
 
 test.beforeEach(async ({ page }) => {
   await stubAuthConfig(page);
+  await stubStems(page);
 });
+
+async function openAudio(page: import('@playwright/test').Page): Promise<void> {
+  const toggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click();
+  }
+}
 
 test.describe('audio pitch', () => {
   test.skip(
@@ -49,12 +57,12 @@ test.describe('audio pitch', () => {
     await page.getByRole('button', { name: 'Try the demo' }).click();
     await expect(page.getByRole('heading', { name: 'Chordifree demo · C G Am F' })).toBeVisible();
 
-    await page.getByTestId('practice-summary').click();
+    await openAudio(page);
     const pitch = page.getByLabel('Audio pitch in semitones');
     await expect(pitch).toBeEnabled();
     await pitch.selectOption('4');
 
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.5);
@@ -72,13 +80,49 @@ test.describe('audio pitch', () => {
     expect(state.worklets).toContainEqual(expect.stringContaining('soundtouch-processor.js'));
     expect(errors).toEqual([]);
 
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  });
+
+  test('routes the audio through the karaoke matrix and back', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    page.on('pageerror', (error) => errors.push(error.message));
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Try the demo' }).click();
+    await openAudio(page);
+
+    const karaoke = page.getByRole('button', { name: 'Karaoke' });
+    await expect(karaoke).toHaveAttribute('aria-pressed', 'false');
+    await karaoke.click();
+    await expect(karaoke).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
+      .toBeGreaterThan(0.3);
+
+    const worklets = await page.evaluate(
+      () => (window as Window & { __worklets?: string[] }).__worklets ?? [],
+    );
+    expect(worklets).toContainEqual(expect.stringContaining('soundtouch-processor.js'));
+
+    await karaoke.click();
+    await expect(karaoke).toHaveAttribute('aria-pressed', 'false');
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('audio')?.paused ?? true))
+      .toBe(false);
+    expect(errors).toEqual([]);
+
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
   });
 
   test('keeps the native audio path when no pitch is selected', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Try the demo' }).click();
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.25);
@@ -92,7 +136,7 @@ test.describe('audio pitch', () => {
     });
     expect(state.worklets).toEqual([]);
     expect(state.preservesPitch).not.toBe(false);
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
   });
 });
 
@@ -190,11 +234,10 @@ test.describe('YouTube temporary audio', () => {
     await expect(audio).toHaveAttribute('src', /^blob:/);
     await expect(audio).not.toHaveAttribute('controls');
 
-    await page.getByTestId('practice-summary').click();
+    await openAudio(page);
     await page.getByLabel('Audio pitch in semitones').selectOption('4');
-    await expect(page.getByText(/YouTube audio is played from a temporary copy/)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect.poll(() => audio.evaluate((element) => element.currentTime)).toBeGreaterThan(0.25);
 
     await page.getByLabel('Audio pitch in semitones').selectOption('0');

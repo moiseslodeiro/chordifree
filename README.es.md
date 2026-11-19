@@ -4,11 +4,13 @@
 
 Convierte un video musical de YouTube (o un audio propio) en una línea de tiempo de acordes
 sincronizada con la reproducción. La app detecta la estructura de la canción (intro, estrofa,
-estribillo) y permite saltar entre secciones mientras practicas. Permite trasponer ±11 semitonos y cambiar entre notación
-inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`). También puedes buscar por nombre en
-YouTube: cada resultado muestra la miniatura, el canal y la duración, y un clic analiza la
-canción al momento. Puedes ejecutarlo en local o desplegar una instancia online privada en la
-que solo entran cuentas de Google aprobadas y cada usuario guarda su biblioteca en su cuenta.
+estribillo) y permite saltar entre secciones mientras practicas. Permite trasponer ±11 semitonos,
+cambiar el tono del audio, cantar sobre una mezcla karaoke y exportar un MIDI multipista; en
+escritorio puede además separar la canción en pistas, mezclarlas y transcribir el bajo y la
+batería. También puedes buscar por nombre en YouTube: cada resultado muestra la miniatura, el
+canal y la duración, y un clic analiza la canción al momento. Puedes ejecutarlo en local o
+desplegar una instancia online privada en la que solo entran cuentas de Google aprobadas y cada
+usuario guarda su biblioteca en su cuenta.
 
 Hecho por [Moisés Lodeiro](https://github.com/moiseslodeiro), de un músico para músicos y músicas.
 
@@ -103,6 +105,48 @@ empieza a tocar desde ahí.
   estrechas se apilan con el video y las herramientas primero.
 - **Tema claro u oscuro**: el tema claro es el inicial; el botón de la cabecera alterna el
   tema y la elección se conserva entre visitas.
+
+## Funciones
+
+- **Detección de acordes** con Essentia `NNLSChroma`, estimación de tonalidad y suavizado de
+  Viterbi.
+- **Búsqueda en YouTube** por nombre: miniatura, canal y duración, y un clic analiza la
+  canción.
+- **Parrilla de pulsos** con una fila por compás, pulso activo, navegación por teclado y compás
+  corregible (2/4, 3/4, 4/4). El desplazamiento automático mantiene visibles las dos filas
+  siguientes.
+- **Vista de compases** con un acorde por compás y ajuste automático de tempo y fase.
+- **Letra** con tiempos aproximados, detección de tramos cantados y anclas manuales.
+- **Práctica A–B**: marca A y B, previsualiza un compás y reproduce o repite el tramo.
+- **Transporte y karaoke**: velocidad, tono ±12 semitonos sin cambiar los acordes y
+  cancelación del canal central para aproximar una pista instrumental.
+- **Micrófono (escritorio)**: la hoja escucha tu instrumento y marca el acorde activo cuando
+  coincide. El audio se procesa en el navegador y no se graba.
+- **Transposición**, notación inglesa/española, sostenidos/bemoles, cejilla y diagramas de
+  guitarra, piano y ukelele.
+- **MIDI multipista**: exporta los acordes y el pad del análisis junto con el bajo y la batería
+  transcritos de las pistas separadas.
+- **Pistas separadas (escritorio)**: un plugin local opcional separa voz, batería, bajo y
+  otros; un mezclador reproduce las cuatro pistas sincronizadas con volumen independiente y la
+  pantalla **Pistas** permite cancelar trabajos y gestionar la caché.
+- **Biblioteca local o nube privada**: canciones y repertorios en el navegador, en la app de
+  escritorio o por usuario en Firestore; copias JSON, ChordPro, MusicXML, MIDI y PDF.
+- **Compartir**, **modo presentación**, **gestor de caché** e **interfaz en inglés y español**.
+
+## Pistas separadas, karaoke y MIDI (escritorio)
+
+El botón de karaoke funciona en todas las versiones: elimina el canal central para aproximar una
+pista instrumental. El tono (±12 semitonos) cambia el audio sin tocar los acordes; ambos se
+aplican a la pista original.
+
+En escritorio, `STEMS_PLUGIN_DIR` activa la separación real. La vista de canción muestra una
+tarjeta **Pistas** dentro de **Audio**: separar, cancelar, reproducir la mezcla sincronizada con
+un volumen por pista, volver a la pista original, descargar un WAV o generar un MIDI desde las
+pistas. Los trabajos siguen en segundo plano al cambiar de canción o cerrar la vista. Las
+separaciones completadas se guardan en `$TEMP_DIR/stems-cache` (20 entradas / 2 GB, se expulsa
+la más antigua primero) y se gestionan desde `#/stems` (**Pistas** en la cabecera), donde puedes
+cancelar trabajos, escuchar la mezcla o una pista suelta y vaciar la caché. El plugin no se
+incluye en el instalador; consulta [`docs/STEMS_PLUGIN.md`](docs/STEMS_PLUGIN.md).
 
 ## Requisitos
 

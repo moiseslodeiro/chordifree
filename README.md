@@ -3,9 +3,11 @@
 Turn a YouTube video or your own audio file into a synchronized chord timeline you can
 practice with. Chordifree estimates the key, beats, bars and chords, aligns lyrics with the
 sung sections, labels the song structure (intro, verse, chorus) so you can jump between
-sections while practicing, and lets you correct everything in the browser. Run it locally, or deploy a
-private online instance where only approved Google accounts can sign in and each user's
-library is stored in their account.
+sections while practicing, and lets you correct everything in the browser. It includes a
+karaoke-style instrumental, microphone feedback and a multi-track MIDI export; the desktop
+build can add local stem separation, synchronize the four stems in a mixer and transcribe the
+bass and drums for the MIDI export. Run it locally, or deploy a private online instance where
+only approved Google accounts can sign in and each user's library is stored in their account.
 
 Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to musicians.
 
@@ -143,7 +145,13 @@ installation and tunnel walkthrough is in
   play from A to B or loop the range.
 - **Transposition**, English/Spanish notation, sharps/flats, capo, guitar/piano/ukelele.
 - **Audio pitch** for uploaded files and temporary YouTube audio (±12 semitones) without
-  changing the tempo. YouTube songs show the thumbnail and play from the main player bar.
+  changing the tempo, plus **karaoke** center-channel vocal removal. YouTube songs show the
+  thumbnail and play from the main player bar.
+- **Microphone feedback (desktop)**: the sheet listens to your instrument and marks the
+  active chord once it matches the timeline. Audio is processed in the browser and never
+  recorded.
+- **Auto-scroll** inside the grid: playback keeps the active row in view with the next two
+  rows visible.
 - **Simplify / reduce chords** for simpler accompaniment.
 - **Local or private cloud library**: keep songs and setlists in the browser, on the
   desktop, or per-user in Firestore on the optional online instance. Setlists, JSON backups,
@@ -152,10 +160,31 @@ installation and tunnel walkthrough is in
   only approved accounts can enter.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
+- **Multi-track MIDI**: export the chords and pad from the analysis plus the transcribed
+  bass and drums from the stems as a Standard MIDI File.
+- **Local stem separation (desktop)**: an optional plugin separates vocals, drums, bass and
+  other; a mixer plays the four synchronized tracks with independent volume, and the
+  **Stems** screen lists jobs, cancels them and manages the persistent cache. See
+  [`docs/STEMS_PLUGIN.md`](docs/STEMS_PLUGIN.md).
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
-- **Cache manager** in the library: analysis cache and temporary YouTube audio, with their
-  storage size and clear buttons.
+- **Cache manager** in the library for the analysis cache and temporary YouTube audio, plus
+  **Stems** (`#/stems`) for separated tracks and running jobs, with their storage size and
+  clear buttons.
 - **English and Spanish interface**, English by default.
+
+## Stems, karaoke and MIDI (desktop)
+
+The karaoke toggle works everywhere: it removes the center channel to approximate an
+instrumental. Pitch (±12 semitones) changes the audio without touching the chords; both apply
+to the original track.
+
+On desktop, `STEMS_PLUGIN_DIR` enables real separation. The song view shows a **Stems** card
+inside the collapsible **Audio** section: separate, cancel, play the synchronized mix with one
+volume per stem, return to the original track, download a WAV or build a MIDI from the stems.
+Jobs keep running when you change songs or close the view. Completed separations are cached in
+`$TEMP_DIR/stems-cache` (20 entries / 2 GB, oldest evicted first) and managed from `#/stems`
+(**Pistas** in the header), including cancellation, playback of a cached mix or a single stem
+and cache cleanup. The plugin is not bundled with the installer.
 
 ## Local development
 
@@ -198,6 +227,8 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `TRUST_PROXY`              | `0`                     | Trusted reverse-proxy hops; set `1` behind nginx/Caddy                                                         |
 | `TEMP_DIR`                 | `./.tmp`                | Temporary audio and analysis working directory                                                                 |
 | `AUDIO_CACHE_TTL_MINUTES`  | auto                    | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
+| `STEMS_PLUGIN_DIR`         | empty                   | Optional local stems plugin for desktop. See `docs/STEMS_PLUGIN.md`                                            |
+| `STEMS_SERVICE_URL`        | empty                   | Optional remote stems service, preferred over the local plugin. See `docs/STEMS_PLUGIN.md`                     |
 | `YTDLP_PATH`               | `yt-dlp`                | yt-dlp binary                                                                                                  |
 | `FFMPEG_PATH`              | `ffmpeg`                | ffmpeg binary                                                                                                  |
 | `FFPROBE_PATH`             | `ffprobe`               | ffprobe binary                                                                                                 |
@@ -282,9 +313,9 @@ To publish a GitHub release, dispatch the same workflow on a version tag; the
 release job only runs for `refs/tags/v*`:
 
 ```bash
-git tag v0.4.0
-git push origin v0.4.0
-gh workflow run desktop-builds.yml --ref v0.4.0
+git tag v0.5.0
+git push origin v0.5.0
+gh workflow run desktop-builds.yml --ref v0.5.0
 ```
 
 The executable is unsigned, so SmartScreen warns on first launch. See

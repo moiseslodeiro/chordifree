@@ -25,6 +25,30 @@ describe('ActionMenu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('renders section headings and keeps the keyboard on the actions', async () => {
+    render(
+      <ActionMenu
+        label="Más acciones"
+        sections={[
+          { label: 'Canción', items: [{ label: 'Detalles', onSelect: vi.fn() }] },
+          { label: 'Exportar', items: [{ label: 'MIDI', onSelect: vi.fn() }] },
+        ]}
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: /Más acciones/ });
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('Canción')).toBeInTheDocument();
+    expect(screen.getByText('Exportar')).toBeInTheDocument();
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
+
+    fireEvent.keyDown(trigger, { key: 'Escape' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    await waitFor(() => expect(screen.getByRole('menuitem', { name: 'Detalles' })).toHaveFocus());
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'ArrowDown' });
+    expect(screen.getByRole('menuitem', { name: 'MIDI' })).toHaveFocus();
+  });
+
   it('closes with Escape and returns focus to the trigger', async () => {
     render(<ActionMenu label="Más acciones" items={[{ label: 'Una', onSelect: vi.fn() }]} />);
     const trigger = screen.getByRole('button', { name: /Más acciones/ });

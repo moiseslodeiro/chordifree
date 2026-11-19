@@ -175,6 +175,22 @@ per account, writes to 40, each account owns at most 200 shares and one snapshot
 exceed 256 KB. The cloud library sync and the account-deletion route have their own rate
 limits, and the analysis activity feed is administrator-only.
 
+## Stems plugin (desktop)
+
+The desktop build can run an optional local separation plugin from
+`STEMS_PLUGIN_DIR`, or use a remote service configured with `STEMS_SERVICE_URL`.
+It is disabled by default, the server never downloads or updates it, and the
+hosted Cloud Run instance reports `available: false` unless a service is
+configured. When the plugin declares `transcribe`, the API also serves the
+notes at `/api/stems/jobs/:id/notes/:stem` and the song view offers a MIDI built
+from the separated bass and drums.
+
+Completed separations are cached under `$TEMP_DIR/stems-cache` (20 entries /
+2 GB, oldest evicted first) and jobs keep running in the background when the
+user changes songs. Users can cancel jobs, audition a cached mix or a single
+stem and clear the cache from `#/stems` (**Pistas** in the header). The manifest, security model, API,
+cache and mixer are documented in [`STEMS_PLUGIN.md`](STEMS_PLUGIN.md).
+
 ## Access and OAuth
 
 - Add/remove accounts in `#/admin`. Administrators come from `ADMIN_EMAILS`.

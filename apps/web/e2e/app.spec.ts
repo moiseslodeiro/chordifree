@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { stubAuthConfig } from './support';
+import { stubAuthConfig, stubStems } from './support';
 
 const RESULT = {
   source: { type: 'youtube', videoId: 'dQw4w9WgXcQ', title: 'Demo sincronizada' },
@@ -20,6 +20,7 @@ const JOB = { id: 'job-e2e', status: 'queued', progress: 0 };
 
 async function stubApi(page: Page, result = RESULT): Promise<void> {
   await stubAuthConfig(page);
+  await stubStems(page);
 
   await page.route('**/api/health', (route) =>
     route.fulfill({
@@ -52,6 +53,13 @@ async function stubApi(page: Page, result = RESULT): Promise<void> {
       body: JSON.stringify({ error: { code: 'NOT_FOUND', message: 'No encontrado' } }),
     });
   });
+}
+
+async function openAudio(page: Page): Promise<void> {
+  const toggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click();
+  }
 }
 
 async function analyze(page: Page): Promise<void> {
@@ -130,6 +138,68 @@ test.describe('full flow', () => {
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
 
+  test('separates and mixes the stems from the local plugin', async ({ page }) => {
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          name: 'fake-stems',
+          version: '1.0.0',
+          stems: ['vocals', 'no_vocals'],
+        }),
+      }),
+    );
+    await page.route('**/api/stems/dQw4w9WgXcQ', (route) =>
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'job-stems',
+          videoId: 'dQw4w9WgXcQ',
+          status: 'done',
+          stems: ['vocals', 'no_vocals'],
+          createdAt: '2026-11-19T10:00:00.000Z',
+          updatedAt: '2026-11-19T10:00:00.000Z',
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs/job-stems/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'audio/wav',
+        body: Buffer.alloc(64),
+      }),
+    );
+    await analyze(page);
+
+    const audioToggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+    if ((await audioToggle.getAttribute('aria-expanded')) === 'false') {
+      await audioToggle.click();
+    }
+    const panel = page.getByTestId('stems-panel');
+    await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: 'Separar pistas' }).click();
+
+    const mix = panel.getByRole('button', { name: 'Mezclar pistas' });
+    await expect(mix).toBeVisible();
+    await expect(panel.getByRole('slider', { name: 'Volumen de Voz' })).toHaveCount(0);
+
+    await mix.click();
+    await expect(mix).toHaveAttribute('aria-pressed', 'true');
+    await expect(panel.getByRole('button', { name: 'Original' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    const vocals = panel.getByRole('slider', { name: 'Volumen de Voz' });
+    await expect(vocals).toHaveValue('100');
+    await vocals.fill('50');
+    await expect(vocals).toHaveValue('50');
+    await expect(panel.getByRole('slider', { name: 'Volumen de Instrumental' })).toHaveValue('100');
+  });
+
   test('shows the auto-detected song sections and jumps between them', async ({ page }) => {
     const withVocals = {
       ...RESULT,
@@ -145,6 +215,7 @@ test.describe('full flow', () => {
 
     const panel = page.getByTestId('sections-panel');
     await expect(panel).toBeVisible();
+    await panel.getByText('Secciones').click();
     await expect(panel.getByRole('button', { name: 'Estrofa · 00:00' })).toBeVisible();
     await expect(panel.getByRole('button', { name: 'Estrofa · 00:16' })).toBeVisible();
     const outro = panel.getByRole('button', { name: 'Final · 00:40' });
@@ -216,7 +287,7 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-cell-0')).toContainText('La7');
 
     await expect(page.getByText('Canción guardada en la biblioteca.')).toBeVisible();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Abrir' }).click();
@@ -276,6 +347,7 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'Marcar final B' }).click();
     await page.getByTestId('beat-cell-0').click();
     await page.getByRole('button', { name: 'Bucle', exact: true }).click();
+    await openAudio(page);
     await page.getByLabel('Velocidad de reproducción').selectOption('1.25');
     await page.getByLabel('Tono del audio en semitonos').selectOption('4');
 
@@ -295,6 +367,7 @@ test.describe('full flow', () => {
       'true',
     );
     await expect(page.getByText('00:00 – 00:04')).toBeVisible();
+    await openAudio(page);
     await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1');
     await expect(page.getByLabel('Tono del audio en semitonos')).toHaveValue('0');
   });
@@ -302,7 +375,7 @@ test.describe('full flow', () => {
   test('exports the library and restores it from a JSON backup', async ({ page }, testInfo) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
@@ -725,15 +798,31 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-row-0')).toBeVisible();
   });
 
-  test('keeps the player and the song tools stacked in the right rail', async ({ page }) => {
+  test('keeps the player, active chord and tools stacked in the right rail', async ({ page }) => {
     await analyze(page);
 
-    const player = await page.getByTestId('song-player-column').boundingBox();
-    const active = await page.getByTestId('song-active-chord').boundingBox();
+    // Measure in one frame: the sticky rail and the lazy thumbnail move while
+    // the page settles, and sequential boundingBox() calls drift between them.
+    const boxes = await page.evaluate(() => {
+      const box = (id: string) => {
+        const rect = document.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect();
+        return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+      };
+      return {
+        player: box('song-player-column'),
+        audio: box('song-audio'),
+        active: box('song-active-chord'),
+      };
+    });
+    const player = boxes.player;
+    const audio = boxes.audio;
+    const active = boxes.active;
     expect(player).not.toBeNull();
+    expect(audio).not.toBeNull();
     expect(active).not.toBeNull();
-    expect(active!.y).toBeGreaterThan(player!.y);
-    expect(active!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(audio!.y).toBeGreaterThan(player!.y);
+    expect(audio!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(active!.y).toBeGreaterThan(audio!.y);
   });
 
   test('keeps the mobile order of player, grid, tools and harmony', async ({ page }) => {
@@ -743,14 +832,14 @@ test.describe('full flow', () => {
     const top = async (locator: Locator) => (await locator.boundingBox())?.y ?? -1;
     const player = await top(page.getByTestId('song-player-column'));
     const grid = await top(page.getByTestId('song-grid-column'));
-    const active = await top(page.getByTestId('song-active-chord'));
     const details = await top(page.getByRole('region', { name: 'Detalles de la canción' }));
     const harmony = await top(page.getByTestId('song-harmony-column'));
+    const active = await top(page.getByTestId('song-active-chord'));
 
     expect(player).toBeLessThan(grid);
-    expect(grid).toBeLessThan(active);
-    expect(active).toBeLessThan(details);
+    expect(grid).toBeLessThan(details);
     expect(details).toBeLessThan(harmony);
+    expect(harmony).toBeLessThan(active);
   });
 });
 
@@ -791,7 +880,7 @@ test.describe('accessibility', () => {
   test('the delete confirmation has no critical violations', async ({ page }) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await page.getByRole('button', { name: 'Eliminar' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

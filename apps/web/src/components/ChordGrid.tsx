@@ -7,6 +7,7 @@ import {
   type Notation,
 } from '@chordifree/chords';
 import { useT } from '../i18n';
+import { keepLookaheadVisible } from '../grid/scroll';
 import { buildBeatRows } from '../grid/beats';
 import { chooseBarAlignment, type BarTempo } from '../grid/barAlignment';
 import type { PlaybackClock } from '../sync/clock';
@@ -206,7 +207,7 @@ export function ChordGrid({
       return;
     }
     const row = listRef.current?.querySelector<HTMLElement>(`[data-testid="chord-row-${active}"]`);
-    row?.scrollIntoView({ block: 'nearest' });
+    keepLookaheadVisible(row ?? null);
   }, [active, effectiveView, follow]);
 
   const focusRow = (index: number) => {

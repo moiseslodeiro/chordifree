@@ -28,10 +28,8 @@ interface HomeProps {
   analyzerStatus: 'ok' | 'down' | 'unknown';
   extractorStatus?: 'ok' | 'down' | 'unknown';
   extractorVersion?: string;
-  libraryCount: number;
   notice: AppNotice | null;
   onDismissNotice: () => void;
-  onOpenLibrary: () => void;
   onAnalyzed: (song: Song, audioUrl: string | null) => void;
   youtubeMode?: 'direct' | 'extractor' | 'hosted';
 }
@@ -58,10 +56,8 @@ export function Home({
   analyzerStatus,
   extractorStatus = 'unknown',
   extractorVersion,
-  libraryCount,
   notice,
   onDismissNotice,
-  onOpenLibrary,
   onAnalyzed,
   youtubeMode = 'direct',
 }: HomeProps) {
@@ -423,9 +419,6 @@ export function Home({
                 onClick={() => onAnalyzed(createDemoSong(preferences), DEMO_AUDIO_URL)}
               >
                 {t('home.demo')}
-              </button>
-              <button type="button" className="btn" onClick={onOpenLibrary}>
-                {t('home.library', { count: libraryCount })}
               </button>
             </div>
           </form>

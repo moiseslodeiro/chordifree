@@ -134,7 +134,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     expect(await screen.findByText('Demo sincronizada')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir' }));
@@ -157,9 +157,9 @@ describe('App', () => {
     await analyze();
 
     expect(screen.getByText('Transponer')).toBeInTheDocument();
-    const songAudio = await screen.findByRole('group', {
-      name: 'Controles de audio de la canción',
-    });
+    const songAudio = await screen.findByTestId('audio-controls');
+    const audioToggle = within(songAudio).getByRole('button', { name: /Audio/ });
+    if (audioToggle.getAttribute('aria-expanded') === 'false') fireEvent.click(audioToggle);
     expect(songAudio).toHaveTextContent('Velocidad');
     expect(songAudio).toHaveTextContent('Tono de la canción');
 
@@ -168,7 +168,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
     await screen.findByRole('heading', { name: 'Demo sincronizada' });
 
@@ -344,7 +344,7 @@ describe('App', () => {
     // Saving in the editor already persists the correction to the library.
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
     expect(await screen.findByTestId('chord-row-0')).toHaveTextContent('A7');
   });
@@ -419,9 +419,9 @@ describe('App', () => {
 
     setReduction('Normal');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
-    const grid = within(screen.getByTestId('song-grid-column'));
-    expect(grid.queryByText('G')).not.toBeInTheDocument();
-    expect(grid.getByText('Am')).toBeInTheDocument();
+    const rows = screen.getAllByTestId(/chord-row-/);
+    expect(rows.every((row) => !within(row).queryByText('G'))).toBe(true);
+    expect(rows.some((row) => within(row).queryByText('Am'))).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
     expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(3);
@@ -450,9 +450,9 @@ describe('App', () => {
 
     setReduction('Máxima');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
-    const grid = within(screen.getByTestId('song-grid-column'));
-    expect(grid.getByText('C')).toBeInTheDocument();
-    expect(grid.getByText('Am')).toBeInTheDocument();
+    const rows = screen.getAllByTestId(/chord-row-/);
+    expect(rows.some((row) => within(row).queryByText('C'))).toBe(true);
+    expect(rows.some((row) => within(row).queryByText('Am'))).toBe(true);
 
     // Editing still works on the original line.
     fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
@@ -469,20 +469,17 @@ describe('App', () => {
 
     const gridColumn = screen.getByTestId('song-grid-column');
     const playerColumn = screen.getByTestId('song-player-column');
-    const harmonyColumn = screen.getByTestId('song-harmony-column');
+    const infoColumn = screen.getByTestId('song-info-column');
     const toolsColumn = screen.getByTestId('song-tools-column');
     expect(within(gridColumn).getByTestId('beat-row-0')).toBeInTheDocument();
     expect(within(playerColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
     expect(
-      within(harmonyColumn).getByRole('region', { name: 'Análisis armónico' }),
+      within(infoColumn).getByRole('region', { name: 'Detalles de la canción' }),
     ).toBeInTheDocument();
-    const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
-    expect(details).toBeInTheDocument();
-    const activeChord = within(toolsColumn).getByText('Acorde activo');
-    // The info block goes below the chord diagrams.
     expect(
-      activeChord.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      within(infoColumn).getByRole('region', { name: 'Análisis armónico' }),
+    ).toBeInTheDocument();
+    expect(within(toolsColumn).getByText('Acorde activo')).toBeInTheDocument();
 
     // Presentation and instrument live in the top bar, not in the column.
     expect(screen.getByLabelText('Instrumento')).toBeInTheDocument();
@@ -529,7 +526,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
     expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
     expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
@@ -662,7 +659,7 @@ describe('App', () => {
   it('opens the empty library from the home screen', async () => {
     stubApi();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Biblioteca \(0\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
     expect(await screen.findByText('Todavía no hay canciones')).toBeInTheDocument();
   });
 

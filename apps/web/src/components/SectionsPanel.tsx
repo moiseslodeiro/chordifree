@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
-import { SECTION_LABELS, type SectionLabel } from '../sections/detect';
+import { activeSectionAt, SECTION_LABELS, type SectionLabel } from '../sections/detect';
+import { CollapsibleCard } from './CollapsibleCard';
 import type { SongSection } from '../types';
 
 interface SectionsPanelProps {
@@ -57,15 +58,16 @@ export function SectionsPanel({ sections, currentTime, onSeek, onChange }: Secti
     setEditing(null);
   };
 
+  const active = activeSectionAt(sections, currentTime);
   return (
-    <section
-      className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-      aria-label={t('sections.title')}
-      data-testid="sections-panel"
+    <CollapsibleCard
+      title={t('sections.title')}
+      meta={
+        active ? displayLabel(active.label, t) : t('sections.count', { count: sections.length })
+      }
+      defaultOpen={false}
+      testId="sections-panel"
     >
-      <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-        {t('sections.title')}
-      </h2>
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-ink3">{t('sections.auto')}</p>
@@ -168,6 +170,6 @@ export function SectionsPanel({ sections, currentTime, onSeek, onChange }: Secti
           </ol>
         )}
       </div>
-    </section>
+    </CollapsibleCard>
   );
 }

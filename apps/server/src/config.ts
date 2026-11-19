@@ -8,9 +8,16 @@ const EnvSchema = z.object({
   ANALYZER_TOKEN: z.string().default(''),
   WEB_DIST: z.string().optional(),
   MAX_DURATION_SECONDS: z.coerce.number().positive().default(900),
-  MAX_UPLOAD_BYTES: z.coerce.number().positive().default(25 * 1024 * 1024),
+  MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .positive()
+    .default(25 * 1024 * 1024),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
+  RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60 * 60 * 1000),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   TEMP_DIR: z.string().default('./.tmp'),
   AUDIO_CACHE_TTL_MINUTES: z.coerce.number().int().nonnegative().optional(),
@@ -27,6 +34,14 @@ const EnvSchema = z.object({
   YOUTUBE_EXTRACTOR_URL: z.union([z.literal(''), z.string().url()]).default(''),
   YOUTUBE_EXTRACTOR_TOKEN: z.string().default(''),
   YOUTUBE_EXTRACTOR_TIMEOUT_MS: z.coerce.number().int().min(1000).default(240_000),
+  STEMS_PLUGIN_DIR: z.string().default(''),
+  STEMS_SERVICE_URL: z.union([z.literal(''), z.string().url()]).default(''),
+  STEMS_SERVICE_TOKEN: z.string().default(''),
+  STEMS_SERVICE_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(60_000)
+    .default(30 * 60 * 1000),
 });
 
 export interface AppConfig {
@@ -56,6 +71,10 @@ export interface AppConfig {
   youtubeExtractorUrl?: string;
   youtubeExtractorToken: string;
   youtubeExtractorTimeoutMs: number;
+  stemsPluginDir?: string;
+  stemsServiceUrl?: string;
+  stemsServiceToken: string;
+  stemsServiceTimeoutMs: number;
 }
 
 /** True for loopback hosts and origins, where the cache should persist. */
@@ -105,12 +124,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     analyzerVersion: parsed.ANALYZER_VERSION,
     authMode: parsed.AUTH_MODE,
     googleClientId: parsed.GOOGLE_CLIENT_ID,
-    adminEmails: parsed.ADMIN_EMAILS.split(',').map((email) => email.trim().toLowerCase()).filter(Boolean),
+    adminEmails: parsed.ADMIN_EMAILS.split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
     googleCloudProject: parsed.GOOGLE_CLOUD_PROJECT,
     firestoreDatabase: parsed.FIRESTORE_DATABASE,
     analyzerAuth: parsed.ANALYZER_AUTH,
     ...(youtubeExtractorUrl ? { youtubeExtractorUrl } : {}),
     youtubeExtractorToken: parsed.YOUTUBE_EXTRACTOR_TOKEN,
     youtubeExtractorTimeoutMs: parsed.YOUTUBE_EXTRACTOR_TIMEOUT_MS,
+    ...(parsed.STEMS_PLUGIN_DIR.trim() ? { stemsPluginDir: parsed.STEMS_PLUGIN_DIR.trim() } : {}),
+    ...(parsed.STEMS_SERVICE_URL.trim()
+      ? { stemsServiceUrl: parsed.STEMS_SERVICE_URL.trim() }
+      : {}),
+    stemsServiceToken: parsed.STEMS_SERVICE_TOKEN.trim(),
+    stemsServiceTimeoutMs: parsed.STEMS_SERVICE_TIMEOUT_MS,
   };
 }

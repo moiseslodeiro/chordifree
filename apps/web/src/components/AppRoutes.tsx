@@ -22,6 +22,7 @@ import { LibraryList } from './LibraryList';
 import { SetlistList } from './SetlistList';
 import { SetlistView } from './SetlistView';
 import { SongView } from './SongView';
+import { StemsLibrary } from './StemsLibrary';
 
 interface AppRoutesProps {
   route: Route;
@@ -140,10 +141,8 @@ export function AppRoutes({
         analyzerStatus={health.status}
         extractorStatus={health.extractor}
         extractorVersion={health.extractorVersion}
-        libraryCount={songs.length}
         notice={notice}
         onDismissNotice={onDismissNotice}
-        onOpenLibrary={() => onNavigate({ name: 'library' })}
         onAnalyzed={onAnalyzed}
         youtubeMode={features?.features.youtube ?? 'direct'}
       />
@@ -176,6 +175,10 @@ export function AppRoutes({
     return (
       <AdminAccess onBack={() => onNavigate({ name: 'library' })} onOpenVideo={onOpenAnalysis} />
     );
+  }
+
+  if (route.name === 'stems') {
+    return <StemsLibrary onBack={() => onNavigate({ name: 'library' })} />;
   }
 
   if (route.name === 'setlists') {

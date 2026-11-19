@@ -13,7 +13,7 @@ const spanish = {
 
   'hero.title': 'Acordes que siguen la canción.',
   'hero.lead':
-    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo o transpón la canción sin cambiar los acordes. Ejecútala en local o aloja una instancia privada para cuentas aprobadas.',
+    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo, transpón la canción, canta sobre una mezcla karaoke o separa la canción en pistas en la versión de escritorio. Ejecútala en local o aloja una instancia privada para cuentas aprobadas.',
   'hero.primary': 'Consigue la app',
   'hero.secondary': 'Verla en acción',
   'hero.proofOpen': 'Gratis y de código abierto',
@@ -47,7 +47,7 @@ const spanish = {
   'feature.2.tag': 'Regiones vocales',
   'feature.3.title': 'Practica',
   'feature.3.body':
-    'Marca A y B en la rejilla, previsualiza un compás al pasar el ratón y reproduce el rango o ponlo en bucle. Baja el tempo, transpón la canción y cuenta antes de empezar.',
+    'Marca A y B en la rejilla, previsualiza un compás al pasar el ratón y reproduce el rango o ponlo en bucle. Baja el tempo, transpón la canción y cuenta antes de empezar. La hoja sigue la reproducción y, en escritorio, puede marcar el acorde con el micrófono.',
   'feature.3.tag': 'Bucle A–B',
   'feature.4.title': 'Ajusta',
   'feature.4.body':
@@ -55,8 +55,12 @@ const spanish = {
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
-    'Guarda canciones y repertorios en tu navegador, en tu equipo o en una instancia online privada vinculada a tu cuenta de Google. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o comparte la hoja.',
+    'Guarda canciones y repertorios en tu navegador, en tu equipo o en una instancia online privada vinculada a tu cuenta de Google. Exporta ChordPro, MusicXML o un MIDI multipista con el bajo y la batería transcritos, imprime un PDF, haz una copia en JSON o comparte la hoja.',
   'feature.5.tag': 'Local o nube privada',
+  'feature.6.title': 'Separa',
+  'feature.6.body':
+    'En escritorio, un plugin local divide la canción en voz, batería, bajo y otros. Reproduce las cuatro pistas sincronizadas con volumen independiente, escucha una sola pista o exporta el resultado. Las separaciones se guardan en una caché local que puedes vaciar.',
+  'feature.6.tag': 'Escritorio · en tu equipo',
 
   'features.searchTag': 'Búsqueda en YouTube',
   'features.searchCaption':
@@ -196,6 +200,9 @@ const spanish = {
   'faq.7.q': '¿Puedo usarla sin conexión?',
   'faq.7.a':
     'La app de escritorio instalada funciona sin conexión. La app web necesita la API y el analizador en marcha, pero la interfaz se puede instalar como PWA.',
+  'faq.17.q': '¿Puedo quitar la voz o exportar MIDI?',
+  'faq.17.a':
+    'En la versión de escritorio, un plugin local opcional (Demucs) separa la canción en voz, batería, bajo y otros. Puedes mezclar las cuatro pistas con volumen independiente, escuchar una sola y exportar un MIDI multipista con el bajo y la batería transcritos. Se ejecuta en tu equipo y guarda una caché que puedes vaciar; la instancia alojada no separa audio.',
   'faq.8.q': '¿Qué instrumentos e idiomas admite?',
   'faq.8.a':
     'Guitarra, piano y ukelele; inglés y español; sostenidos, bemoles, solfeo, cejilla, transposición y acordes simplificados o reducidos.',
@@ -226,12 +233,12 @@ const meta = {
   en: {
     title: 'Chordifree — synchronized chords from YouTube or your audio',
     description:
-      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, or your own private cloud.',
+      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics, karaoke, A–B practice, MIDI export and desktop stem separation. Local-first, or your own private cloud.',
   },
   es: {
     title: 'Chordifree — acordes sincronizados desde YouTube o tu audio',
     description:
-      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Local first, o tu propia nube privada.',
+      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra, karaoke, práctica A–B, MIDI y separación de pistas en escritorio. Local first, o tu propia nube privada.',
   },
 };
 
