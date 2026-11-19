@@ -6,12 +6,19 @@ export interface ActionMenuItem {
   disabled?: boolean;
 }
 
-interface ActionMenuProps {
-  label: string;
+export interface ActionMenuSection {
+  label?: string;
   items: ActionMenuItem[];
 }
 
-export function ActionMenu({ label, items }: ActionMenuProps) {
+interface ActionMenuProps {
+  label: string;
+  /** Flat list; ignored when `sections` is provided. */
+  items?: ActionMenuItem[];
+  sections?: ActionMenuSection[];
+}
+
+export function ActionMenu({ label, items = [], sections }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -52,7 +59,10 @@ export function ActionMenu({ label, items }: ActionMenuProps) {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
-  if (items.length === 0) return null;
+  const groups: ActionMenuSection[] =
+    sections && sections.length > 0 ? sections : [{ items }];
+  const total = groups.reduce((count, group) => count + group.items.length, 0);
+  if (total === 0) return null;
 
   return (
     <div className="action-menu" ref={root}>
@@ -124,22 +134,38 @@ export function ActionMenu({ label, items }: ActionMenuProps) {
             }
           }}
         >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              tabIndex={-1}
-              className="action-menu-item"
-              disabled={item.disabled}
-              onClick={() => {
-                close(false);
-                item.onSelect();
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
+          {groups.map((group, groupIndex) =>
+            group.items.length === 0 ? null : (
+              <div
+                key={group.label ?? groupIndex}
+                role="group"
+                aria-label={group.label}
+                className="action-menu-group"
+              >
+                {group.label ? (
+                  <p className="action-menu-heading" aria-hidden="true">
+                    {group.label}
+                  </p>
+                ) : null}
+                {group.items.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    role="menuitem"
+                    tabIndex={-1}
+                    className="action-menu-item"
+                    disabled={item.disabled}
+                    onClick={() => {
+                      close(false);
+                      item.onSelect();
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ),
+          )}
         </div>
       ) : null}
     </div>

@@ -13,6 +13,8 @@ interface PlayerHostProps {
   variant?: 'default' | 'compact';
   pitch: number;
   karaoke?: boolean;
+  /** Plays a local stem instead of the original audio. */
+  overrideUrl?: string | null;
   onAdapter: (adapter: PlayerAdapter | null) => void;
   onPlaybackError: (message: string) => void;
 }
@@ -29,6 +31,7 @@ export function PlayerHost({
   variant = 'default',
   pitch,
   karaoke = false,
+  overrideUrl = null,
   onAdapter,
   onPlaybackError,
 }: PlayerHostProps) {
@@ -52,7 +55,7 @@ export function PlayerHost({
 
   const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
   const temporaryUrl = temporary && temporary.videoId === videoId ? temporary.url : null;
-  const playableUrl = videoId ? temporaryUrl : audioUrl;
+  const playableUrl = overrideUrl ?? (videoId ? temporaryUrl : audioUrl);
   const mode: 'audio' | 'fake' | 'missing' | 'video' = forceFake
     ? 'fake'
     : playableUrl
@@ -214,7 +217,7 @@ export function PlayerHost({
         </div>
       ) : null}
 
-      {videoId && temporaryUrl && !preparing && !prepareFailed ? (
+      {videoId && temporaryUrl && !overrideUrl && !preparing && !prepareFailed ? (
         <div className="note note-info text-sm leading-relaxed">{t('player.youtubeTemporary')}</div>
       ) : null}
     </div>

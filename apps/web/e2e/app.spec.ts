@@ -130,6 +130,54 @@ test.describe('full flow', () => {
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
 
+  test('separates and selects a stem from the local plugin', async ({ page }) => {
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          name: 'fake-stems',
+          version: '1.0.0',
+          stems: ['vocals', 'no_vocals'],
+        }),
+      }),
+    );
+    await page.route('**/api/stems/dQw4w9WgXcQ', (route) =>
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'job-stems',
+          videoId: 'dQw4w9WgXcQ',
+          status: 'done',
+          stems: ['vocals', 'no_vocals'],
+          createdAt: '2026-11-19T10:00:00.000Z',
+          updatedAt: '2026-11-19T10:00:00.000Z',
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs/job-stems/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'audio/wav',
+        body: Buffer.alloc(64),
+      }),
+    );
+    await analyze(page);
+
+    const panel = page.getByTestId('stems-panel');
+    await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: 'Separar pistas' }).click();
+
+    const instrumental = panel.getByRole('button', { name: 'Instrumental', exact: true });
+    await expect(instrumental).toBeVisible();
+    expect(await instrumental.getAttribute('aria-pressed')).toBe('false');
+    await instrumental.click();
+    await expect(instrumental).toHaveAttribute('aria-pressed', 'true');
+    await expect(panel.getByRole('button', { name: 'Descargar Instrumental' })).toBeVisible();
+  });
+
   test('shows the auto-detected song sections and jumps between them', async ({ page }) => {
     const withVocals = {
       ...RESULT,
@@ -725,15 +773,18 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-row-0')).toBeVisible();
   });
 
-  test('keeps the player and the song tools stacked in the right rail', async ({ page }) => {
+  test('keeps the player, audio controls and tools stacked in the right rail', async ({ page }) => {
     await analyze(page);
 
     const player = await page.getByTestId('song-player-column').boundingBox();
+    const audio = await page.getByTestId('song-audio').boundingBox();
     const active = await page.getByTestId('song-active-chord').boundingBox();
     expect(player).not.toBeNull();
+    expect(audio).not.toBeNull();
     expect(active).not.toBeNull();
-    expect(active!.y).toBeGreaterThan(player!.y);
-    expect(active!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(audio!.y).toBeGreaterThan(player!.y);
+    expect(audio!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(active!.y).toBeGreaterThan(audio!.y);
   });
 
   test('keeps the mobile order of player, grid, tools and harmony', async ({ page }) => {

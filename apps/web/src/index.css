@@ -1134,6 +1134,21 @@ body.performance-mode .song-view {
   box-shadow: 0 12px 30px rgb(var(--color-shadow) / 0.14);
 }
 
+.action-menu-group + .action-menu-group {
+  margin-top: 0.2rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgb(var(--color-line));
+}
+
+.action-menu-heading {
+  padding: 0.35rem 0.6rem 0.2rem;
+  color: rgb(var(--color-ink-3));
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .action-menu-item {
   display: block;
   width: 100%;

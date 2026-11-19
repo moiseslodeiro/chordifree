@@ -37,6 +37,8 @@ import {
 } from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { buildMidi, downloadMidi } from '../lib/midi';
+import { downloadStem, prepareStemAudio } from '../lib/api';
+import { useStems } from '../hooks/useStems';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { detectSections } from '../sections/detect';
@@ -67,7 +69,9 @@ import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
 import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
+import { AudioControls } from './AudioControls';
 import { SectionsPanel } from './SectionsPanel';
+import { StemsPanel } from './StemsPanel';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
@@ -158,6 +162,13 @@ export function SongView({
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [karaoke, setKaraoke] = useState(false);
+  const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
+  const stems = useStems(videoId);
+  const [stemSelected, setStemSelected] = useState<string | null>(null);
+  const [stemUrl, setStemUrl] = useState<string | null>(null);
+  const [stemLoading, setStemLoading] = useState<string | null>(null);
+  const [stemError, setStemError] = useState<string | null>(null);
+  const stemUrlRef = useRef<string | null>(null);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     message: string;
@@ -482,6 +493,57 @@ export function SongView({
   useEffect(() => {
     clock?.setBeats(beats);
   }, [clock, beats]);
+
+  useEffect(() => {
+    if (stemUrlRef.current) {
+      URL.revokeObjectURL(stemUrlRef.current);
+      stemUrlRef.current = null;
+    }
+    setStemUrl(null);
+    setStemSelected(null);
+    setStemError(null);
+  }, [song.id]);
+
+  useEffect(
+    () => () => {
+      if (stemUrlRef.current) URL.revokeObjectURL(stemUrlRef.current);
+    },
+    [],
+  );
+
+  const selectStem = async (stem: string | null) => {
+    setStemError(null);
+    if (!stem || !stems.job) {
+      if (stemUrlRef.current) {
+        URL.revokeObjectURL(stemUrlRef.current);
+        stemUrlRef.current = null;
+      }
+      setStemUrl(null);
+      setStemSelected(null);
+      return;
+    }
+    setStemLoading(stem);
+    try {
+      const url = await prepareStemAudio(stems.job.id, stem);
+      if (stemUrlRef.current) URL.revokeObjectURL(stemUrlRef.current);
+      stemUrlRef.current = url;
+      setStemUrl(url);
+      setStemSelected(stem);
+    } catch {
+      setStemError(t('stems.loadFailed'));
+    } finally {
+      setStemLoading(null);
+    }
+  };
+
+  const downloadSelectedStem = (stem: string) => {
+    if (!stems.job) return;
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    void downloadStem(stems.job.id, stem, `${base}-${stem}.wav`).catch(() =>
+      setStemError(t('stems.loadFailed')),
+    );
+  };
 
   const seek = (time: number) => {
     setMarkMode(null);
@@ -831,91 +893,111 @@ export function SongView({
             ) : null}
             <ActionMenu
               label={t('song.moreActions')}
-              items={[
+              sections={[
                 ...(!editing && !editingLyrics
-                  ? ([
-                      { label: t('song.editDetails'), onSelect: openDetails },
-                      ...(saved
-                        ? [
-                            {
-                              label: t('song.addToSetlist'),
-                              onSelect: () => setAddToSetlistOpen(true),
-                            },
-                          ]
-                        : []),
+                  ? [
                       {
-                        label: performance ? t('song.exitPerformance') : t('song.performance'),
-                        onSelect: togglePerformance,
+                        label: t('menu.song'),
+                        items: [
+                          { label: t('song.editDetails'), onSelect: openDetails },
+                          ...(saved
+                            ? [
+                                {
+                                  label: t('song.addToSetlist'),
+                                  onSelect: () => setAddToSetlistOpen(true),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: performance ? t('song.exitPerformance') : t('song.performance'),
+                            onSelect: togglePerformance,
+                          },
+                        ] satisfies ActionMenuItem[],
                       },
                       {
-                        label: t('song.share'),
-                        onSelect: () => {
-                          setShareNotice(null);
-                          setShareLink(null);
-                          setShareOpen(true);
-                        },
-                      },
-                      ...(canCollaborate && saved
-                        ? ([
-                            {
-                              label: t('collab.shareAction'),
-                              onSelect: () => {
-                                void (async () => {
-                                  const url = await onShareCollab(song);
-                                  if (!url) {
-                                    setShareNotice({
-                                      message: t('collab.createFailed'),
-                                      tone: 'warning',
-                                    });
-                                    return;
-                                  }
-                                  try {
-                                    await navigator.clipboard.writeText(url);
-                                    setShareNotice({
-                                      message: t('collab.linkCopied'),
-                                      tone: 'success',
-                                    });
-                                  } catch {
-                                    setShareNotice({
-                                      message: t('collab.linkReady', { url }),
-                                      tone: 'warning',
-                                    });
-                                  }
-                                })();
-                              },
+                        label: t('menu.share'),
+                        items: [
+                          {
+                            label: t('song.share'),
+                            onSelect: () => {
+                              setShareNotice(null);
+                              setShareLink(null);
+                              setShareOpen(true);
                             },
-                          ] satisfies ActionMenuItem[])
-                        : []),
-                    ] satisfies ActionMenuItem[])
+                          },
+                          ...(canCollaborate && saved
+                            ? ([
+                                {
+                                  label: t('collab.shareAction'),
+                                  onSelect: () => {
+                                    void (async () => {
+                                      const url = await onShareCollab(song);
+                                      if (!url) {
+                                        setShareNotice({
+                                          message: t('collab.createFailed'),
+                                          tone: 'warning',
+                                        });
+                                        return;
+                                      }
+                                      try {
+                                        await navigator.clipboard.writeText(url);
+                                        setShareNotice({
+                                          message: t('collab.linkCopied'),
+                                          tone: 'success',
+                                        });
+                                      } catch {
+                                        setShareNotice({
+                                          message: t('collab.linkReady', { url }),
+                                          tone: 'warning',
+                                        });
+                                      }
+                                    })();
+                                  },
+                                },
+                              ] satisfies ActionMenuItem[])
+                            : []),
+                        ] satisfies ActionMenuItem[],
+                      },
+                    ]
                   : []),
                 ...(!editing && !editingLyrics && printRows.length > 0
-                  ? ([
-                      { label: t('song.print'), onSelect: () => window.print() },
-                      { label: t('song.score'), onSelect: exportScoreFile },
-                      { label: t('song.midi'), onSelect: exportMidiFile },
-                      { label: t('song.chordpro'), onSelect: exportChordProFile },
-                    ] satisfies ActionMenuItem[])
+                  ? [
+                      {
+                        label: t('menu.export'),
+                        items: [
+                          { label: t('song.print'), onSelect: () => window.print() },
+                          { label: t('song.score'), onSelect: exportScoreFile },
+                          { label: t('song.midi'), onSelect: exportMidiFile },
+                          { label: t('song.chordpro'), onSelect: exportChordProFile },
+                        ] satisfies ActionMenuItem[],
+                      },
+                    ]
                   : []),
                 ...(!editing && !editingLyrics && song.source.type === 'youtube'
-                  ? ([
+                  ? [
                       {
-                        label: reanalyzing
-                          ? `${t('song.reanalyzing')}${
-                              reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                            }`
-                          : t('song.reanalyze'),
-                        onSelect: () => {
-                          void confirm({
-                            title: t('song.reanalyze'),
-                            description: t('song.reanalyzeConfirm'),
-                            confirmLabel: t('song.reanalyze'),
-                          }).then((accepted) => {
-                            if (accepted) onReanalyze();
-                          });
-                        },
-                        disabled: reanalyzing,
+                        label: t('menu.analysis'),
+                        items: [
+                          {
+                            label: reanalyzing
+                              ? `${t('song.reanalyzing')}${
+                                  reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
+                                }`
+                              : t('song.reanalyze'),
+                            onSelect: () => {
+                              void confirm({
+                                title: t('song.reanalyze'),
+                                description: t('song.reanalyzeConfirm'),
+                                confirmLabel: t('song.reanalyze'),
+                              }).then((accepted) => {
+                                if (accepted) onReanalyze();
+                              });
+                            },
+                            disabled: reanalyzing,
+                          },
+                        ] satisfies ActionMenuItem[],
                       },
-                    ] satisfies ActionMenuItem[])
+                    ]
                   : []),
               ]}
             />
@@ -995,34 +1077,11 @@ export function SongView({
               onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
               markMode={markMode}
               onMarkModeChange={setMarkMode}
-              rate={rate}
-              onRateChange={(value) => updatePractice({ rate: value })}
               manualBpm={manualBpm}
               onManualBpmChange={(value) => updatePractice({ bpm: value })}
-              pitch={pitch}
-              onPitchChange={(value) => updatePractice({ pitch: value })}
-              pitchAvailable={
-                song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
-              }
               embedded
               trailing={
-                <>
-                  {typeof adapter.setKaraoke === 'function' ? (
-                    <button
-                      type="button"
-                      className="practice-toggle"
-                      aria-pressed={karaoke}
-                      title={t('practice.karaokeHint')}
-                      onClick={() => setKaraoke((value) => !value)}
-                    >
-                      {t('practice.karaoke')}
-                    </button>
-                  ) : null}
-                  <MicToggle
-                    enabled={micEnabled}
-                    onToggle={() => setMicEnabled((value) => !value)}
-                  />
-                </>
+                <MicToggle enabled={micEnabled} onToggle={() => setMicEnabled((value) => !value)} />
               }
             />
             {micEnabled ? (
@@ -1162,6 +1221,7 @@ export function SongView({
                 variant="compact"
                 pitch={pitch}
                 karaoke={karaoke}
+                overrideUrl={stemUrl}
                 onAdapter={handleAdapter}
                 onPlaybackError={setPlaybackError}
               />
@@ -1207,6 +1267,37 @@ export function SongView({
               />
             </div>
           ) : null}
+
+          <div data-testid="song-audio" className="order-2 lg:order-none">
+            <AudioControls
+              adapter={adapter}
+              rate={rate}
+              onRateChange={(value) => updatePractice({ rate: value })}
+              pitch={pitch}
+              onPitchChange={(value) => updatePractice({ pitch: value })}
+              pitchAvailable={
+                song.source.type === 'youtube' || typeof adapter?.setPitch === 'function'
+              }
+              karaoke={karaoke}
+              onKaraokeChange={setKaraoke}
+              karaokeAvailable={typeof adapter?.setKaraoke === 'function'}
+            >
+              {videoId && stems.status?.available ? (
+                <StemsPanel
+                  status={stems.status}
+                  job={stems.job}
+                  busy={stems.busy}
+                  error={stems.error ?? stemError}
+                  selected={stemSelected}
+                  loadingStem={stemLoading}
+                  onSeparate={() => void stems.separate()}
+                  onSelect={(stem) => void selectStem(stem)}
+                  onDownload={downloadSelectedStem}
+                  onRetry={() => void stems.separate()}
+                />
+              ) : null}
+            </AudioControls>
+          </div>
 
           <div data-testid="song-active-chord" className="order-3 lg:order-none">
             <ActiveChordDiagram

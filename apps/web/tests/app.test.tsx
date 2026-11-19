@@ -157,9 +157,7 @@ describe('App', () => {
     await analyze();
 
     expect(screen.getByText('Transponer')).toBeInTheDocument();
-    const songAudio = await screen.findByRole('group', {
-      name: 'Controles de audio de la canción',
-    });
+    const songAudio = await screen.findByTestId('audio-controls');
     expect(songAudio).toHaveTextContent('Velocidad');
     expect(songAudio).toHaveTextContent('Tono de la canción');
 

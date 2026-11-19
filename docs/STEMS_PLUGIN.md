@@ -62,6 +62,21 @@ local/desktop use.
 `POST` needs the temporary YouTube audio, so the song must have been played
 once. Jobs live in memory (last 20) and their files are deleted when evicted.
 
+## From the web UI
+
+When the API reports the plugin as available, the song view shows a **Stems**
+card for YouTube songs:
+
+1. Open the song and press **Separate stems**. The server uses the temporary
+   audio it already cached when the song was opened.
+2. The card waits for the job and then lists the stems the plugin declares.
+3. Selecting a stem swaps the player source (fetched as an authenticated blob);
+   **Original** returns to the song. The selected stem can be downloaded as a
+   WAV. Pitch, speed and the practice tools keep working on top of it.
+
+There is still no multi-source mixer: you hear one source at a time. Mute/solo
+per stem is the next step.
+
 ## Testing without a model
 
 The test suite registers a fake plugin that copies dummy files; see
@@ -89,12 +104,11 @@ STEMS_PLUGIN_DIR=/tmp/stems-plugin pnpm dev
 
 ## Roadmap
 
-1. UI: per-stem mute/solo with a shared clock, plus a "separate" action on the
-   song view (status card is already in the API).
-2. Reuse the existing temporary-audio proxy for playback; render pre-mixed
-   variants ("instrumental", "no drums") before implementing a true mixer.
-3. Cache job metadata by `videoId + plugin version`, and evict with the audio
+1. A true mixer: mute/solo per stem with a shared clock, instead of swapping
+   the source. Pre-rendered mixes ("instrumental", "no drums") are the cheap
+   intermediate step.
+2. Cache job metadata by `videoId + plugin version`, and evict with the audio
    cache TTL.
-4. 4–6 stem engines and an install flow with SHA-256 and pinned versions.
-5. Keep derived audio local; do not upload it to the cloud instance. The
+3. 4–6 stem engines and an install flow with SHA-256 and pinned versions.
+4. Keep derived audio local; do not upload it to the cloud instance. The
    YouTube legal notice still applies.

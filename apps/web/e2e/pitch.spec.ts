@@ -49,7 +49,6 @@ test.describe('audio pitch', () => {
     await page.getByRole('button', { name: 'Try the demo' }).click();
     await expect(page.getByRole('heading', { name: 'Chordifree demo · C G Am F' })).toBeVisible();
 
-    await page.getByTestId('practice-summary').click();
     const pitch = page.getByLabel('Audio pitch in semitones');
     await expect(pitch).toBeEnabled();
     await pitch.selectOption('4');
@@ -84,7 +83,6 @@ test.describe('audio pitch', () => {
 
     await page.goto('/');
     await page.getByRole('button', { name: 'Try the demo' }).click();
-    await page.getByTestId('practice-summary').click();
 
     const karaoke = page.getByRole('button', { name: 'Karaoke' });
     await expect(karaoke).toHaveAttribute('aria-pressed', 'false');

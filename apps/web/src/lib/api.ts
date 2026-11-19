@@ -370,6 +370,81 @@ export function prepareYoutubeAudio(
   return withAbort(request, signal);
 }
 
+export interface StemsStatus {
+  available: boolean;
+  name?: string;
+  version?: string;
+  stems?: string[];
+  error?: string;
+}
+
+export interface StemJobView {
+  id: string;
+  videoId: string;
+  status: 'queued' | 'processing' | 'done' | 'error';
+  stems: string[];
+  error?: { code: string; message: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getStemsStatus(signal?: AbortSignal): Promise<StemsStatus> {
+  const response = await fetch('/api/stems', { signal, headers: authHeaders() });
+  return parseResponse<StemsStatus>(response);
+}
+
+export async function startStems(videoId: string): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/${encodeURIComponent(videoId)}`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+export async function getStemsJob(id: string, signal?: AbortSignal): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/jobs/${encodeURIComponent(id)}`, {
+    signal,
+    headers: authHeaders(),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+/** An <audio> element cannot send the Bearer token, so the stem is fetched as a blob. */
+export async function prepareStemAudio(
+  jobId: string,
+  stem: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(jobId)}/${encodeURIComponent(stem)}`,
+    { signal, headers: authHeaders() },
+  );
+  if (!response.ok) {
+    throw new ApiClientError('STEMS_NOT_READY', t('stems.loadFailed'), response.status);
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+export async function downloadStem(jobId: string, stem: string, filename: string): Promise<void> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(jobId)}/${encodeURIComponent(stem)}`,
+    { headers: authHeaders() },
+  );
+  if (!response.ok) {
+    throw new ApiClientError('STEMS_NOT_READY', t('stems.loadFailed'), response.status);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchLyrics(
   params: { title: string; artist?: string; duration?: number },
   signal?: AbortSignal,
