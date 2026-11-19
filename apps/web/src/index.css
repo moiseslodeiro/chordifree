@@ -1134,6 +1134,13 @@ body.performance-mode .song-view {
   box-shadow: 0 12px 30px rgb(var(--color-shadow) / 0.14);
 }
 
+.collapsible-marker {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: rgb(var(--color-ink-3));
+}
+
 .action-menu-group + .action-menu-group {
   margin-top: 0.2rem;
   padding-top: 0.2rem;

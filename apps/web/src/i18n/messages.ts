@@ -590,6 +590,7 @@ const en = {
 
   'details.aria': 'Song details',
   'details.title': 'Song details',
+  'song.infoTitle': 'Details and harmony',
   'details.key': 'Key',
   'details.relative': 'Relative',
   'details.capo': 'Capo',
@@ -1348,6 +1349,7 @@ const es: Record<MessageKey, string> = {
 
   'details.aria': 'Detalles de la canción',
   'details.title': 'Detalles de la canción',
+  'song.infoTitle': 'Detalles y armonía',
   'details.key': 'Tonalidad',
   'details.relative': 'Relativa',
   'details.capo': 'Capo',

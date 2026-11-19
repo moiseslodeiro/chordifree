@@ -7,6 +7,7 @@ import {
 } from '@chordifree/chords';
 import { translate, getLanguage, useT } from '../i18n';
 import type { BeatCell, BeatRow } from '../grid/beats';
+import { keepLookaheadVisible } from '../grid/scroll';
 import type { PlaybackClock } from '../sync/clock';
 import { useBeatIndex, useIsBeatActive } from '../sync/hooks';
 
@@ -223,9 +224,11 @@ export function BeatGrid({
 
   useEffect(() => {
     if (!follow || activeRowIndex < 0 || Date.now() < manualUntil.current) return;
-    containerRef.current
-      ?.querySelector<HTMLElement>(`[data-testid="beat-row-${activeRowIndex}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
+    keepLookaheadVisible(
+      containerRef.current?.querySelector<HTMLElement>(
+        `[data-testid="beat-row-${activeRowIndex}"]`,
+      ) ?? null,
+    );
   }, [activeRowIndex, follow]);
 
   const focusBeat = (beatIndex: number) => {

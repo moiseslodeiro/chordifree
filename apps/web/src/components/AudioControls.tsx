@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useT } from '../i18n';
 import type { PlayerAdapter } from '../player/types';
 import { MAX_PITCH, MIN_PITCH, PLAYBACK_RATES } from '../storage/practice';
+import { CollapsibleCard } from './CollapsibleCard';
 
 interface AudioControlsProps {
   adapter: PlayerAdapter | null;
@@ -23,6 +24,25 @@ const SPEEDS = PLAYBACK_RATES.map((value) => ({
 }));
 
 const PITCHES = Array.from({ length: MAX_PITCH - MIN_PITCH + 1 }, (_, index) => MIN_PITCH + index);
+
+function KaraokeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8" />
+      <path d="M18 4h4M18 8h3" />
+    </svg>
+  );
+}
 
 /**
  * "What you hear" controls, kept apart from the practice tools: playback
@@ -47,19 +67,13 @@ export function AudioControls({
   }, [adapter, rate]);
 
   return (
-    <section
-      className="rounded-xl border border-line bg-panel p-3 shadow-sm"
-      aria-label={t('audio.title')}
-      data-testid="audio-controls"
+    <CollapsibleCard
+      title={t('audio.title')}
+      meta={t('audio.eyebrow')}
+      defaultOpen
+      testId="audio-controls"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-          {t('audio.title')}
-        </h2>
-        <span className="eyebrow">{t('audio.eyebrow')}</span>
-      </div>
-
-      <div className="mt-3 space-y-2">
+      <div className="space-y-3 p-4">
         <label className="flex items-center justify-between gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
           {t('practice.rate')}
           <select
@@ -97,17 +111,25 @@ export function AudioControls({
         {karaokeAvailable ? (
           <button
             type="button"
-            className="practice-toggle"
+            className="btn btn-primary w-full justify-center gap-2"
             aria-pressed={karaoke}
             title={t('practice.karaokeHint')}
             onClick={() => onKaraokeChange(!karaoke)}
           >
+            <KaraokeIcon />
             {t('practice.karaoke')}
+            {karaoke ? (
+              <span
+                className="size-1.5 rounded-full bg-white"
+                aria-hidden="true"
+                data-testid="karaoke-active-dot"
+              />
+            ) : null}
           </button>
         ) : null}
-      </div>
 
-      {children ? <div className="mt-3 border-t border-line pt-3">{children}</div> : null}
-    </section>
+        {children ? <div className="border-t border-line pt-3">{children}</div> : null}
+      </div>
+    </CollapsibleCard>
   );
 }

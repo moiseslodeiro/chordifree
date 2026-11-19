@@ -417,9 +417,9 @@ describe('App', () => {
 
     setReduction('Normal');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
-    const grid = within(screen.getByTestId('song-grid-column'));
-    expect(grid.queryByText('G')).not.toBeInTheDocument();
-    expect(grid.getByText('Am')).toBeInTheDocument();
+    const rows = screen.getAllByTestId(/chord-row-/);
+    expect(rows.every((row) => !within(row).queryByText('G'))).toBe(true);
+    expect(rows.some((row) => within(row).queryByText('Am'))).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
     expect(screen.getAllByLabelText('Acorde del segmento')).toHaveLength(3);
@@ -448,9 +448,9 @@ describe('App', () => {
 
     setReduction('Máxima');
     expect(screen.getAllByTestId(/chord-row-/)).toHaveLength(2);
-    const grid = within(screen.getByTestId('song-grid-column'));
-    expect(grid.getByText('C')).toBeInTheDocument();
-    expect(grid.getByText('Am')).toBeInTheDocument();
+    const rows = screen.getAllByTestId(/chord-row-/);
+    expect(rows.some((row) => within(row).queryByText('C'))).toBe(true);
+    expect(rows.some((row) => within(row).queryByText('Am'))).toBe(true);
 
     // Editing still works on the original line.
     fireEvent.click(screen.getByRole('button', { name: 'Editar acordes' }));
@@ -467,20 +467,17 @@ describe('App', () => {
 
     const gridColumn = screen.getByTestId('song-grid-column');
     const playerColumn = screen.getByTestId('song-player-column');
-    const harmonyColumn = screen.getByTestId('song-harmony-column');
+    const infoColumn = screen.getByTestId('song-info-column');
     const toolsColumn = screen.getByTestId('song-tools-column');
     expect(within(gridColumn).getByTestId('beat-row-0')).toBeInTheDocument();
     expect(within(playerColumn).getByRole('region', { name: 'Reproductor' })).toBeInTheDocument();
     expect(
-      within(harmonyColumn).getByRole('region', { name: 'Análisis armónico' }),
+      within(infoColumn).getByRole('region', { name: 'Detalles de la canción' }),
     ).toBeInTheDocument();
-    const details = within(toolsColumn).getByRole('region', { name: 'Detalles de la canción' });
-    expect(details).toBeInTheDocument();
-    const activeChord = within(toolsColumn).getByText('Acorde activo');
-    // The info block goes below the chord diagrams.
     expect(
-      activeChord.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      within(infoColumn).getByRole('region', { name: 'Análisis armónico' }),
+    ).toBeInTheDocument();
+    expect(within(toolsColumn).getByText('Acorde activo')).toBeInTheDocument();
 
     // Presentation and instrument live in the top bar, not in the column.
     expect(screen.getByLabelText('Instrumento')).toBeInTheDocument();

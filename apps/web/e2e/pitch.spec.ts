@@ -54,7 +54,7 @@ test.describe('audio pitch', () => {
     await expect(pitch).toBeEnabled();
     await pitch.selectOption('4');
 
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.5);
@@ -72,7 +72,7 @@ test.describe('audio pitch', () => {
     expect(state.worklets).toContainEqual(expect.stringContaining('soundtouch-processor.js'));
     expect(errors).toEqual([]);
 
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
   });
 
   test('routes the audio through the karaoke matrix and back', async ({ page }) => {
@@ -90,7 +90,7 @@ test.describe('audio pitch', () => {
     await karaoke.click();
     await expect(karaoke).toHaveAttribute('aria-pressed', 'true');
 
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.3);
@@ -107,13 +107,13 @@ test.describe('audio pitch', () => {
       .toBe(false);
     expect(errors).toEqual([]);
 
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
   });
 
   test('keeps the native audio path when no pitch is selected', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Try the demo' }).click();
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0))
       .toBeGreaterThan(0.25);
@@ -127,7 +127,7 @@ test.describe('audio pitch', () => {
     });
     expect(state.worklets).toEqual([]);
     expect(state.preservesPitch).not.toBe(false);
-    await page.getByRole('button', { name: 'Pause' }).click();
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
   });
 });
 
@@ -229,7 +229,7 @@ test.describe('YouTube temporary audio', () => {
     await page.getByLabel('Audio pitch in semitones').selectOption('4');
     await expect(page.getByText(/YouTube audio is played from a temporary copy/)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect.poll(() => audio.evaluate((element) => element.currentTime)).toBeGreaterThan(0.25);
 
     await page.getByLabel('Audio pitch in semitones').selectOption('0');

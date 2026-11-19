@@ -796,14 +796,14 @@ test.describe('full flow', () => {
     const top = async (locator: Locator) => (await locator.boundingBox())?.y ?? -1;
     const player = await top(page.getByTestId('song-player-column'));
     const grid = await top(page.getByTestId('song-grid-column'));
-    const active = await top(page.getByTestId('song-active-chord'));
     const details = await top(page.getByRole('region', { name: 'Detalles de la canción' }));
     const harmony = await top(page.getByTestId('song-harmony-column'));
+    const active = await top(page.getByTestId('song-active-chord'));
 
     expect(player).toBeLessThan(grid);
-    expect(grid).toBeLessThan(active);
-    expect(active).toBeLessThan(details);
+    expect(grid).toBeLessThan(details);
     expect(details).toBeLessThan(harmony);
+    expect(harmony).toBeLessThan(active);
   });
 });
 

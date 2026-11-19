@@ -65,7 +65,6 @@ import { CollabPanel } from './CollabPanel';
 import { DisplayControls } from './DisplayControls';
 import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
-import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
 import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
@@ -76,7 +75,7 @@ import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
 import { PracticePanel } from './PracticePanel';
-import { SongDetails } from './SongDetails';
+import { SongInfoPanel } from './SongInfoPanel';
 import { Transport } from './Transport';
 
 interface SongViewProps {
@@ -1202,6 +1201,32 @@ export function SongView({
               practiceHitRanges={practiceHitRanges}
             />
           )}
+
+          <div data-testid="song-info-column" className="mt-5">
+            <SongInfoPanel
+              details={{
+                keyLabel,
+                relativeKeyLabel,
+                capo: effectiveCapo,
+                capoKeyLabel,
+                showCapo: capoAvailable,
+                bpm,
+                beatsPerBar,
+                duration: song.duration,
+                artist,
+                chords: chordList,
+                showChords: false,
+                onChangeMeter: changeMeter,
+              }}
+              harmony={{
+                segments: transposedSegments,
+                harmonyKey: estimatedKey,
+                notation: song.notation,
+                accidental,
+                capo: effectiveCapo,
+              }}
+            />
+          </div>
         </div>
 
         <aside
@@ -1307,33 +1332,6 @@ export function SongView({
                 />
               ) : null}
             </AudioControls>
-          </div>
-
-          <div className="order-4 lg:order-none">
-            <SongDetails
-              keyLabel={keyLabel}
-              relativeKeyLabel={relativeKeyLabel}
-              capo={effectiveCapo}
-              capoKeyLabel={capoKeyLabel}
-              showCapo={capoAvailable}
-              bpm={bpm}
-              beatsPerBar={beatsPerBar}
-              duration={song.duration}
-              artist={artist}
-              chords={chordList}
-              showChords={false}
-              onChangeMeter={changeMeter}
-            />
-          </div>
-
-          <div data-testid="song-harmony-column" className="order-5 lg:order-none">
-            <HarmonicAnalysis
-              segments={transposedSegments}
-              harmonyKey={estimatedKey}
-              notation={song.notation}
-              accidental={accidental}
-              capo={effectiveCapo}
-            />
           </div>
         </aside>
       </div>
