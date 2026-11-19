@@ -1,6 +1,7 @@
+import { createServer } from 'node:http';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
@@ -8,7 +9,7 @@ import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
 import type { TemporaryAudioCache } from '../src/services/audio-cache';
 import { StemJobs } from '../src/services/stem-jobs';
-import { NullStemEngine, PluginStemEngine } from '../src/services/stems';
+import { NullStemEngine, PluginStemEngine, RemoteStemEngine } from '../src/services/stems';
 import { makeAnalyzer, makeConfig, makeTempDir, makeTools } from './helpers';
 
 const PLUGIN_SCRIPT = `import { writeFileSync } from 'node:fs';
@@ -75,12 +76,101 @@ describe('stems plugin engine', () => {
     expect(await readFile(result.stems.get('vocals')!, 'utf8')).toBe(`voice:${input}`);
   });
 
+  it('resolves relative audio paths from the server cwd', async () => {
+    const dir = await fakePlugin(process.execPath, (script) => [script, '{input}', '{output}']);
+    const { input } = await fakeAudio();
+    const output = await mkdtemp(join(tmpdir(), 'chordifree-stems-relative-'));
+    const result = await new PluginStemEngine(dir).separate(relative(process.cwd(), input), output);
+    expect([...result.stems.keys()]).toEqual(['vocals', 'instrumental']);
+  });
+
   it('reports a broken manifest instead of starting', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'chordifree-stems-broken-'));
     await writeFile(join(dir, 'manifest.json'), '{ not json');
     const status = await new PluginStemEngine(dir).status();
     expect(status.available).toBe(false);
     expect(status.error).toBeTruthy();
+  });
+});
+
+async function fakeRemoteService() {
+  const server = createServer((req, res) => {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'ok',
+          name: 'remote-demucs',
+          version: '9.9.9',
+          stems: ['vocals', 'no_vocals'],
+        }),
+      );
+      return;
+    }
+    if (req.url === '/separate' && req.method === 'POST') {
+      req.resume();
+      req.on('end', () => {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(
+          JSON.stringify({ id: 'job-remote', status: 'done', stems: ['vocals', 'no_vocals'] }),
+        );
+      });
+      return;
+    }
+    if (req.url === '/jobs/job-remote/vocals') {
+      res.writeHead(200, { 'content-type': 'audio/wav' });
+      res.end('vocals-bytes');
+      return;
+    }
+    if (req.url === '/jobs/job-remote/no_vocals') {
+      res.writeHead(200, { 'content-type': 'audio/wav' });
+      res.end('instrumental-bytes');
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  return { server, url: `http://127.0.0.1:${port}` };
+}
+
+describe('remote stems service', () => {
+  it('reports the remote status with the same shape as the local plugin', async () => {
+    const remote = await fakeRemoteService();
+    try {
+      const engine = new RemoteStemEngine(remote.url);
+      await expect(engine.status()).resolves.toEqual({
+        available: true,
+        name: 'remote-demucs',
+        version: '9.9.9',
+        stems: ['vocals', 'no_vocals'],
+      });
+    } finally {
+      await new Promise((resolve) => remote.server.close(resolve));
+    }
+  });
+
+  it('uploads the cached audio and downloads the stems', async () => {
+    const remote = await fakeRemoteService();
+    try {
+      const engine = new RemoteStemEngine(remote.url);
+      const { input } = await fakeAudio();
+      const output = await mkdtemp(join(tmpdir(), 'chordifree-stems-remote-'));
+      const result = await engine.separate(input, output);
+      expect([...result.stems.keys()]).toEqual(['vocals', 'no_vocals']);
+      expect(await readFile(result.stems.get('vocals')!, 'utf8')).toBe('vocals-bytes');
+      expect(await readFile(result.stems.get('no_vocals')!, 'utf8')).toBe('instrumental-bytes');
+    } finally {
+      await new Promise((resolve) => remote.server.close(resolve));
+    }
+  });
+
+  it('reports an unreachable service as unavailable', async () => {
+    const engine = new RemoteStemEngine('http://127.0.0.1:1', '', 60_000);
+    const status = await engine.status();
+    expect(status.available).toBe(false);
   });
 });
 

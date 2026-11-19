@@ -35,6 +35,13 @@ const EnvSchema = z.object({
   YOUTUBE_EXTRACTOR_TOKEN: z.string().default(''),
   YOUTUBE_EXTRACTOR_TIMEOUT_MS: z.coerce.number().int().min(1000).default(240_000),
   STEMS_PLUGIN_DIR: z.string().default(''),
+  STEMS_SERVICE_URL: z.union([z.literal(''), z.string().url()]).default(''),
+  STEMS_SERVICE_TOKEN: z.string().default(''),
+  STEMS_SERVICE_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(60_000)
+    .default(30 * 60 * 1000),
 });
 
 export interface AppConfig {
@@ -65,6 +72,9 @@ export interface AppConfig {
   youtubeExtractorToken: string;
   youtubeExtractorTimeoutMs: number;
   stemsPluginDir?: string;
+  stemsServiceUrl?: string;
+  stemsServiceToken: string;
+  stemsServiceTimeoutMs: number;
 }
 
 /** True for loopback hosts and origins, where the cache should persist. */
@@ -124,5 +134,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     youtubeExtractorToken: parsed.YOUTUBE_EXTRACTOR_TOKEN,
     youtubeExtractorTimeoutMs: parsed.YOUTUBE_EXTRACTOR_TIMEOUT_MS,
     ...(parsed.STEMS_PLUGIN_DIR.trim() ? { stemsPluginDir: parsed.STEMS_PLUGIN_DIR.trim() } : {}),
+    ...(parsed.STEMS_SERVICE_URL.trim()
+      ? { stemsServiceUrl: parsed.STEMS_SERVICE_URL.trim() }
+      : {}),
+    stemsServiceToken: parsed.STEMS_SERVICE_TOKEN.trim(),
+    stemsServiceTimeoutMs: parsed.STEMS_SERVICE_TIMEOUT_MS,
   };
 }

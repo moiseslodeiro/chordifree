@@ -46,7 +46,12 @@ import {
   type AnalysisLogStore,
 } from './services/analysis-log';
 import { StemJobs } from './services/stem-jobs';
-import { NullStemEngine, PluginStemEngine, type StemEngine } from './services/stems';
+import {
+  NullStemEngine,
+  PluginStemEngine,
+  RemoteStemEngine,
+  type StemEngine,
+} from './services/stems';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -146,7 +151,15 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     });
   const stemsEngine =
     options.stemsEngine ??
-    (config.stemsPluginDir ? new PluginStemEngine(config.stemsPluginDir) : new NullStemEngine());
+    (config.stemsServiceUrl
+      ? new RemoteStemEngine(
+          config.stemsServiceUrl,
+          config.stemsServiceToken,
+          config.stemsServiceTimeoutMs,
+        )
+      : config.stemsPluginDir
+        ? new PluginStemEngine(config.stemsPluginDir)
+        : new NullStemEngine());
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),

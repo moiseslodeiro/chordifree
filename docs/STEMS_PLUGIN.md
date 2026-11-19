@@ -77,6 +77,76 @@ card for YouTube songs:
 There is still no multi-source mixer: you hear one source at a time. Mute/solo
 per stem is the next step.
 
+## Local Demucs recipe (CPU)
+
+The plugin used for the local verification:
+
+```bash
+python3 -m venv ~/.local/share/chordifree/stems-venv
+~/.local/share/chordifree/stems-venv/bin/pip install torch torchaudio \
+  --index-url https://download.pytorch.org/whl/cpu
+~/.local/share/chordifree/stems-venv/bin/pip install demucs numpy
+mkdir -p ~/.config/chordifree/stems-2
+```
+
+`~/.config/chordifree/stems-2/separate.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+input="$1"; output="$2"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+# Demucs handles m4a, but normalising first also covers webm/opus inputs.
+ffmpeg -y -v error -i "$input" -ac 2 -ar 44100 "$work/input.wav"
+"$HOME/.local/share/chordifree/stems-venv/bin/python" -m demucs \
+  --two-stems=vocals -o "$work" "$work/input.wav" >/dev/null 2>&1
+cp "$(find "$work" -name vocals.wav | head -1)" "$output/vocals.wav"
+cp "$(find "$work" -name no_vocals.wav | head -1)" "$output/no_vocals.wav"
+```
+
+Use `-n htdemucs` without `--two-stems` for four stems (`vocals`, `drums`,
+`bass`, `other`). Then start with:
+
+```bash
+STEMS_PLUGIN_DIR=~/.config/chordifree/stems-2 pnpm dev
+```
+
+Measured on a 16-core CPU with the model cached: 6 s of audio takes ~18 s for
+two stems, and a 19 s song ~28 s. Longer songs scale roughly with duration, so
+the UI warns that it can take several minutes. The first run also downloads the
+model (~80 MB).
+
+## Remote service
+
+Instead of a local plugin, an operator can point the server at a separate
+separation service on another machine:
+
+```bash
+STEMS_SERVICE_URL=https://stems.example.internal
+STEMS_SERVICE_TOKEN=optional-shared-token
+STEMS_SERVICE_TIMEOUT_MS=1800000
+```
+
+`STEMS_SERVICE_URL` takes precedence over `STEMS_PLUGIN_DIR`, and the token is
+sent as a Bearer header. The UI and `GET /api/stems` show the remote service
+exactly like the local plugin, so the app does not care where the model runs.
+Hosted Cloud Run can use this to reach a machine with more CPU or a GPU.
+
+The server uploads the cached audio to the remote service, so it leaves the
+instance: only configure it with a service you trust. The contract is:
+
+| Method | Path              | Body / result                                         |
+| ------ | ----------------- | ----------------------------------------------------- |
+| `GET`  | `/health`         | `{ status: "ok", name?, version?, stems?: string[] }` |
+| `POST` | `/separate`       | multipart `file` → `{ id, status, stems?, error? }`   |
+| `GET`  | `/jobs/:id`       | same job shape (`queued`/`processing`/`done`/`error`) |
+| `GET`  | `/jobs/:id/:stem` | the separated audio file                              |
+
+The server polls every 3 s, downloads the stems into its temporary directory and
+serves them through the authenticated `/api/stems/jobs/:id/:stem` route. The
+browser never talks to the remote service directly.
+
 ## Testing without a model
 
 The test suite registers a fake plugin that copies dummy files; see

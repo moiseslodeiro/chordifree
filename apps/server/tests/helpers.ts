@@ -32,6 +32,8 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     analyzerAuth: 'token',
     youtubeExtractorToken: '',
     youtubeExtractorTimeoutMs: 240_000,
+    stemsServiceToken: '',
+    stemsServiceTimeoutMs: 30 * 60 * 1000,
     ...overrides,
   };
 }

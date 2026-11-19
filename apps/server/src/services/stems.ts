@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
-import { mkdir, readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { ApiError } from '../errors';
 
@@ -71,6 +71,116 @@ function substitute(args: string[], input: string, output: string): string[] {
  * runs through a shell, and `{input}`/`{output}` are substituted as single
  * arguments so paths cannot inject extra flags.
  */
+interface RemoteJob {
+  id: string;
+  status: 'queued' | 'processing' | 'done' | 'error';
+  stems?: string[];
+  error?: { code?: string; message?: string };
+}
+
+/**
+ * Optional remote separation service, configured with STEMS_SERVICE_URL. It is
+ * meant for instances that cannot or do not want to run the models locally:
+ * the same status shape as the local plugin, so the UI behaves identically.
+ *
+ * Contract (see docs/STEMS_PLUGIN.md):
+ *   GET  /health                    -> { status, name?, version?, stems? }
+ *   POST /separate  (multipart file) -> { id, status }
+ *   GET  /jobs/:id                   -> { id, status, stems?, error? }
+ *   GET  /jobs/:id/:stem             -> audio file
+ */
+export class RemoteStemEngine implements StemEngine {
+  constructor(
+    private readonly url: string,
+    private readonly token = '',
+    private readonly timeoutMs = 30 * 60 * 1000,
+  ) {}
+
+  async status(): Promise<StemEngineStatus> {
+    try {
+      const response = await fetch(this.endpoint('/health'), {
+        headers: this.headers(),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) return { available: false, error: `HTTP ${response.status}` };
+      const body = (await response.json()) as {
+        status?: string;
+        name?: string;
+        version?: string;
+        stems?: string[];
+      };
+      if (body.status !== 'ok') return { available: false, error: body.status ?? 'not ready' };
+      return {
+        available: true,
+        ...(body.name ? { name: body.name } : {}),
+        ...(body.version ? { version: body.version } : {}),
+        ...(Array.isArray(body.stems) ? { stems: body.stems } : {}),
+      };
+    } catch (error) {
+      return { available: false, error: error instanceof Error ? error.message : 'unreachable' };
+    }
+  }
+
+  async separate(inputPath: string, outputDir: string): Promise<StemSeparationResult> {
+    await mkdir(outputDir, { recursive: true });
+    const file = await readFile(inputPath);
+    const form = new FormData();
+    form.append('file', new Blob([new Uint8Array(file)]), basename(inputPath));
+    const response = await fetch(this.endpoint('/separate'), {
+      method: 'POST',
+      headers: this.headers(),
+      body: form,
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+    if (!response.ok) {
+      throw new ApiError('STEMS_FAILED', `The stems service answered HTTP ${response.status}`);
+    }
+    let job = (await response.json()) as RemoteJob;
+    const startedAt = Date.now();
+    while (job.status === 'queued' || job.status === 'processing') {
+      if (Date.now() - startedAt > this.timeoutMs) {
+        throw new ApiError('STEMS_TIMEOUT', 'The stems service took too long');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const poll = await fetch(this.endpoint(`/jobs/${encodeURIComponent(job.id)}`), {
+        headers: this.headers(),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!poll.ok)
+        throw new ApiError('STEMS_FAILED', `The stems service answered HTTP ${poll.status}`);
+      job = (await poll.json()) as RemoteJob;
+    }
+    if (job.status === 'error') {
+      throw new ApiError('STEMS_FAILED', job.error?.message ?? 'The stems service failed');
+    }
+    const stems = new Map<string, string>();
+    for (const stem of job.stems ?? []) {
+      const audio = await fetch(
+        this.endpoint(`/jobs/${encodeURIComponent(job.id)}/${encodeURIComponent(stem)}`),
+        { headers: this.headers(), signal: AbortSignal.timeout(this.timeoutMs) },
+      );
+      if (!audio.ok) {
+        throw new ApiError('STEMS_FAILED', `The stems service did not return ${stem}`);
+      }
+      const path = join(outputDir, `${stem}.wav`);
+      await writeFile(path, new Uint8Array(await audio.arrayBuffer()));
+      stems.set(stem, path);
+    }
+    if (stems.size === 0) {
+      throw new ApiError('STEMS_FAILED', 'The stems service returned no stems');
+    }
+    return { stems };
+  }
+
+  private endpoint(path: string): string {
+    return `${this.url.replace(/\/+$/, '')}${path}`;
+  }
+
+  private headers(extra: Record<string, string> = {}): Record<string, string> {
+    return { ...extra, ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) };
+  }
+}
+
 export class PluginStemEngine implements StemEngine {
   constructor(private readonly directory: string) {}
 
@@ -92,6 +202,10 @@ export class PluginStemEngine implements StemEngine {
   }
 
   async separate(inputPath: string, outputDir: string): Promise<StemSeparationResult> {
+    // The plugin runs with its own directory as cwd, so relative temp paths
+    // from the audio cache would resolve there instead of the server cwd.
+    const absoluteInput = resolve(inputPath);
+    const absoluteOutput = resolve(outputDir);
     const manifest = await this.manifest();
     if (!manifest.args.some((arg) => arg.includes('{input}'))) {
       throw new ApiError('STEMS_FAILED', 'The plugin manifest does not use {input}');
@@ -99,16 +213,20 @@ export class PluginStemEngine implements StemEngine {
     if (!manifest.args.some((arg) => arg.includes('{output}'))) {
       throw new ApiError('STEMS_FAILED', 'The plugin manifest does not use {output}');
     }
-    await mkdir(outputDir, { recursive: true });
+    await mkdir(absoluteOutput, { recursive: true });
 
     const stderr: string[] = [];
     const timeoutMs = (manifest.timeoutSeconds ?? 900) * 1000;
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(manifest.command, substitute(manifest.args, inputPath, outputDir), {
-        cwd: this.directory,
-        shell: false,
-        stdio: ['ignore', 'ignore', 'pipe'],
-      });
+      const child = spawn(
+        manifest.command,
+        substitute(manifest.args, absoluteInput, absoluteOutput),
+        {
+          cwd: this.directory,
+          shell: false,
+          stdio: ['ignore', 'ignore', 'pipe'],
+        },
+      );
       let settled = false;
       const timer = setTimeout(() => {
         if (settled) return;
@@ -139,13 +257,13 @@ export class PluginStemEngine implements StemEngine {
       });
     });
 
-    const files = await readdir(outputDir);
+    const files = await readdir(absoluteOutput);
     const stems = new Map<string, string>();
     for (const stem of manifest.stems) {
       const match = files.find(
         (file) => file === `${stem}${manifest.outputExtension}` || file.startsWith(`${stem}.`),
       );
-      if (match) stems.set(stem, join(outputDir, match));
+      if (match) stems.set(stem, join(absoluteOutput, match));
     }
     const missing = manifest.stems.filter((stem) => !stems.has(stem));
     if (missing.length > 0) {

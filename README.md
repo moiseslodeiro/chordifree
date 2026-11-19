@@ -199,6 +199,7 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `TEMP_DIR`                 | `./.tmp`                | Temporary audio and analysis working directory                                                                 |
 | `AUDIO_CACHE_TTL_MINUTES`  | auto                    | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
 | `STEMS_PLUGIN_DIR`         | empty                   | Optional local stems plugin for desktop. See `docs/STEMS_PLUGIN.md`                                            |
+| `STEMS_SERVICE_URL`        | empty                   | Optional remote stems service, preferred over the local plugin. See `docs/STEMS_PLUGIN.md`                     |
 | `YTDLP_PATH`               | `yt-dlp`                | yt-dlp binary                                                                                                  |
 | `FFMPEG_PATH`              | `ffmpeg`                | ffmpeg binary                                                                                                  |
 | `FFPROBE_PATH`             | `ffprobe`               | ffprobe binary                                                                                                 |
