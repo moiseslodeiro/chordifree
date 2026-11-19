@@ -1,3 +1,79 @@
+# Chordifree 0.5.0
+
+Karaoke, automatic sections, a multi-track MIDI export and local stem separation on desktop.
+
+## Highlights
+
+- **Karaoke**: a center-channel cancellation toggle in the audio card turns the original track
+  into an approximate instrumental. The new karaoke button carries a microphone icon and a blue
+  background when it is active.
+- **Automatic sections**: the analyzer labels intro, verse, chorus and the rest of the structure,
+  and the song view lets you jump between sections while practicing.
+- **Multi-track MIDI**: export the chords and pad generated from the analysis together with the
+  transcribed bass and drums. On desktop, the bass and drum tracks can come from the separated
+  stems instead of the chord transcription.
+- **Local stem separation (desktop)**: an optional plugin (Demucs) splits the song into vocals,
+  drums, bass and other. A mixer plays the four tracks synchronized with independent volume per
+  track, and you can listen to a single stem or download each WAV.
+- **Stems cache and background jobs**: separations keep running when you change songs or close
+  the view, can be cancelled from the song or from the profile screen, and completed results are
+  cached under `$TEMP_DIR/stems-cache` (20 entries / 2 GB, oldest evicted first). The new
+  `#/stems` screen lists jobs, cancels them, auditions a cached mix or a single stem and clears
+  the cache.
+- **Remote stems service**: `STEMS_SERVICE_URL` and `STEMS_SERVICE_TOKEN` let a desktop or
+  private server send the audio to a machine with more CPU or a GPU instead of running the model
+  locally.
+- **Song layout**: the active chord diagram sits under the player, the audio, details and harmony
+  cards are collapsible with a `[+]`/`[-]` marker, and auto-scroll keeps the next two rows of the
+  grid visible inside its own scroll container.
+- **Navigation**: **Biblioteca**, **Listas** and **Pistas** are available from the header on
+  every screen; the stems link only appears when a plugin or service is available.
+- **Collaboration revisions**: shared songs keep versioned collaborative edits.
+- **Administration**: administrators see the analysis activity feed and can open analyzed songs
+  directly, including from small screens.
+- **Security**: the collaborative endpoints are hardened and the content security policy is
+  trimmed to what the app uses.
+
+## Online mode
+
+Online mode remains opt-in and local/desktop use is unchanged. Analysis results are stored in
+Firestore without audio. Stem separation is local or go to the service you configure; the hosted
+Cloud Run instance does not separate audio and does not ship the plugin.
+
+## Web
+
+The public build at <https://moiseslodeiro.github.io/chordifree/> remains local-only.
+Online mode is available when the API and Google OAuth are configured.
+
+## Desktop
+
+The installers are built from the tagged commit. They bundle the local analyzer, ffmpeg and the
+ONNX models; the stems plugin is not bundled, see `docs/STEMS_PLUGIN.md`.
+
+### Windows
+
+- Download `chordifree-0.5.0-setup.exe`.
+- Verify `SHA256SUMS.txt` before running it.
+- SmartScreen: **More info → Run anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/WINDOWS_INSTALL.md>
+
+### macOS
+
+- Apple Silicon: `chordifree-0.5.0-arm64.dmg`
+- Verify `SHA256SUMS.txt` before opening it.
+- The app is ad-hoc signed, not notarized. If Gatekeeper blocks it, open **System
+  Settings → Privacy & Security → Open Anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/MACOS_INSTALL.md>
+
+### Linux
+
+- `chordifree-0.5.0-x86_64.AppImage` or `chordifree-0.5.0-amd64.deb`
+- Verify `SHA256SUMS.txt` before running it.
+- The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with `apt`.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/LINUX_INSTALL.md>
+
+Code signing, notarization and automatic installation of updates are not available yet.
+
 # Chordifree 0.4.0
 
 Microphone practice, a persistent analysis cache and a more reliable remote extractor.
