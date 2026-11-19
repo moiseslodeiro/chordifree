@@ -55,6 +55,13 @@ async function stubApi(page: Page, result = RESULT): Promise<void> {
   });
 }
 
+async function openAudio(page: Page): Promise<void> {
+  const toggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click();
+  }
+}
+
 async function analyze(page: Page): Promise<void> {
   await page.goto('/?fakePlayer=1');
   await page.getByLabel('Enlace del video').fill('https://youtu.be/dQw4w9WgXcQ');
@@ -167,6 +174,10 @@ test.describe('full flow', () => {
     );
     await analyze(page);
 
+    const audioToggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+    if ((await audioToggle.getAttribute('aria-expanded')) === 'false') {
+      await audioToggle.click();
+    }
     const panel = page.getByTestId('stems-panel');
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: 'Separar pistas' }).click();
@@ -326,6 +337,7 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'Marcar final B' }).click();
     await page.getByTestId('beat-cell-0').click();
     await page.getByRole('button', { name: 'Bucle', exact: true }).click();
+    await openAudio(page);
     await page.getByLabel('Velocidad de reproducción').selectOption('1.25');
     await page.getByLabel('Tono del audio en semitonos').selectOption('4');
 
@@ -345,6 +357,7 @@ test.describe('full flow', () => {
       'true',
     );
     await expect(page.getByText('00:00 – 00:04')).toBeVisible();
+    await openAudio(page);
     await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1');
     await expect(page.getByLabel('Tono del audio en semitonos')).toHaveValue('0');
   });
@@ -779,14 +792,14 @@ test.describe('full flow', () => {
     await analyze(page);
 
     const player = await page.getByTestId('song-player-column').boundingBox();
-    const active = await page.getByTestId('song-active-chord').boundingBox();
     const audio = await page.getByTestId('song-audio').boundingBox();
+    const active = await page.getByTestId('song-active-chord').boundingBox();
     expect(player).not.toBeNull();
-    expect(active).not.toBeNull();
     expect(audio).not.toBeNull();
-    expect(active!.y).toBeGreaterThan(player!.y);
-    expect(active!.y - (player!.y + player!.height)).toBeLessThan(40);
-    expect(audio!.y).toBeGreaterThan(active!.y);
+    expect(active).not.toBeNull();
+    expect(audio!.y).toBeGreaterThan(player!.y);
+    expect(audio!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(active!.y).toBeGreaterThan(audio!.y);
   });
 
   test('keeps the mobile order of player, grid, tools and harmony', async ({ page }) => {

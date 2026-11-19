@@ -17,6 +17,10 @@ import { join } from 'node:path';
 const [, , input, output] = process.argv;
 writeFileSync(join(output, 'vocals.wav'), 'voice:' + input);
 writeFileSync(join(output, 'instrumental.wav'), 'instrumental');
+writeFileSync(join(output, 'bass.wav'), 'bass');
+writeFileSync(join(output, 'drums.wav'), 'drums');
+writeFileSync(join(output, 'bass.notes.json'), JSON.stringify({ notes: [{ start: 0, end: 1, pitch: 40, velocity: 92 }] }));
+writeFileSync(join(output, 'drums.notes.json'), JSON.stringify({ notes: [{ start: 0, end: 0.1, pitch: 36 }] }));
 `;
 
 async function fakeAudio(): Promise<{
@@ -32,7 +36,11 @@ async function fakeAudio(): Promise<{
   return { cache, input };
 }
 
-async function fakePlugin(command: string, args: (script: string) => string[]) {
+async function fakePlugin(
+  command: string,
+  args: (script: string) => string[],
+  manifest: Record<string, unknown> = {},
+) {
   const dir = await mkdtemp(join(tmpdir(), 'chordifree-stems-plugin-'));
   const script = join(dir, 'fake-stems.mjs');
   await writeFile(script, PLUGIN_SCRIPT);
@@ -45,6 +53,7 @@ async function fakePlugin(command: string, args: (script: string) => string[]) {
       args: args(script),
       stems: ['vocals', 'instrumental'],
       timeoutSeconds: 60,
+      ...manifest,
     }),
   );
   return dir;
@@ -82,6 +91,19 @@ describe('stems plugin engine', () => {
     const output = await mkdtemp(join(tmpdir(), 'chordifree-stems-relative-'));
     const result = await new PluginStemEngine(dir).separate(relative(process.cwd(), input), output);
     expect([...result.stems.keys()]).toEqual(['vocals', 'instrumental']);
+  });
+
+  it('collects transcribed notes declared by the plugin', async () => {
+    const dir = await fakePlugin(process.execPath, (script) => [script, '{input}', '{output}'], {
+      stems: ['bass', 'drums'],
+      transcribe: ['bass', 'drums'],
+    });
+    const { input } = await fakeAudio();
+    const output = await mkdtemp(join(tmpdir(), 'chordifree-stems-notes-'));
+    const result = await new PluginStemEngine(dir).separate(input, output);
+    expect([...result.notes.keys()]).toEqual(['bass', 'drums']);
+    expect(result.notes.get('bass')?.[0]).toMatchObject({ pitch: 40, velocity: 92 });
+    expect(result.notes.get('drums')?.[0]).toMatchObject({ pitch: 36 });
   });
 
   it('reports a broken manifest instead of starting', async () => {
@@ -193,6 +215,27 @@ describe('stem jobs', () => {
     expect(view?.stems).toEqual(['vocals', 'instrumental']);
     expect(jobs.file(started.id, 'vocals')).toContain('vocals.wav');
     expect(jobs.file(started.id, 'mix')).toBeNull();
+  });
+
+  it('exposes the transcribed notes by job id', async () => {
+    const dir = await fakePlugin(process.execPath, (script) => [script, '{input}', '{output}'], {
+      stems: ['bass', 'drums'],
+      transcribe: ['bass', 'drums'],
+    });
+    const { cache } = await fakeAudio();
+    const workRoot = await mkdtemp(join(tmpdir(), 'chordifree-stems-jobs-notes-'));
+    const jobs = new StemJobs(new PluginStemEngine(dir), cache, workRoot);
+
+    const started = await jobs.start('dQw4w9WgXcQ');
+    let view = jobs.get(started.id);
+    for (let attempt = 0; attempt < 100 && view?.status !== 'done'; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      view = jobs.get(started.id);
+    }
+    expect(view?.status).toBe('done');
+    expect(view?.midi).toEqual(['bass', 'drums']);
+    expect(jobs.notes(started.id, 'bass')?.[0]?.pitch).toBe(40);
+    expect(jobs.notes(started.id, 'missing')).toBeNull();
   });
 
   it('requires the temporary audio first', async () => {

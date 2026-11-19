@@ -171,6 +171,42 @@ describe('buildMidi', () => {
     expect(movement).toBeLessThan(12);
   });
 
+  it('replaces the generated bass and drums with transcribed notes', () => {
+    const midi = parse(
+      buildMidi(makeSong([{ start: 0, end: 2, chord: C }]), 120, {
+        bass: [
+          { start: 0, end: 1, pitch: 40 },
+          { start: 1, end: 1.5, pitch: 43 },
+        ],
+        drums: [
+          { start: 0, end: 0.1, pitch: 36 },
+          { start: 0.5, end: 0.6, pitch: 42 },
+        ],
+      }),
+    );
+
+    expect(
+      midi.notes
+        .filter((note) => note.on && note.channel === 1)
+        .map((note) => [note.tick, note.note]),
+    ).toEqual([
+      [0, 40],
+      [960, 43],
+    ]);
+    expect(
+      midi.notes
+        .filter((note) => note.on && note.channel === 9)
+        .map((note) => [note.tick, note.note]),
+    ).toEqual([
+      [0, 36],
+      [480, 42],
+    ]);
+    // The chord track is still generated from the analysis.
+    expect(
+      midi.notes.filter((note) => note.on && note.channel === 0 && note.tick === 0),
+    ).toHaveLength(3);
+  });
+
   it('writes section markers into the meta track', () => {
     const midi = parse(
       buildMidi(

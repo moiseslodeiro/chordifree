@@ -216,10 +216,6 @@ export function PlayerHost({
           </button>
         </div>
       ) : null}
-
-      {videoId && temporaryUrl && !overrideUrl && !preparing && !prepareFailed ? (
-        <div className="note note-info text-sm leading-relaxed">{t('player.youtubeTemporary')}</div>
-      ) : null}
     </div>
   );
 }

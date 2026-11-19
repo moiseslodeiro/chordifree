@@ -1,0 +1,9 @@
+{
+  "name": "demucs-4stems",
+  "version": "4.1.0",
+  "command": "./run.sh",
+  "args": ["{input}", "{output}"],
+  "stems": ["vocals", "drums", "bass", "other"],
+  "transcribe": ["bass", "drums"],
+  "timeoutSeconds": 2400
+}

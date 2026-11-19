@@ -68,6 +68,20 @@ export function createStemsRouter(engine: StemEngine, jobs: StemJobs): Router {
     }
   });
 
+  router.get('/jobs/:id/notes/:stem', (req, res, next) => {
+    try {
+      if (!JOB_ID_PATTERN.test(req.params.id)) {
+        throw new ApiError('NOT_FOUND', 'The separation job does not exist');
+      }
+      const notes = jobs.notes(req.params.id, req.params.stem);
+      if (!notes) throw new ApiError('NOT_FOUND', 'Those notes are not ready');
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.json({ notes });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get('/jobs/:id/:stem', (req, res, next) => {
     try {
       if (!JOB_ID_PATTERN.test(req.params.id)) {

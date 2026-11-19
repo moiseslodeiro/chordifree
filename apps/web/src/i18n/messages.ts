@@ -272,6 +272,9 @@ const en = {
   'stems.other': 'Other',
   'stems.loading': 'Preparing…',
   'stems.download': 'Download {stem}',
+  'stems.midiFromStems': 'MIDI from stems',
+  'stems.midiHint': 'Includes the transcribed tracks: {stems}',
+  'stems.midiPreparing': 'Preparing MIDI…',
   'stems.failed': 'The stems plugin failed: {message}',
   'stems.loadFailed': 'The stem could not be loaded.',
   'sections.title': 'Sections',
@@ -643,7 +646,6 @@ const en = {
   'player.pitchPreparing': 'Preparing the YouTube audio…',
   'player.pitchAudioFailed':
     'Could not prepare the YouTube audio. The song cannot be played right now.',
-  'player.youtubeTemporary': 'YouTube audio is played from a temporary copy on the server.',
   'player.audioFileHint': 'Use the playback bar above to play this file.',
   'player.audioLoadFailed': 'The audio could not be loaded.',
   'player.audioMissing':
@@ -1028,6 +1030,9 @@ const es: Record<MessageKey, string> = {
   'stems.other': 'Otros',
   'stems.loading': 'Preparando…',
   'stems.download': 'Descargar {stem}',
+  'stems.midiFromStems': 'MIDI desde stems',
+  'stems.midiHint': 'Incluye las pistas transcritas: {stems}',
+  'stems.midiPreparing': 'Preparando MIDI…',
   'stems.failed': 'El plugin de pistas falló: {message}',
   'stems.loadFailed': 'No se pudo cargar la pista.',
   'sections.title': 'Secciones',
@@ -1403,8 +1408,6 @@ const es: Record<MessageKey, string> = {
   'player.pitchPreparing': 'Preparando el audio de YouTube…',
   'player.pitchAudioFailed':
     'No se pudo preparar el audio de YouTube. La canción no se puede reproducir ahora.',
-  'player.youtubeTemporary':
-    'El audio de YouTube se reproduce desde una copia temporal en el servidor.',
   'player.audioFileHint': 'Usa la barra de reproducción superior para escuchar este archivo.',
   'player.audioLoadFailed': 'No se pudo cargar el audio.',
   'player.audioMissing':

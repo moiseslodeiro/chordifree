@@ -22,6 +22,19 @@ interface NoteSpec {
   velocity?: number;
 }
 
+/** A transcribed note, as returned by the stems plugin (seconds). */
+export interface MidiNote {
+  start: number;
+  end: number;
+  pitch: number;
+  velocity?: number;
+}
+
+export interface MidiOverrides {
+  bass?: MidiNote[];
+  drums?: MidiNote[];
+}
+
 function clampBpm(bpm: number | null | undefined): number {
   if (!Number.isFinite(bpm ?? NaN)) return DEFAULT_BPM;
   return Math.max(20, Math.min(300, Math.round(bpm!)));
@@ -216,7 +229,32 @@ function padSpecs(song: Song): NoteSpec[] {
 }
 
 /** Root on the first and third beat of every bar. */
-function bassSpecs(song: Song, beats: number[], beatsPerBar: number): NoteSpec[] {
+function transcribedSpecs(notes: MidiNote[]): NoteSpec[] {
+  return notes
+    .filter(
+      (note) =>
+        Number.isFinite(note.start) &&
+        Number.isFinite(note.end) &&
+        note.end > note.start &&
+        Number.isInteger(note.pitch) &&
+        note.pitch >= 0 &&
+        note.pitch <= 127,
+    )
+    .map((note) => ({
+      note: note.pitch,
+      start: note.start,
+      end: note.end,
+      ...(note.velocity ? { velocity: note.velocity } : {}),
+    }));
+}
+
+function bassSpecs(
+  song: Song,
+  beats: number[],
+  beatsPerBar: number,
+  override?: MidiNote[],
+): NoteSpec[] {
+  if (override) return transcribedSpecs(override);
   const beatDuration = beats.length > 1 ? beats[1]! - beats[0]! : 0.5;
   const specs: NoteSpec[] = [];
   for (const [index, time] of beats.entries()) {
@@ -239,7 +277,13 @@ function bassSpecs(song: Song, beats: number[], beatsPerBar: number): NoteSpec[]
  * 2 and 4, and a crash on every section start. It is an arrangement, not a
  * transcription of the original drummer.
  */
-function drumSpecs(song: Song, beats: number[], beatsPerBar: number): NoteSpec[] {
+function drumSpecs(
+  song: Song,
+  beats: number[],
+  beatsPerBar: number,
+  override?: MidiNote[],
+): NoteSpec[] {
+  if (override) return transcribedSpecs(override);
   const beatDuration = beats.length > 1 ? beats[1]! - beats[0]! : 0.5;
   const specs: NoteSpec[] = [];
   const crashTimes = new Set((song.sections ?? []).map((section) => section.start.toFixed(2)));
@@ -279,7 +323,11 @@ function drumSpecs(song: Song, beats: number[], beatsPerBar: number): NoteSpec[]
  * Chord notation follows the song's current tuning (capo and transposition
  * applied by the caller).
  */
-export function buildMidi(song: Song, bpm: number | null | undefined): Uint8Array {
+export function buildMidi(
+  song: Song,
+  bpm: number | null | undefined,
+  overrides: MidiOverrides = {},
+): Uint8Array {
   const tempo = clampBpm(bpm);
   const beatsPerBar = Math.max(1, Math.min(16, Math.round(song.beatsPerBar ?? 4)));
   const beats = beatGrid(song, tempo);
@@ -307,12 +355,17 @@ export function buildMidi(song: Song, bpm: number | null | undefined): Uint8Arra
     track(metaTrack),
     encodeTrack('Chords', 0, 0, noteEvents(compingSpecs(song, beats, beatsPerBar), tempo, 0)),
     encodeTrack('Pad', 48, 2, noteEvents(padSpecs(song), tempo, 2)),
-    encodeTrack('Bass', 33, 1, noteEvents(bassSpecs(song, beats, beatsPerBar), tempo, 1)),
+    encodeTrack(
+      'Bass',
+      33,
+      1,
+      noteEvents(bassSpecs(song, beats, beatsPerBar, overrides.bass), tempo, 1),
+    ),
     encodeTrack(
       'Drums',
       null,
       DRUM_CHANNEL,
-      noteEvents(drumSpecs(song, beats, beatsPerBar), tempo, DRUM_CHANNEL, 100),
+      noteEvents(drumSpecs(song, beats, beatsPerBar, overrides.drums), tempo, DRUM_CHANNEL, 100),
     ),
   ];
 

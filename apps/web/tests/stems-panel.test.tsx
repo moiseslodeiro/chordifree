@@ -28,9 +28,11 @@ function renderPanel(overrides: Partial<Parameters<typeof StemsPanel>[0]> = {}) 
     error: null,
     selected: null,
     loadingStem: null,
+    midiBusy: false,
     onSeparate: vi.fn(),
     onSelect: vi.fn(),
     onDownload: vi.fn(),
+    onDownloadMidi: vi.fn(),
     onRetry: vi.fn(),
     ...overrides,
   };
@@ -73,6 +75,14 @@ describe('StemsPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Descargar Instrumental' }));
     expect(props.onDownload).toHaveBeenCalledWith('no_vocals');
+  });
+
+  it('offers a MIDI built from the transcribed stems', () => {
+    const props = renderPanel({ job: { ...done, midi: ['bass', 'drums'] } });
+    const midi = screen.getByRole('button', { name: 'MIDI desde stems' });
+    expect(midi).toHaveAttribute('title', 'Incluye las pistas transcritas: Bajo, Batería');
+    fireEvent.click(midi);
+    expect(props.onDownloadMidi).toHaveBeenCalledTimes(1);
   });
 
   it('reports a failure and allows retrying', () => {

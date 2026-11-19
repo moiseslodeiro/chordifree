@@ -19,6 +19,8 @@ function setup(overrides: Partial<Parameters<typeof AudioControls>[0]> = {}) {
     ...overrides,
   };
   render(<AudioControls {...props} />);
+  const toggle = screen.getByRole('button', { name: /Audio/ });
+  if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle);
   return { adapter, props };
 }
 
@@ -67,6 +69,7 @@ describe('AudioControls', () => {
         <p>stems block</p>
       </AudioControls>,
     );
+    fireEvent.click(screen.getByRole('button', { name: /Audio/ }));
     expect(screen.getByText('stems block')).toBeInTheDocument();
   });
 });

@@ -67,12 +67,7 @@ export function AudioControls({
   }, [adapter, rate]);
 
   return (
-    <CollapsibleCard
-      title={t('audio.title')}
-      meta={t('audio.eyebrow')}
-      defaultOpen
-      testId="audio-controls"
-    >
+    <CollapsibleCard title={t('audio.title')} meta={t('audio.eyebrow')} testId="audio-controls">
       <div className="space-y-3 p-4">
         <label className="flex items-center justify-between gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
           {t('practice.rate')}

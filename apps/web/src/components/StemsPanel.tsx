@@ -9,9 +9,11 @@ interface StemsPanelProps {
   error: string | null;
   selected: string | null;
   loadingStem: string | null;
+  midiBusy: boolean;
   onSeparate: () => void;
   onSelect: (stem: string | null) => void;
   onDownload: (stem: string) => void;
+  onDownloadMidi: () => void;
   onRetry: () => void;
 }
 
@@ -41,9 +43,11 @@ export function StemsPanel({
   error,
   selected,
   loadingStem,
+  midiBusy,
   onSeparate,
   onSelect,
   onDownload,
+  onDownloadMidi,
   onRetry,
 }: StemsPanelProps) {
   const t = useT();
@@ -51,6 +55,7 @@ export function StemsPanel({
 
   const ready = job?.status === 'done';
   const working = job?.status === 'queued' || job?.status === 'processing' || busy;
+  const midiStems = job?.midi ?? [];
 
   return (
     <section
@@ -116,6 +121,19 @@ export function StemsPanel({
           {selected ? (
             <button type="button" className="tool-chip" onClick={() => onDownload(selected)}>
               {t('stems.download', { stem: stemLabel(selected, t) })}
+            </button>
+          ) : null}
+          {midiStems.length > 0 ? (
+            <button
+              type="button"
+              className="btn min-h-0 w-full justify-center px-3 py-1.5 text-xs"
+              onClick={onDownloadMidi}
+              disabled={midiBusy}
+              title={t('stems.midiHint', {
+                stems: midiStems.map((stem) => stemLabel(stem, t)).join(', '),
+              })}
+            >
+              {midiBusy ? t('stems.midiPreparing') : t('stems.midiFromStems')}
             </button>
           ) : null}
         </div>

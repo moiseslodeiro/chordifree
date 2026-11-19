@@ -117,6 +117,37 @@ two stems, and a 19 s song ~28 s. Longer songs scale roughly with duration, so
 the UI warns that it can take several minutes. The first run also downloads the
 model (~80 MB).
 
+## Transcription (bass and drums)
+
+The plugin can also return notes for some stems. Add them to the manifest:
+
+```json
+"transcribe": ["bass", "drums"]
+```
+
+and write `<stem>.notes.json` next to the audio:
+
+```json
+{ "notes": [{ "start": 0, "end": 0.9, "pitch": 40, "velocity": 92 }] }
+```
+
+Times are seconds and `pitch` is a MIDI note. The server validates the file and
+exposes it at `GET /api/stems/jobs/:id/notes/:stem`; the job lists the available
+stems in `midi`. The song view then offers **MIDI from stems**, which keeps the
+generated chords, pad and section markers but replaces the bass and drum tracks
+with the transcribed ones.
+
+[`services/stems-plugin`](../services/stems-plugin) is a working reference: it
+runs Demucs, uses `librosa.pyin` for the bass and onset detection plus a
+three-band rule for the drums, and writes the JSON files. Install it with
+`pip install -r services/stems-plugin/requirements.txt` and copy the files to
+the plugin directory.
+
+The transcription runs locally, on the CPU: expect a similar order of time as the
+separation itself. The result is an arrangement, not a perfect transcription;
+bass octave errors and simplified drum patterns are normal and can be corrected
+in the DAW.
+
 ## Remote service
 
 Instead of a local plugin, an operator can point the server at a separate
@@ -174,11 +205,15 @@ STEMS_PLUGIN_DIR=/tmp/stems-plugin pnpm dev
 
 ## Roadmap
 
-1. A true mixer: mute/solo per stem with a shared clock, instead of swapping
+1. Vocal melody transcription from the vocal stem (basic-pitch/CREPE), the
+   remaining piece for a full MIDI arrangement.
+2. A true mixer: mute/solo per stem with a shared clock, instead of swapping
    the source. Pre-rendered mixes ("instrumental", "no drums") are the cheap
    intermediate step.
-2. Cache job metadata by `videoId + plugin version`, and evict with the audio
+3. Cache job metadata by `videoId + plugin version`, and evict with the audio
    cache TTL.
-3. 4–6 stem engines and an install flow with SHA-256 and pinned versions.
-4. Keep derived audio local; do not upload it to the cloud instance. The
+4. Extend the remote service contract with the same `notes` endpoint, so a GPU
+   machine can return the transcribed stems too.
+5. 4–6 stem engines and an install flow with SHA-256 and pinned versions.
+6. Keep derived audio local; do not upload it to the cloud instance. The
    YouTube legal notice still applies.

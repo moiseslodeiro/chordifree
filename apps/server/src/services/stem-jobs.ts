@@ -3,7 +3,7 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ApiError } from '../errors';
 import type { TemporaryAudioCache } from './audio-cache';
-import type { StemEngine } from './stems';
+import type { StemEngine, StemNote } from './stems';
 
 export type StemJobStatus = 'queued' | 'processing' | 'done' | 'error';
 
@@ -12,6 +12,8 @@ export interface StemJobView {
   videoId: string;
   status: StemJobStatus;
   stems: string[];
+  /** Stems that also have transcribed notes (bass, drums…). */
+  midi?: string[];
   error?: { code: string; message: string };
   createdAt: string;
   updatedAt: string;
@@ -21,6 +23,7 @@ interface StoredJob {
   view: StemJobView;
   outputDir: string;
   files: Map<string, string>;
+  notes: Map<string, StemNote[]>;
 }
 
 const MAX_JOBS = 20;
@@ -66,7 +69,7 @@ export class StemJobs {
       updatedAt: timestamp,
     };
     const outputDir = join(this.root, id);
-    this.jobs.set(id, { view, outputDir, files: new Map() });
+    this.jobs.set(id, { view, outputDir, files: new Map(), notes: new Map() });
     void this.sweep();
     void this.run(id, cached.path);
     return view;
@@ -82,6 +85,12 @@ export class StemJobs {
     return job.files.get(stem) ?? null;
   }
 
+  notes(id: string, stem: string): StemNote[] | null {
+    const job = this.jobs.get(id);
+    if (!job || job.view.status !== 'done') return null;
+    return job.notes.get(stem) ?? null;
+  }
+
   private async run(id: string, inputPath: string): Promise<void> {
     const job = this.jobs.get(id);
     if (!job) return;
@@ -89,10 +98,12 @@ export class StemJobs {
     try {
       const result = await this.engine.separate(inputPath, job.outputDir);
       job.files = result.stems;
+      job.notes = result.notes;
       job.view = {
         ...job.view,
         status: 'done',
         stems: [...result.stems.keys()],
+        ...(result.notes.size > 0 ? { midi: [...result.notes.keys()] } : {}),
         updatedAt: new Date(this.now()).toISOString(),
       };
     } catch (error) {

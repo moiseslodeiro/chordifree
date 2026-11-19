@@ -7,6 +7,13 @@ test.beforeEach(async ({ page }) => {
   await stubStems(page);
 });
 
+async function openAudio(page: import('@playwright/test').Page): Promise<void> {
+  const toggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click();
+  }
+}
+
 test.describe('audio pitch', () => {
   test.skip(
     ({ browserName }) => browserName !== 'chromium',
@@ -50,6 +57,7 @@ test.describe('audio pitch', () => {
     await page.getByRole('button', { name: 'Try the demo' }).click();
     await expect(page.getByRole('heading', { name: 'Chordifree demo · C G Am F' })).toBeVisible();
 
+    await openAudio(page);
     const pitch = page.getByLabel('Audio pitch in semitones');
     await expect(pitch).toBeEnabled();
     await pitch.selectOption('4');
@@ -84,6 +92,7 @@ test.describe('audio pitch', () => {
 
     await page.goto('/');
     await page.getByRole('button', { name: 'Try the demo' }).click();
+    await openAudio(page);
 
     const karaoke = page.getByRole('button', { name: 'Karaoke' });
     await expect(karaoke).toHaveAttribute('aria-pressed', 'false');
@@ -225,9 +234,8 @@ test.describe('YouTube temporary audio', () => {
     await expect(audio).toHaveAttribute('src', /^blob:/);
     await expect(audio).not.toHaveAttribute('controls');
 
-    await page.getByTestId('practice-summary').click();
+    await openAudio(page);
     await page.getByLabel('Audio pitch in semitones').selectOption('4');
-    await expect(page.getByText(/YouTube audio is played from a temporary copy/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect.poll(() => audio.evaluate((element) => element.currentTime)).toBeGreaterThan(0.25);

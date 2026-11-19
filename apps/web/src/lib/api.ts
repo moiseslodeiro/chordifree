@@ -378,11 +378,20 @@ export interface StemsStatus {
   error?: string;
 }
 
+export interface StemNote {
+  start: number;
+  end: number;
+  pitch: number;
+  velocity?: number;
+}
+
 export interface StemJobView {
   id: string;
   videoId: string;
   status: 'queued' | 'processing' | 'done' | 'error';
   stems: string[];
+  /** Stems with transcribed notes, for example bass and drums. */
+  midi?: string[];
   error?: { code: string; message: string };
   createdAt: string;
   updatedAt: string;
@@ -399,6 +408,19 @@ export async function startStems(videoId: string): Promise<StemJobView> {
     headers: authHeaders(),
   });
   return parseResponse<StemJobView>(response);
+}
+
+export async function getStemNotes(
+  id: string,
+  stem: string,
+  signal?: AbortSignal,
+): Promise<StemNote[]> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(id)}/notes/${encodeURIComponent(stem)}`,
+    { signal, headers: authHeaders() },
+  );
+  const body = await parseResponse<{ notes?: StemNote[] }>(response);
+  return Array.isArray(body.notes) ? body.notes : [];
 }
 
 export async function getStemsJob(id: string, signal?: AbortSignal): Promise<StemJobView> {

@@ -23,6 +23,11 @@ const ManifestSchema = z
       .string()
       .regex(/^\.[a-z0-9]{1,5}$/)
       .default('.wav'),
+    /** Stems the plugin also transcribes to `<stem>.notes.json`. */
+    transcribe: z
+      .array(z.string().regex(/^[a-z0-9_-]{1,32}$/))
+      .max(12)
+      .optional(),
     timeoutSeconds: z.number().int().min(30).max(3600).optional(),
   })
   .strict();
@@ -37,10 +42,32 @@ export interface StemEngineStatus {
   error?: string;
 }
 
+export interface StemNote {
+  start: number;
+  end: number;
+  pitch: number;
+  velocity?: number;
+}
+
 export interface StemSeparationResult {
   /** Stem name -> absolute file path. */
   stems: Map<string, string>;
+  /** Stem name -> notes transcribed from that stem, if the plugin supports it. */
+  notes: Map<string, StemNote[]>;
 }
+
+const NotesFileSchema = z.object({
+  notes: z
+    .array(
+      z.object({
+        start: z.number().min(0),
+        end: z.number().min(0),
+        pitch: z.number().int().min(0).max(127),
+        velocity: z.number().int().min(1).max(127).optional(),
+      }),
+    )
+    .max(20000),
+});
 
 export interface StemEngine {
   status(): Promise<StemEngineStatus>;
@@ -169,7 +196,7 @@ export class RemoteStemEngine implements StemEngine {
     if (stems.size === 0) {
       throw new ApiError('STEMS_FAILED', 'The stems service returned no stems');
     }
-    return { stems };
+    return { stems, notes: new Map() };
   }
 
   private endpoint(path: string): string {
@@ -261,7 +288,9 @@ export class PluginStemEngine implements StemEngine {
     const stems = new Map<string, string>();
     for (const stem of manifest.stems) {
       const match = files.find(
-        (file) => file === `${stem}${manifest.outputExtension}` || file.startsWith(`${stem}.`),
+        (file) =>
+          file === `${stem}${manifest.outputExtension}` ||
+          (file.startsWith(`${stem}.`) && !file.endsWith('.notes.json')),
       );
       if (match) stems.set(stem, join(absoluteOutput, match));
     }
@@ -269,7 +298,23 @@ export class PluginStemEngine implements StemEngine {
     if (missing.length > 0) {
       throw new ApiError('STEMS_FAILED', `The plugin did not produce: ${missing.join(', ')}`);
     }
-    return { stems };
+
+    const notes = new Map<string, StemNote[]>();
+    for (const stem of manifest.transcribe ?? []) {
+      const path = join(absoluteOutput, `${stem}.notes.json`);
+      let raw: string;
+      try {
+        raw = await readFile(path, 'utf8');
+      } catch {
+        throw new ApiError('STEMS_FAILED', `The plugin did not transcribe: ${stem}`);
+      }
+      const parsed = NotesFileSchema.safeParse(JSON.parse(raw));
+      if (!parsed.success) {
+        throw new ApiError('STEMS_FAILED', `Invalid notes for: ${stem}`);
+      }
+      notes.set(stem, parsed.data.notes);
+    }
+    return { stems, notes };
   }
 
   private async manifest(): Promise<StemManifest> {

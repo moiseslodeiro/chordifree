@@ -36,8 +36,8 @@ import {
   whatsappShareUrl,
 } from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
-import { buildMidi, downloadMidi } from '../lib/midi';
-import { downloadStem, prepareStemAudio } from '../lib/api';
+import { buildMidi, downloadMidi, type MidiOverrides } from '../lib/midi';
+import { downloadStem, getStemNotes, prepareStemAudio } from '../lib/api';
 import { useStems } from '../hooks/useStems';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
@@ -166,6 +166,7 @@ export function SongView({
   const [stemSelected, setStemSelected] = useState<string | null>(null);
   const [stemUrl, setStemUrl] = useState<string | null>(null);
   const [stemLoading, setStemLoading] = useState<string | null>(null);
+  const [stemMidiBusy, setStemMidiBusy] = useState(false);
   const [stemError, setStemError] = useState<string | null>(null);
   const stemUrlRef = useRef<string | null>(null);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
@@ -532,6 +533,30 @@ export function SongView({
       setStemError(t('stems.loadFailed'));
     } finally {
       setStemLoading(null);
+    }
+  };
+
+  const downloadStemMidi = async () => {
+    if (!stems.job?.midi?.length) return;
+    setStemMidiBusy(true);
+    setStemError(null);
+    try {
+      const overrides: MidiOverrides = {};
+      for (const stem of stems.job.midi) {
+        const notes = await getStemNotes(stems.job.id, stem);
+        if (stem === 'bass') overrides.bass = notes;
+        if (stem === 'drums') overrides.drums = notes;
+      }
+      const base =
+        song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+      downloadMidi(
+        `${base}-stems.mid`,
+        buildMidi({ ...song, segments: practiceSegments, sections }, bpm, overrides),
+      );
+    } catch {
+      setStemError(t('stems.loadFailed'));
+    } finally {
+      setStemMidiBusy(false);
     }
   };
 
@@ -1253,6 +1278,38 @@ export function SongView({
             </section>
           </div>
 
+          <div data-testid="song-audio" className="order-2 lg:order-none">
+            <AudioControls
+              adapter={adapter}
+              rate={rate}
+              onRateChange={(value) => updatePractice({ rate: value })}
+              pitch={pitch}
+              onPitchChange={(value) => updatePractice({ pitch: value })}
+              pitchAvailable={
+                song.source.type === 'youtube' || typeof adapter?.setPitch === 'function'
+              }
+              karaoke={karaoke}
+              onKaraokeChange={setKaraoke}
+              karaokeAvailable={typeof adapter?.setKaraoke === 'function'}
+            >
+              {videoId && stems.status?.available ? (
+                <StemsPanel
+                  status={stems.status}
+                  job={stems.job}
+                  busy={stems.busy}
+                  error={stems.error ?? stemError}
+                  selected={stemSelected}
+                  loadingStem={stemLoading}
+                  midiBusy={stemMidiBusy}
+                  onSeparate={() => void stems.separate()}
+                  onSelect={(stem) => void selectStem(stem)}
+                  onDownload={downloadSelectedStem}
+                  onDownloadMidi={() => void downloadStemMidi()}
+                  onRetry={() => void stems.separate()}
+                />
+              ) : null}
+            </AudioControls>
+          </div>
           <div data-testid="song-active-chord" className="order-2 lg:order-none">
             <ActiveChordDiagram
               segments={displaySegments}
@@ -1302,37 +1359,6 @@ export function SongView({
               />
             </div>
           ) : null}
-
-          <div data-testid="song-audio" className="order-2 lg:order-none">
-            <AudioControls
-              adapter={adapter}
-              rate={rate}
-              onRateChange={(value) => updatePractice({ rate: value })}
-              pitch={pitch}
-              onPitchChange={(value) => updatePractice({ pitch: value })}
-              pitchAvailable={
-                song.source.type === 'youtube' || typeof adapter?.setPitch === 'function'
-              }
-              karaoke={karaoke}
-              onKaraokeChange={setKaraoke}
-              karaokeAvailable={typeof adapter?.setKaraoke === 'function'}
-            >
-              {videoId && stems.status?.available ? (
-                <StemsPanel
-                  status={stems.status}
-                  job={stems.job}
-                  busy={stems.busy}
-                  error={stems.error ?? stemError}
-                  selected={stemSelected}
-                  loadingStem={stemLoading}
-                  onSeparate={() => void stems.separate()}
-                  onSelect={(stem) => void selectStem(stem)}
-                  onDownload={downloadSelectedStem}
-                  onRetry={() => void stems.separate()}
-                />
-              ) : null}
-            </AudioControls>
-          </div>
         </aside>
       </div>
 

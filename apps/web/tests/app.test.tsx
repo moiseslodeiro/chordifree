@@ -158,6 +158,8 @@ describe('App', () => {
 
     expect(screen.getByText('Transponer')).toBeInTheDocument();
     const songAudio = await screen.findByTestId('audio-controls');
+    const audioToggle = within(songAudio).getByRole('button', { name: /Audio/ });
+    if (audioToggle.getAttribute('aria-expanded') === 'false') fireEvent.click(audioToggle);
     expect(songAudio).toHaveTextContent('Velocidad');
     expect(songAudio).toHaveTextContent('Tono de la canción');
 
