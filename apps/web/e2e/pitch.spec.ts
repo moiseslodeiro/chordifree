@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
-import { stubAuthConfig } from './support';
+import { stubAuthConfig, stubStems } from './support';
 
 test.beforeEach(async ({ page }) => {
   await stubAuthConfig(page);
+  await stubStems(page);
 });
 
 test.describe('audio pitch', () => {

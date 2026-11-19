@@ -13,3 +13,22 @@ export async function stubAuthConfig(page: Page): Promise<void> {
     }),
   );
 }
+
+/**
+ * The E2E stack has no API server, so the optional stems status must be stubbed
+ * or the proxy returns 500 and tests that forbid console errors fail.
+ */
+export async function stubStems(
+  page: Page,
+  status: { available: boolean; name?: string; version?: string; stems?: string[] } = {
+    available: false,
+  },
+): Promise<void> {
+  await page.route('**/api/stems', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(status),
+    }),
+  );
+}
