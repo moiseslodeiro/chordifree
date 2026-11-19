@@ -160,11 +160,11 @@ installation and tunnel walkthrough is in
   only approved accounts can enter.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
-- **Multi-track MIDI**: export the chords and pad from the analysis plus the transcribed
-  bass and drums from the stems as a Standard MIDI File.
+- **Multi-track MIDI**: export the chords and pad from the analysis and the transcribed bass and
+  drums from the stems as a Standard MIDI File.
 - **Local stem separation (desktop)**: an optional plugin separates vocals, drums, bass and
-  other; a mixer plays the four synchronized tracks with independent volume, and the
-  **Stems** screen lists jobs, cancels them and manages the persistent cache. See
+  other; a mixer plays the four synchronized tracks, each with its own volume, and the
+  **Stems** screen lists and cancels jobs and manages the persistent cache. See
   [`docs/STEMS_PLUGIN.md`](docs/STEMS_PLUGIN.md).
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
 - **Cache manager** in the library for the analysis cache and temporary YouTube audio, plus

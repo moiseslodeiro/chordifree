@@ -13,13 +13,13 @@ Karaoke, automatic sections, a multi-track MIDI export and local stem separation
   transcribed bass and drums. On desktop, the bass and drum tracks can come from the separated
   stems instead of the chord transcription.
 - **Local stem separation (desktop)**: an optional plugin (Demucs) splits the song into vocals,
-  drums, bass and other. A mixer plays the four tracks synchronized with independent volume per
-  track, and you can listen to a single stem or download each WAV.
+  drums, bass and other. The mixer plays the four tracks synchronized, each with its own volume, and
+  you can listen to one stem at a time or download each WAV.
 - **Stems cache and background jobs**: separations keep running when you change songs or close
   the view, can be cancelled from the song or from the profile screen, and completed results are
-  cached under `$TEMP_DIR/stems-cache` (20 entries / 2 GB, oldest evicted first). The new
-  `#/stems` screen lists jobs, cancels them, auditions a cached mix or a single stem and clears
-  the cache.
+  cached under `$TEMP_DIR/stems-cache` (20 entries / 2 GB, oldest evicted first). The
+  `#/stems` screen lists and cancels jobs, plays a cached mix or a single stem, and clears the
+  cache.
 - **Remote stems service**: `STEMS_SERVICE_URL` and `STEMS_SERVICE_TOKEN` let a desktop or
   private server send the audio to a machine with more CPU or a GPU instead of running the model
   locally.
@@ -30,7 +30,7 @@ Karaoke, automatic sections, a multi-track MIDI export and local stem separation
   every screen; the stems link only appears when a plugin or service is available.
 - **Collaboration revisions**: shared songs keep versioned collaborative edits.
 - **Administration**: administrators see the analysis activity feed and can open analyzed songs
-  directly, including from small screens.
+  directly from it, including on small screens.
 - **Security**: the collaborative endpoints are hardened and the content security policy is
   trimmed to what the app uses.
 

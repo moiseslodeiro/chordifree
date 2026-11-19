@@ -3,6 +3,9 @@ const STORAGE_KEY = 'chordifree-landing-lang';
 const spanish = {
   'a11y.skip': 'Saltar al contenido',
   'nav.features': 'Funciones',
+  'nav.primaryAria': 'Principal',
+  'nav.languageAria': 'Idioma',
+  'nav.mobileAria': 'Móvil',
   'nav.timeline': 'Línea de tiempo',
   'nav.compare': 'Comparativa',
   'nav.run': 'Ejecutar',
@@ -22,6 +25,8 @@ const spanish = {
   'hero.windowTag': 'Vista por compases',
   'hero.caption':
     'La canción de demostración, con una sola barra de reproducción, la vista de compases y el diagrama del acorde activo.',
+  'hero.alt':
+    'Vista de canción de Chordifree con la barra de reproducción, la barra de herramientas de acordes y la rejilla de compases de la demo, con los acordes Do, Sol, Lam y Fa y el diagrama de guitarra.',
 
   'sheet.one': 'Toma el',
   'sheet.two': 'siguiente compás,',
@@ -32,7 +37,7 @@ const spanish = {
   'sheet.loop': 'Bucle A–B',
 
   'features.eyebrow': 'Qué hace',
-  'features.title': 'Una hoja de acordes, no una adivinanza.',
+  'features.title': 'Cada acorde sale del audio.',
   'features.lead':
     'Todas las vistas salen del mismo análisis: tonalidad, rejilla de pulsos, compases, acordes y las partes donde alguien canta.',
   'feature.find.title': 'Encuentra',
@@ -60,12 +65,14 @@ const spanish = {
   'feature.5.tag': 'Local o nube privada',
   'feature.6.title': 'Separa',
   'feature.6.body':
-    'En escritorio, un plugin local divide la canción en voz, batería, bajo y otros. Reproduce las cuatro pistas sincronizadas con volumen independiente, escucha una sola pista o exporta el resultado. Las separaciones se guardan en una caché local que puedes vaciar.',
+    'En escritorio, un plugin local divide la canción en voz, batería, bajo y otros. Reproduce las cuatro pistas sincronizadas, cada una con su volumen, escucha una pista cada vez o exporta el resultado. Las separaciones se guardan en una caché local que puedes vaciar.',
   'feature.6.tag': 'Escritorio · en tu equipo',
 
   'features.searchTag': 'Búsqueda en YouTube',
   'features.searchCaption':
     'Busca por nombre, revisa el canal y carga un resultado con un clic.',
+  'features.searchAlt':
+    'Búsqueda de Radiohead Creep en Chordifree con miniaturas, nombres de canal, duraciones y un botón Analizar junto a cada resultado.',
 
   'product.eyebrow': 'La línea de tiempo',
   'product.title': 'Mira cada compás antes de tocarlo.',
@@ -76,11 +83,13 @@ const spanish = {
   'product.caption2': 'El pulso activo sigue la reproducción',
   'product.caption3': 'Haz clic en un compás para saltar o repetir',
   'product.caption4': 'Diagrama del acorde actual',
+  'product.alt':
+    'Parrilla de pulsos de la demo de Chordifree, con dos compases por fila, cuatro pulsos por compás y los acordes Do, Sol, Lam y Fa.',
 
   'compare.eyebrow': 'Comparativa',
   'compare.title': 'Cómo se compara.',
   'compare.lead':
-    'Chordifree cubre todo el ciclo de práctica y mantiene el audio y la biblioteca de tu lado. Símbolos: ✓ sí, ~ limitado o de pago, — no.',
+    'Chordifree cubre el flujo de práctica con tu propio audio y tu propia biblioteca. Símbolos: ✓ sí, ~ limitado o de pago, — no.',
   'compare.caption':
     'Comparativa de funciones entre Chordifree, Chordify, Moises y Ultimate Guitar.',
   'compare.feature': 'Función',
@@ -244,6 +253,8 @@ const spanish = {
   'finale.author': 'Hecho por Moisés Lodeiro.',
 
   'footer.tagline': 'Musica laetitiae comes, medicina dolorum.',
+  'footer.taglineTitle': 'La música acompaña la alegría y alivia el dolor.',
+  'footer.linksAria': 'Pie de página',
   'footer.github': 'GitHub',
   'footer.readme': 'README',
   'footer.privacy': 'Privacidad',
@@ -268,8 +279,13 @@ const meta = {
 
 const textNodes = [...document.querySelectorAll('[data-i18n]')];
 const ariaNodes = [...document.querySelectorAll('[data-i18n-aria]')];
+const altNodes = [...document.querySelectorAll('[data-i18n-alt]')];
+const titleNodes = [...document.querySelectorAll('[data-i18n-title]')];
+const imageNodes = [...document.querySelectorAll('[data-src-en][data-src-es]')];
 const englishText = new Map(textNodes.map((node) => [node.dataset.i18n, node.textContent.trim()]));
 const englishAria = new Map(ariaNodes.map((node) => [node.dataset.i18nAria, node.getAttribute('aria-label')]));
+const englishAlt = new Map(altNodes.map((node) => [node.dataset.i18nAlt, node.getAttribute('alt')]));
+const englishTitle = new Map(titleNodes.map((node) => [node.dataset.i18nTitle, node.getAttribute('title')]));
 
 const langButtons = [...document.querySelectorAll('.lang-btn')];
 const descriptionTag = document.querySelector('meta[name="description"]');
@@ -295,6 +311,21 @@ function applyLanguage(language) {
   for (const node of ariaNodes) {
     const key = node.dataset.i18nAria;
     node.setAttribute('aria-label', isSpanish ? (spanish[key] ?? englishAria.get(key)) : englishAria.get(key));
+  }
+
+  for (const node of altNodes) {
+    const key = node.dataset.i18nAlt;
+    node.setAttribute('alt', isSpanish ? (spanish[key] ?? englishAlt.get(key)) : englishAlt.get(key));
+  }
+
+  for (const node of titleNodes) {
+    const key = node.dataset.i18nTitle;
+    node.setAttribute('title', isSpanish ? (spanish[key] ?? englishTitle.get(key)) : englishTitle.get(key));
+  }
+
+  for (const node of imageNodes) {
+    const source = isSpanish ? node.dataset.srcEs : node.dataset.srcEn;
+    if (source && node.getAttribute('src') !== source) node.setAttribute('src', source);
   }
 
   const labels = meta[currentLanguage];

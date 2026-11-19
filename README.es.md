@@ -127,7 +127,7 @@ empieza a tocar desde ahí.
 - **MIDI multipista**: exporta los acordes y el pad del análisis junto con el bajo y la batería
   transcritos de las pistas separadas.
 - **Pistas separadas (escritorio)**: un plugin local opcional separa voz, batería, bajo y
-  otros; un mezclador reproduce las cuatro pistas sincronizadas con volumen independiente y la
+  otros; un mezclador reproduce las cuatro pistas sincronizadas, cada una con su volumen, y la
   pantalla **Pistas** permite cancelar trabajos y gestionar la caché.
 - **Biblioteca local o nube privada**: canciones y repertorios en el navegador, en la app de
   escritorio o por usuario en Firestore; copias JSON, ChordPro, MusicXML, MIDI y PDF.
