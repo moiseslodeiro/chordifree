@@ -72,7 +72,7 @@
           <img src="assets/brand-light.png" alt="Chordifree" width="656" height="108" />
         </a>
 
-        <nav class="desktop-nav" aria-label="Primary">
+        <nav class="desktop-nav" aria-label="Primary" data-i18n-aria="nav.primaryAria">
           <a href="#features" data-i18n="nav.features">Features</a>
           <a href="#product" data-i18n="nav.timeline">Timeline</a>
           <a href="#compare" data-i18n="nav.compare">Compare</a>
@@ -81,7 +81,7 @@
         </nav>
 
         <div class="header-actions">
-          <div class="lang-switch" role="group" aria-label="Language">
+          <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="nav.languageAria">
             <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
               EN
             </button>
@@ -111,7 +111,7 @@
     </header>
 
     <div class="mobile-menu" id="mobile-menu" hidden>
-      <nav aria-label="Mobile">
+      <nav aria-label="Mobile" data-i18n-aria="nav.mobileAria">
         <a href="#features" data-i18n="nav.features">Features</a>
         <a href="#product" data-i18n="nav.timeline">Timeline</a>
         <a href="#compare" data-i18n="nav.compare">Compare</a>
@@ -161,8 +161,11 @@
               <span class="window-tag" data-i18n="hero.windowTag">Bar view</span>
             </div>
             <img
-              src="assets/app-bars.webp"
+              src="assets/app-bars-en.webp"
+              data-src-en="assets/app-bars-en.webp"
+              data-src-es="assets/app-bars-es.webp"
               alt="Chordifree song view with a single playback bar, the chord toolbar and the bar grid for the demo song, showing C, G, Am and F chords and a guitar chord diagram."
+              data-i18n-alt="hero.alt"
               width="1800"
               height="1250"
               fetchpriority="high"
@@ -210,7 +213,7 @@
         <div class="section-head" data-reveal>
           <div>
             <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="features.eyebrow">What it does</span></p>
-            <h2 data-i18n="features.title">A chord sheet, not a guess.</h2>
+            <h2 data-i18n="features.title">Every chord comes from the audio.</h2>
           </div>
           <p class="section-lead" data-i18n="features.lead">
             Every view comes from the same analysis: key, beat grid, bars, chords and the parts
@@ -295,9 +298,9 @@
               <h3 data-i18n="feature.6.title">Separate</h3>
               <p data-i18n="feature.6.body">
                 On desktop, a local plugin splits the song into vocals, drums, bass and other.
-                Play the four tracks synchronized with an independent volume for each one,
-                listen to a single stem or export the result. Separations stay in a local cache
-                you can clear.
+                Play the four tracks synchronized, each with its own volume, listen to one stem
+                at a time, or export the result. Separations stay in a local cache you can
+                clear.
               </p>
             </div>
             <span class="track-tag" data-i18n="feature.6.tag">Desktop · on device</span>
@@ -312,8 +315,11 @@
               <span class="window-tag" data-i18n="features.searchTag">YouTube search</span>
             </div>
             <img
-              src="assets/app-search.webp"
+              src="assets/app-search-en.webp"
+              data-src-en="assets/app-search-en.webp"
+              data-src-es="assets/app-search-es.webp"
               alt="Chordifree search for Radiohead Creep with video thumbnails, channel names, durations and an Analyze button next to each result."
+              data-i18n-alt="features.searchAlt"
               width="1800"
               height="1250"
               loading="lazy"
@@ -346,8 +352,11 @@
                 <span class="window-tag" data-i18n="product.windowTag">Beat grid</span>
               </div>
               <img
-                src="assets/app-beats.webp"
+                src="assets/app-beats-en.webp"
+                data-src-en="assets/app-beats-en.webp"
+                data-src-es="assets/app-beats-es.webp"
                 alt="Chordifree beat grid for the demo song, with two bars per row, four beat cells per bar and the chords C, G, Am and F."
+                data-i18n-alt="product.alt"
                 width="1800"
                 height="1250"
                 loading="lazy"
@@ -375,8 +384,8 @@
             <h2 data-i18n="compare.title">How it compares.</h2>
           </div>
           <p class="section-lead" data-i18n="compare.lead">
-            Chordifree covers the whole practice loop and keeps the audio and the library on
-            your side. Symbols: ✓ yes, ~ limited or paid, — no.
+            Chordifree handles the practice workflow with your own audio and your own
+            library. Symbols: ✓ yes, ~ limited or paid, — no.
           </p>
         </div>
 
@@ -959,11 +968,11 @@ docker compose up --build -d</code></pre>
       <div class="shell footer-grid">
         <div class="footer-brand">
           <img src="assets/brand-light.png" alt="Chordifree" width="656" height="108" />
-          <p data-i18n="footer.tagline" title="Music, companion of joy, medicine for sorrow.">
+          <p data-i18n="footer.tagline" title="Music, companion of joy, medicine for sorrow." data-i18n-title="footer.taglineTitle">
             Musica laetitiae comes, medicina dolorum.
           </p>
         </div>
-        <nav class="footer-links" aria-label="Footer">
+        <nav class="footer-links" aria-label="Footer" data-i18n-aria="footer.linksAria">
           <a
             href="https://github.com/moiseslodeiro/chordifree"
             target="_blank"
