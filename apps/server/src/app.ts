@@ -15,6 +15,7 @@ import { createCloudLibraryRouter } from './routes/cloud-library';
 import { createAdminAnalysesRouter } from './routes/admin-analyses';
 import { createCollabRouter } from './routes/collab';
 import { createProfileRouter } from './routes/profile';
+import { createStemsRouter } from './routes/stems';
 import { createAccountRouter } from './routes/account';
 import { createConfigRouter } from './routes/config';
 import { FirestoreCloudLibraryStore, type CloudLibraryStore } from './services/cloud-library';
@@ -44,6 +45,8 @@ import {
   MemoryAnalysisLogStore,
   type AnalysisLogStore,
 } from './services/analysis-log';
+import { StemJobs } from './services/stem-jobs';
+import { NullStemEngine, PluginStemEngine, type StemEngine } from './services/stems';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -61,6 +64,8 @@ export interface AppDependencies {
   profiles: ProfileStore;
   collab: CollabStore;
   analysisLog: AnalysisLogStore;
+  stemsEngine: StemEngine;
+  stems: StemJobs;
   webDist: string;
 }
 
@@ -131,6 +136,17 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   const tools = options.tools ?? createMediaTools(config);
   const analyzerTokenProvider =
     config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
+  const audioCache =
+    options.audioCache ??
+    new TemporaryAudioCache({
+      directory: audioCacheDirectory(config.tempDir),
+      workspaceRoot: config.tempDir,
+      ttlMs: config.audioCacheTtlMinutes * 60_000,
+      tools,
+    });
+  const stemsEngine =
+    options.stemsEngine ??
+    (config.stemsPluginDir ? new PluginStemEngine(config.stemsPluginDir) : new NullStemEngine());
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
@@ -140,14 +156,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       options.analyzer ??
       createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken, analyzerTokenProvider),
     lyrics: options.lyrics ?? createLyricsClient(fetch),
-    audioCache:
-      options.audioCache ??
-      new TemporaryAudioCache({
-        directory: audioCacheDirectory(config.tempDir),
-        workspaceRoot: config.tempDir,
-        ttlMs: config.audioCacheTtlMinutes * 60_000,
-        tools,
-      }),
+    audioCache,
     auth: options.auth ?? createAuthContext(config),
     cloudLibrary:
       options.cloudLibrary ??
@@ -174,6 +183,8 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       (config.authMode === 'google'
         ? new FirestoreAnalysisLogStore(createFirestore(config))
         : new MemoryAnalysisLogStore()),
+    stemsEngine,
+    stems: options.stems ?? new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems')),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -257,6 +268,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   );
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/profile', createProfileRouter(deps.auth, deps.profiles));
+  app.use('/api/stems', createStemsRouter(deps.stemsEngine, deps.stems));
   app.use('/api/collab', createCollabRouter({ collab: deps.collab, profiles: deps.profiles }));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));

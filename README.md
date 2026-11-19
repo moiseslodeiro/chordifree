@@ -198,6 +198,7 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `TRUST_PROXY`              | `0`                     | Trusted reverse-proxy hops; set `1` behind nginx/Caddy                                                         |
 | `TEMP_DIR`                 | `./.tmp`                | Temporary audio and analysis working directory                                                                 |
 | `AUDIO_CACHE_TTL_MINUTES`  | auto                    | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
+| `STEMS_PLUGIN_DIR`         | empty                   | Optional local stems plugin for desktop. See `docs/STEMS_PLUGIN.md`                                            |
 | `YTDLP_PATH`               | `yt-dlp`                | yt-dlp binary                                                                                                  |
 | `FFMPEG_PATH`              | `ffmpeg`                | ffmpeg binary                                                                                                  |
 | `FFPROBE_PATH`             | `ffprobe`               | ffprobe binary                                                                                                 |

@@ -23,7 +23,10 @@ export type ErrorCode =
   | 'LYRICS_NOT_FOUND'
   | 'LYRICS_UNAVAILABLE'
   | 'FORBIDDEN'
-  | 'CONFLICT';
+  | 'CONFLICT'
+  | 'STEMS_UNAVAILABLE'
+  | 'STEMS_FAILED'
+  | 'STEMS_TIMEOUT';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   INVALID_URL: 400,
@@ -51,6 +54,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   LYRICS_UNAVAILABLE: 502,
   FORBIDDEN: 403,
   CONFLICT: 409,
+  STEMS_UNAVAILABLE: 404,
+  STEMS_FAILED: 502,
+  STEMS_TIMEOUT: 504,
 };
 
 export class ApiError extends Error {
