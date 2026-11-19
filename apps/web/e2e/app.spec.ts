@@ -130,6 +130,30 @@ test.describe('full flow', () => {
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
 
+  test('shows the auto-detected song sections and jumps between them', async ({ page }) => {
+    const withVocals = {
+      ...RESULT,
+      duration: 48,
+      beats: Array.from({ length: 25 }, (_, index) => index * 2),
+      vocalRegions: [
+        { start: 0, end: 16 },
+        { start: 20, end: 40 },
+      ],
+    };
+    await stubApi(page, withVocals);
+    await analyze(page);
+
+    const panel = page.getByTestId('sections-panel');
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Estrofa · 00:00' })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Estrofa · 00:16' })).toBeVisible();
+    const outro = panel.getByRole('button', { name: 'Final · 00:40' });
+    await expect(outro).toBeVisible();
+
+    await outro.click();
+    await expect(outro).toHaveAttribute('aria-current', 'true', { timeout: 5000 });
+  });
+
   test('keeps the search result action inside a small viewport', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.route('**/api/youtube/search**', (route) =>

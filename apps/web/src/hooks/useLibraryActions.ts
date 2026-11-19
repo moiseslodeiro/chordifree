@@ -173,6 +173,7 @@ export function useLibraryActions({
       beats: result.beats ?? [],
       beatsPerBar: result.beatsPerBar ?? 4,
       vocalRegions: result.vocalRegions ?? [],
+      sections: undefined,
       duration: result.duration,
       analyzerVersion: result.analyzerVersion,
       lyricChordOffsets: undefined,

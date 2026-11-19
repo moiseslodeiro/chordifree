@@ -13,6 +13,7 @@ export type {
   LyricsResult,
   Setlist,
   Song,
+  SongSection,
   UserProfile,
   YoutubeSearchResult,
 } from '@chordifree/contracts';

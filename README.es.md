@@ -3,7 +3,8 @@
 > Documentación en español. English documentation: [`README.md`](README.md).
 
 Convierte un video musical de YouTube (o un audio propio) en una línea de tiempo de acordes
-sincronizada con la reproducción. Permite trasponer ±11 semitonos y cambiar entre notación
+sincronizada con la reproducción. La app detecta la estructura de la canción (intro, estrofa,
+estribillo) y permite saltar entre secciones mientras practicas. Permite trasponer ±11 semitonos y cambiar entre notación
 inglesa (`C`, `Am`, `F#`) y española (`Do`, `Lam`, `Fa#`). También puedes buscar por nombre en
 YouTube: cada resultado muestra la miniatura, el canal y la duración, y un clic analiza la
 canción al momento. Puedes ejecutarlo en local o desplegar una instancia online privada en la
@@ -17,10 +18,10 @@ Hecho por [Moisés Lodeiro](https://github.com/moiseslodeiro), de un músico par
 
 ## Dos modos de uso
 
-| Modo | Inicio de sesión | Biblioteca | Para qué |
-|---|---|---|---|
-| Local / escritorio | Ninguno | Almacenamiento del navegador o de la app | Practicar en un equipo, sin conexión |
-| Online privado (GCP) | Google, limitado a una lista de acceso | Firestore, por usuario | Una instancia propia para varias personas y dispositivos |
+| Modo                 | Inicio de sesión                       | Biblioteca                               | Para qué                                                 |
+| -------------------- | -------------------------------------- | ---------------------------------------- | -------------------------------------------------------- |
+| Local / escritorio   | Ninguno                                | Almacenamiento del navegador o de la app | Practicar en un equipo, sin conexión                     |
+| Online privado (GCP) | Google, limitado a una lista de acceso | Firestore, por usuario                   | Una instancia propia para varias personas y dispositivos |
 
 El modo local es el de por defecto y sigue sin cuentas. El modo online es opcional: no elimina
 la biblioteca local ni el flujo de escritorio.

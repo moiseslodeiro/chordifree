@@ -2,7 +2,8 @@
 
 Turn a YouTube video or your own audio file into a synchronized chord timeline you can
 practice with. Chordifree estimates the key, beats, bars and chords, aligns lyrics with the
-sung sections, and lets you correct everything in the browser. Run it locally, or deploy a
+sung sections, labels the song structure (intro, verse, chorus) so you can jump between
+sections while practicing, and lets you correct everything in the browser. Run it locally, or deploy a
 private online instance where only approved Google accounts can sign in and each user's
 library is stored in their account.
 
