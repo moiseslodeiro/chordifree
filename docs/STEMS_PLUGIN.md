@@ -52,30 +52,65 @@ The engine may also be an ONNX runner or a wrapper script; the contract is only
 All routes require the same auth as the rest of `/api` and are meant for
 local/desktop use.
 
-| Method | Path                        | Result                                                      |
-| ------ | --------------------------- | ----------------------------------------------------------- |
-| `GET`  | `/api/stems`                | `{ available, name?, version?, stems?, error? }`            |
-| `POST` | `/api/stems/:videoId`       | `202` with a job (`queued` → `processing` → `done`/`error`) |
-| `GET`  | `/api/stems/jobs/:id`       | Job status, `stems: ["vocals", "no_vocals"]` when done      |
-| `GET`  | `/api/stems/jobs/:id/:stem` | WAV stream, `Cache-Control: private, no-store`              |
+| Method   | Path                              | Result                                                                            |
+| -------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| `GET`    | `/api/stems`                      | `{ available, name?, version?, stems?, error? }`                                  |
+| `POST`   | `/api/stems/:videoId`             | `202` with a job (`queued` → `processing` → `done`/`error`); optional `{ title }` |
+| `GET`    | `/api/stems/jobs`                 | Recent jobs, newest first (`done`, `cancelled`, `error`…)                         |
+| `GET`    | `/api/stems/jobs/:id`             | Job status, `stems` and `midi` when done                                          |
+| `POST`   | `/api/stems/jobs/:id/cancel`      | Cancels a queued/running job; idempotent for finished jobs                        |
+| `GET`    | `/api/stems/jobs/:id/:stem`       | WAV stream, `Cache-Control: private, no-store`                                    |
+| `GET`    | `/api/stems/jobs/:id/notes/:stem` | Transcribed notes JSON, when the plugin declares them                             |
+| `GET`    | `/api/stems/cache`                | Cached separations with size, stems and MIDI list                                 |
+| `GET`    | `/api/stems/cache/:videoId`       | One cached entry, or `404` when the song was not separated yet                    |
+| `DELETE` | `/api/stems/cache/:videoId`       | Removes one cached separation                                                     |
+| `DELETE` | `/api/stems/cache`                | Removes every cached separation                                                   |
 
-`POST` needs the temporary YouTube audio, so the song must have been played
-once. Jobs live in memory (last 20) and their files are deleted when evicted.
+`POST` needs the temporary YouTube audio the first time, so the song must have
+been played once. A cache hit returns a `done` job immediately without touching
+the audio or the model; the same job is reused while the app is open.
+
+Jobs run in the server process, not in the page: changing songs, closing the
+song view or navigating to another route does not stop the separation. The
+API keeps the last 20 jobs in memory, and cancellation kills the whole plugin
+process group (including Demucs) so no worker is left behind.
+
+## Persistent cache
+
+Completed separations are moved out of the temporary job directory into a
+local-only cache under `$TEMP_DIR/stems-cache` (default `apps/server/.tmp`).
+Each entry is keyed by `sha256(videoId + plugin@version)` and records its WAV
+files, notes and byte size in `index.json`. The cache survives restarts and is
+capped at 20 entries / 2 GB, evicting the oldest entry first.
+
+Only separations produced locally are cached; the hosted instance never stores
+derived audio. Delete entries with the API above or from **Pistas separadas**
+(`#/stems`), which also lists running jobs and lets you cancel them.
 
 ## From the web UI
 
 When the API reports the plugin as available, the song view shows a **Stems**
-card for YouTube songs:
+card inside the collapsible **Audio** section for YouTube songs:
 
-1. Open the song and press **Separate stems**. The server uses the temporary
-   audio it already cached when the song was opened.
-2. The card waits for the job and then lists the stems the plugin declares.
-3. Selecting a stem swaps the player source (fetched as an authenticated blob);
-   **Original** returns to the song. The selected stem can be downloaded as a
-   WAV. Pitch, speed and the practice tools keep working on top of it.
-
-There is still no multi-source mixer: you hear one source at a time. Mute/solo
-per stem is the next step.
+1. Press **Separate stems**. A cached song opens instantly; otherwise the card
+   shows the running job and a **Cancel separation** button. You can leave the
+   song while it works and come back later: the card reattaches to the job, or
+   to the cache once it finishes.
+2. When the job is done, **Mix stems** loads the four WAVs as synchronized
+   audio elements and plays them together; only then do the per-stem volume
+   sliders appear (for example vocals 50%, drums 0%, other 100%). **Original**
+   returns to the source track and hides the sliders again, so moving them
+   always has an audible effect.
+3. The mix uses one master clock and corrects drift, so seeking, speed and the
+   grid stay aligned. Pitch and the karaoke toggle apply to the original track
+   and are disabled while the mix is active; lower the vocal slider instead.
+4. **MIDI from stems** downloads the arrangement with the transcribed bass and
+   drums. **Pistas separadas** (`#/stems`, also in the header) shows all jobs,
+   the cache size and the buttons to remove one song or clear everything. Each
+   cached song has a **Play mix** button and one button per stem, so the cache
+   can be auditioned without opening the song again.
+5. The header links **Biblioteca**, **Listas** and **Pistas** from every
+   screen; the stems link only appears when the plugin or service is available.
 
 ## Local Demucs recipe (CPU)
 
@@ -207,13 +242,10 @@ STEMS_PLUGIN_DIR=/tmp/stems-plugin pnpm dev
 
 1. Vocal melody transcription from the vocal stem (basic-pitch/CREPE), the
    remaining piece for a full MIDI arrangement.
-2. A true mixer: mute/solo per stem with a shared clock, instead of swapping
-   the source. Pre-rendered mixes ("instrumental", "no drums") are the cheap
-   intermediate step.
-3. Cache job metadata by `videoId + plugin version`, and evict with the audio
-   cache TTL.
-4. Extend the remote service contract with the same `notes` endpoint, so a GPU
-   machine can return the transcribed stems too.
-5. 4–6 stem engines and an install flow with SHA-256 and pinned versions.
-6. Keep derived audio local; do not upload it to the cloud instance. The
+2. Mute/solo shortcuts and saved per-song mix presets on top of the current
+   four-slider mixer.
+3. Extend the remote service contract with the same `notes` and `cancel`
+   endpoints, so a GPU machine can return transcribed stems and stop jobs too.
+4. 4–6 stem engines and an install flow with SHA-256 and pinned versions.
+5. Keep derived audio local; do not upload it to the cloud instance. The
    YouTube legal notice still applies.

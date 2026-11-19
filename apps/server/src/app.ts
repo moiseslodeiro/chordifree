@@ -46,6 +46,7 @@ import {
   type AnalysisLogStore,
 } from './services/analysis-log';
 import { StemJobs } from './services/stem-jobs';
+import { StemCache } from './services/stem-cache';
 import {
   NullStemEngine,
   PluginStemEngine,
@@ -71,6 +72,7 @@ export interface AppDependencies {
   analysisLog: AnalysisLogStore;
   stemsEngine: StemEngine;
   stems: StemJobs;
+  stemsCache: StemCache;
   webDist: string;
 }
 
@@ -160,6 +162,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       : config.stemsPluginDir
         ? new PluginStemEngine(config.stemsPluginDir)
         : new NullStemEngine());
+  const stemsCache = options.stemsCache ?? new StemCache(resolve(config.tempDir, 'stems-cache'));
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
@@ -197,7 +200,10 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         ? new FirestoreAnalysisLogStore(createFirestore(config))
         : new MemoryAnalysisLogStore()),
     stemsEngine,
-    stems: options.stems ?? new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems')),
+    stems:
+      options.stems ??
+      new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems'), stemsCache),
+    stemsCache,
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -281,7 +287,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   );
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/profile', createProfileRouter(deps.auth, deps.profiles));
-  app.use('/api/stems', createStemsRouter(deps.stemsEngine, deps.stems));
+  app.use('/api/stems', createStemsRouter(deps.stemsEngine, deps.stems, deps.stemsCache));
   app.use('/api/collab', createCollabRouter({ collab: deps.collab, profiles: deps.profiles }));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));

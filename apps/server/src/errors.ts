@@ -26,7 +26,8 @@ export type ErrorCode =
   | 'CONFLICT'
   | 'STEMS_UNAVAILABLE'
   | 'STEMS_FAILED'
-  | 'STEMS_TIMEOUT';
+  | 'STEMS_TIMEOUT'
+  | 'STEMS_CANCELLED';
 
 const STATUS_BY_CODE: Record<ErrorCode, number> = {
   INVALID_URL: 400,
@@ -57,6 +58,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   STEMS_UNAVAILABLE: 404,
   STEMS_FAILED: 502,
   STEMS_TIMEOUT: 504,
+  STEMS_CANCELLED: 409,
 };
 
 export class ApiError extends Error {

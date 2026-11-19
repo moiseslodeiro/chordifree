@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  cancelStemJob,
+  getStemCache,
   getStemsJob,
   getStemsStatus,
   startStems,
@@ -8,7 +10,7 @@ import {
 } from '../lib/api';
 
 const POLL_MS = 2500;
-const MAX_POLL_MS = 20 * 60 * 1000;
+const MAX_POLL_MS = 60 * 60 * 1000;
 
 export interface StemsController {
   status: StemsStatus | null;
@@ -16,16 +18,23 @@ export interface StemsController {
   busy: boolean;
   error: string | null;
   separate: () => Promise<void>;
+  cancel: () => Promise<void>;
 }
 
-/** Status of the optional local plugin and the separation job of one video. */
-export function useStems(videoId: string | null): StemsController {
+/**
+ * Status of the optional plugin, the job of the current video and its
+ * persistent cache. Jobs keep running on the server when the song changes;
+ * this hook only reattaches to them (or to the cache) when you come back.
+ */
+export function useStems(videoId: string | null, title?: string): StemsController {
   const [status, setStatus] = useState<StemsStatus | null>(null);
   const [job, setJob] = useState<StemJobView | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef(videoId);
+  const titleRef = useRef(title);
   videoRef.current = videoId;
+  titleRef.current = title;
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +53,21 @@ export function useStems(videoId: string | null): StemsController {
   useEffect(() => {
     setJob(null);
     setError(null);
+    setBusy(false);
+    if (!videoId) return;
+    let cancelled = false;
+    void (async () => {
+      const cached = await getStemCache(videoId).catch(() => null);
+      if (!cached || cancelled) return;
+      const cachedJob = await startStems(videoId, titleRef.current).catch(() => null);
+      if (!cancelled && cachedJob) {
+        setJob(cachedJob);
+        if (cachedJob.status === 'error') setError(cachedJob.error?.message ?? null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [videoId]);
 
   const separate = useCallback(async () => {
@@ -51,7 +75,7 @@ export function useStems(videoId: string | null): StemsController {
     setBusy(true);
     setError(null);
     try {
-      let current = await startStems(videoId);
+      let current = await startStems(videoId, titleRef.current);
       if (videoRef.current !== videoId) return;
       setJob(current);
       const startedAt = Date.now();
@@ -76,5 +100,18 @@ export function useStems(videoId: string | null): StemsController {
     }
   }, [busy, videoId]);
 
-  return { status, job, busy, error, separate };
+  const cancel = useCallback(async () => {
+    if (!job || (job.status !== 'queued' && job.status !== 'processing')) return;
+    try {
+      const next = await cancelStemJob(job.id);
+      if (videoRef.current === videoId) {
+        setJob(next);
+        setBusy(false);
+      }
+    } catch {
+      if (videoRef.current === videoId) setError('The separation could not be cancelled');
+    }
+  }, [job, videoId]);
+
+  return { status, job, busy, error, separate, cancel };
 }

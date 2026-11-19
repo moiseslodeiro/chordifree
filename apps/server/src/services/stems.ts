@@ -71,7 +71,11 @@ const NotesFileSchema = z.object({
 
 export interface StemEngine {
   status(): Promise<StemEngineStatus>;
-  separate(inputPath: string, outputDir: string): Promise<StemSeparationResult>;
+  separate(
+    inputPath: string,
+    outputDir: string,
+    signal?: AbortSignal,
+  ): Promise<StemSeparationResult>;
 }
 
 /** Local mode without a plugin: the API reports the feature as unavailable. */
@@ -80,7 +84,11 @@ export class NullStemEngine implements StemEngine {
     return { available: false };
   }
 
-  async separate(_inputPath: string, _outputDir: string): Promise<StemSeparationResult> {
+  async separate(
+    _inputPath: string,
+    _outputDir: string,
+    _signal?: AbortSignal,
+  ): Promise<StemSeparationResult> {
     throw new ApiError(
       'STEMS_UNAVAILABLE',
       'The stems plugin is not installed. See docs/STEMS_PLUGIN.md.',
@@ -148,7 +156,12 @@ export class RemoteStemEngine implements StemEngine {
     }
   }
 
-  async separate(inputPath: string, outputDir: string): Promise<StemSeparationResult> {
+  async separate(
+    inputPath: string,
+    outputDir: string,
+    signal?: AbortSignal,
+  ): Promise<StemSeparationResult> {
+    if (signal?.aborted) throw new ApiError('STEMS_CANCELLED', 'Separation cancelled');
     await mkdir(outputDir, { recursive: true });
     const file = await readFile(inputPath);
     const form = new FormData();
@@ -165,6 +178,7 @@ export class RemoteStemEngine implements StemEngine {
     let job = (await response.json()) as RemoteJob;
     const startedAt = Date.now();
     while (job.status === 'queued' || job.status === 'processing') {
+      if (signal?.aborted) throw new ApiError('STEMS_CANCELLED', 'Separation cancelled');
       if (Date.now() - startedAt > this.timeoutMs) {
         throw new ApiError('STEMS_TIMEOUT', 'The stems service took too long');
       }
@@ -228,7 +242,12 @@ export class PluginStemEngine implements StemEngine {
     }
   }
 
-  async separate(inputPath: string, outputDir: string): Promise<StemSeparationResult> {
+  async separate(
+    inputPath: string,
+    outputDir: string,
+    signal?: AbortSignal,
+  ): Promise<StemSeparationResult> {
+    if (signal?.aborted) throw new ApiError('STEMS_CANCELLED', 'Separation cancelled');
     // The plugin runs with its own directory as cwd, so relative temp paths
     // from the audio cache would resolve there instead of the server cwd.
     const absoluteInput = resolve(inputPath);
@@ -245,22 +264,47 @@ export class PluginStemEngine implements StemEngine {
     const stderr: string[] = [];
     const timeoutMs = (manifest.timeoutSeconds ?? 900) * 1000;
     await new Promise<void>((resolve, reject) => {
+      // The plugin is usually a shell script that spawns Demucs; run it in its
+      // own process group so cancelling also stops the real worker instead of
+      // leaving an orphan consuming CPU in the background.
+      const detached = process.platform !== 'win32';
       const child = spawn(
         manifest.command,
         substitute(manifest.args, absoluteInput, absoluteOutput),
         {
           cwd: this.directory,
           shell: false,
+          detached,
           stdio: ['ignore', 'ignore', 'pipe'],
         },
       );
+      const killTree = () => {
+        if (detached && child.pid) {
+          try {
+            process.kill(-child.pid, 'SIGKILL');
+            return;
+          } catch {
+            // Fall back to the direct child.
+          }
+        }
+        child.kill('SIGKILL');
+      };
       let settled = false;
       const timer = setTimeout(() => {
         if (settled) return;
         settled = true;
-        child.kill('SIGKILL');
+        signal?.removeEventListener('abort', onAbort);
+        killTree();
         reject(new ApiError('STEMS_TIMEOUT', 'The stems plugin took too long'));
       }, timeoutMs);
+      const onAbort = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        killTree();
+        reject(new ApiError('STEMS_CANCELLED', 'Separation cancelled'));
+      };
+      signal?.addEventListener('abort', onAbort, { once: true });
       child.stderr?.on('data', (chunk: Buffer) => {
         if (stderr.length < 40) stderr.push(chunk.toString());
       });
@@ -268,12 +312,14 @@ export class PluginStemEngine implements StemEngine {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
         reject(new ApiError('STEMS_FAILED', error.message));
       });
       child.on('close', (code) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
         if (code === 0) resolve();
         else {
           const detail = stderr.join('').trim().slice(-400);

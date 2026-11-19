@@ -12,7 +12,7 @@ the optional online mode uses Google sign-in + Firestore.
 - `packaging/electron` — Electron shell + installer build.
 - `services/analyzer` — FastAPI + Essentia/ONNX sidecar (Python, not a pnpm package).
 - `services/youtube-extractor` — Flask + yt-dlp service for the Raspberry Pi.
-- `services/stems-plugin` — reference Demucs + librosa plugin for local stems and MIDI notes.
+- `services/stems-plugin` — reference Demucs + librosa plugin for local stems and MIDI notes. Separations are cached under `$TEMP_DIR/stems-cache`; jobs run in the API, not the page.
 
 ## Commands
 

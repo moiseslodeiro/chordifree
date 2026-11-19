@@ -138,7 +138,7 @@ test.describe('full flow', () => {
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
 
-  test('separates and selects a stem from the local plugin', async ({ page }) => {
+  test('separates and mixes the stems from the local plugin', async ({ page }) => {
     await page.route('**/api/stems', (route) =>
       route.fulfill({
         status: 200,
@@ -182,12 +182,22 @@ test.describe('full flow', () => {
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: 'Separar pistas' }).click();
 
-    const instrumental = panel.getByRole('button', { name: 'Instrumental', exact: true });
-    await expect(instrumental).toBeVisible();
-    expect(await instrumental.getAttribute('aria-pressed')).toBe('false');
-    await instrumental.click();
-    await expect(instrumental).toHaveAttribute('aria-pressed', 'true');
-    await expect(panel.getByRole('button', { name: 'Descargar Instrumental' })).toBeVisible();
+    const mix = panel.getByRole('button', { name: 'Mezclar pistas' });
+    await expect(mix).toBeVisible();
+    await expect(panel.getByRole('slider', { name: 'Volumen de Voz' })).toHaveCount(0);
+
+    await mix.click();
+    await expect(mix).toHaveAttribute('aria-pressed', 'true');
+    await expect(panel.getByRole('button', { name: 'Original' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    const vocals = panel.getByRole('slider', { name: 'Volumen de Voz' });
+    await expect(vocals).toHaveValue('100');
+    await vocals.fill('50');
+    await expect(vocals).toHaveValue('50');
+    await expect(panel.getByRole('slider', { name: 'Volumen de Instrumental' })).toHaveValue('100');
   });
 
   test('shows the auto-detected song sections and jumps between them', async ({ page }) => {
@@ -277,7 +287,7 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-cell-0')).toContainText('La7');
 
     await expect(page.getByText('Canción guardada en la biblioteca.')).toBeVisible();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Abrir' }).click();
@@ -365,7 +375,7 @@ test.describe('full flow', () => {
   test('exports the library and restores it from a JSON backup', async ({ page }, testInfo) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
@@ -791,9 +801,22 @@ test.describe('full flow', () => {
   test('keeps the player, active chord and tools stacked in the right rail', async ({ page }) => {
     await analyze(page);
 
-    const player = await page.getByTestId('song-player-column').boundingBox();
-    const audio = await page.getByTestId('song-audio').boundingBox();
-    const active = await page.getByTestId('song-active-chord').boundingBox();
+    // Measure in one frame: the sticky rail and the lazy thumbnail move while
+    // the page settles, and sequential boundingBox() calls drift between them.
+    const boxes = await page.evaluate(() => {
+      const box = (id: string) => {
+        const rect = document.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect();
+        return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+      };
+      return {
+        player: box('song-player-column'),
+        audio: box('song-audio'),
+        active: box('song-active-chord'),
+      };
+    });
+    const player = boxes.player;
+    const audio = boxes.audio;
+    const active = boxes.active;
     expect(player).not.toBeNull();
     expect(audio).not.toBeNull();
     expect(active).not.toBeNull();
@@ -857,7 +880,7 @@ test.describe('accessibility', () => {
   test('the delete confirmation has no critical violations', async ({ page }) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await page.getByRole('button', { name: 'Eliminar' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

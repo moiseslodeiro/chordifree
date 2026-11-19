@@ -388,7 +388,8 @@ export interface StemNote {
 export interface StemJobView {
   id: string;
   videoId: string;
-  status: 'queued' | 'processing' | 'done' | 'error';
+  title?: string;
+  status: 'queued' | 'processing' | 'done' | 'cancelled' | 'error';
   stems: string[];
   /** Stems with transcribed notes, for example bass and drums. */
   midi?: string[];
@@ -402,8 +403,71 @@ export async function getStemsStatus(signal?: AbortSignal): Promise<StemsStatus>
   return parseResponse<StemsStatus>(response);
 }
 
-export async function startStems(videoId: string): Promise<StemJobView> {
+export async function startStems(videoId: string, title?: string): Promise<StemJobView> {
   const response = await fetch(`/api/stems/${encodeURIComponent(videoId)}`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(title ? { title } : {}),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+export interface StemCacheEntry {
+  key: string;
+  videoId: string;
+  title?: string;
+  plugin: string;
+  stems: string[];
+  midi: string[];
+  createdAt: string;
+  bytes: number;
+}
+
+export async function listStemCache(signal?: AbortSignal): Promise<StemCacheEntry[]> {
+  const response = await fetch('/api/stems/cache', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ entries?: StemCacheEntry[] }>(response);
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
+/** Returns null when the video has not been separated yet. */
+export async function getStemCache(
+  videoId: string,
+  signal?: AbortSignal,
+): Promise<StemCacheEntry | null> {
+  const response = await fetch(`/api/stems/cache/${encodeURIComponent(videoId)}`, {
+    signal,
+    headers: authHeaders(),
+  });
+  if (response.status === 404) return null;
+  return parseResponse<StemCacheEntry>(response);
+}
+
+export async function clearStemCache(): Promise<number> {
+  const response = await fetch('/api/stems/cache', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ removed?: number }>(response);
+  return body.removed ?? 0;
+}
+
+export async function removeStemCache(videoId: string): Promise<number> {
+  const response = await fetch(`/api/stems/cache/${encodeURIComponent(videoId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ removed?: number }>(response);
+  return body.removed ?? 0;
+}
+
+export async function listStemJobs(signal?: AbortSignal): Promise<StemJobView[]> {
+  const response = await fetch('/api/stems/jobs', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ jobs?: StemJobView[] }>(response);
+  return Array.isArray(body.jobs) ? body.jobs : [];
+}
+
+export async function cancelStemJob(id: string): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/jobs/${encodeURIComponent(id)}/cancel`, {
     method: 'POST',
     headers: authHeaders(),
   });

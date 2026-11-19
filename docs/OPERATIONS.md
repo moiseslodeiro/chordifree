@@ -183,8 +183,13 @@ It is disabled by default, the server never downloads or updates it, and the
 hosted Cloud Run instance reports `available: false` unless a service is
 configured. When the plugin declares `transcribe`, the API also serves the
 notes at `/api/stems/jobs/:id/notes/:stem` and the song view offers a MIDI built
-from the separated bass and drums. The manifest, security model, API and
-roadmap are documented in [`STEMS_PLUGIN.md`](STEMS_PLUGIN.md).
+from the separated bass and drums.
+
+Completed separations are cached under `$TEMP_DIR/stems-cache` (20 entries /
+2 GB, oldest evicted first) and jobs keep running in the background when the
+user changes songs. Users can cancel jobs, audition a cached mix or a single
+stem and clear the cache from `#/stems` (**Pistas** in the header). The manifest, security model, API,
+cache and mixer are documented in [`STEMS_PLUGIN.md`](STEMS_PLUGIN.md).
 
 ## Access and OAuth
 

@@ -134,7 +134,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     expect(await screen.findByText('Demo sincronizada')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Abrir' }));
@@ -168,7 +168,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lista' }));
     expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
     await screen.findByRole('heading', { name: 'Demo sincronizada' });
 
@@ -344,7 +344,7 @@ describe('App', () => {
     // Saving in the editor already persists the correction to the library.
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
     expect(await screen.findByTestId('chord-row-0')).toHaveTextContent('A7');
   });
@@ -526,7 +526,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar en biblioteca' }));
     expect(await screen.findByText('Canción guardada en la biblioteca.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Biblioteca' })[0]!);
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir' }));
     expect(await screen.findByRole('heading', { name: 'Demo sincronizada' })).toBeInTheDocument();
     expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
@@ -659,7 +659,7 @@ describe('App', () => {
   it('opens the empty library from the home screen', async () => {
     stubApi();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Biblioteca \(0\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Biblioteca' }));
     expect(await screen.findByText('Todavía no hay canciones')).toBeInTheDocument();
   });
 

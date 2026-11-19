@@ -31,4 +31,18 @@ export async function stubStems(
       body: JSON.stringify(status),
     }),
   );
+  await page.route('**/api/stems/cache', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ entries: [] }),
+    }),
+  );
+  await page.route('**/api/stems/cache/**', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Not cached' } }),
+    }),
+  );
 }

@@ -44,6 +44,33 @@ describe('keepLookaheadVisible', () => {
     expect(scrollBy).not.toHaveBeenCalled();
   });
 
+  it('scrolls the row inside its own scroll container', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const container = document.createElement('div');
+    container.style.overflowY = 'auto';
+    Object.defineProperty(container, 'scrollHeight', { configurable: true, value: 1200 });
+    Object.defineProperty(container, 'clientHeight', { configurable: true, value: 480 });
+    const scrollBy = vi.fn();
+    container.scrollBy = scrollBy;
+    container.getBoundingClientRect = () =>
+      ({
+        top: 200,
+        bottom: 680,
+        height: 480,
+        left: 0,
+        right: 0,
+        width: 0,
+        x: 0,
+        y: 200,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    const element = row(650);
+    Object.defineProperty(element, 'parentElement', { configurable: true, value: container });
+
+    keepLookaheadVisible(element);
+    expect(scrollBy).toHaveBeenCalledWith({ top: 330, behavior: 'smooth' });
+  });
+
   it('scrolls back when the row is above the viewport', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
     const scrollBy = vi.fn();

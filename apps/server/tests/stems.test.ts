@@ -1,15 +1,22 @@
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
 import type { TemporaryAudioCache } from '../src/services/audio-cache';
 import { StemJobs } from '../src/services/stem-jobs';
-import { NullStemEngine, PluginStemEngine, RemoteStemEngine } from '../src/services/stems';
+import { StemCache } from '../src/services/stem-cache';
+import {
+  NullStemEngine,
+  PluginStemEngine,
+  RemoteStemEngine,
+  type StemEngine,
+} from '../src/services/stems';
+import { ApiError } from '../src/errors';
 import { makeAnalyzer, makeConfig, makeTempDir, makeTools } from './helpers';
 
 const PLUGIN_SCRIPT = `import { writeFileSync } from 'node:fs';
@@ -201,7 +208,12 @@ describe('stem jobs', () => {
     const dir = await fakePlugin(process.execPath, (script) => [script, '{input}', '{output}']);
     const { cache } = await fakeAudio();
     const workRoot = await mkdtemp(join(tmpdir(), 'chordifree-stems-jobs-'));
-    const jobs = new StemJobs(new PluginStemEngine(dir), cache, workRoot);
+    const jobs = new StemJobs(
+      new PluginStemEngine(dir),
+      cache,
+      workRoot,
+      new StemCache(join(workRoot, 'cache')),
+    );
 
     const started = await jobs.start('dQw4w9WgXcQ');
     expect(started.status).toBe('queued');
@@ -224,7 +236,12 @@ describe('stem jobs', () => {
     });
     const { cache } = await fakeAudio();
     const workRoot = await mkdtemp(join(tmpdir(), 'chordifree-stems-jobs-notes-'));
-    const jobs = new StemJobs(new PluginStemEngine(dir), cache, workRoot);
+    const jobs = new StemJobs(
+      new PluginStemEngine(dir),
+      cache,
+      workRoot,
+      new StemCache(join(workRoot, 'cache')),
+    );
 
     const started = await jobs.start('dQw4w9WgXcQ');
     let view = jobs.get(started.id);
@@ -238,9 +255,102 @@ describe('stem jobs', () => {
     expect(jobs.notes(started.id, 'missing')).toBeNull();
   });
 
+  it('reuses the persistent cache instead of separating again', async () => {
+    const dir = await fakePlugin(process.execPath, (script) => [script, '{input}', '{output}']);
+    const { cache } = await fakeAudio();
+    const workRoot = await mkdtemp(join(tmpdir(), 'chordifree-stems-cache-'));
+    const stemCache = new StemCache(join(workRoot, 'cache'));
+    const engine = new PluginStemEngine(dir);
+    const separate = vi.spyOn(engine, 'separate');
+    const jobs = new StemJobs(engine, cache, workRoot, stemCache);
+
+    const first = await jobs.start('dQw4w9WgXcQ', 'Demo');
+    let view = jobs.get(first.id);
+    for (let attempt = 0; attempt < 100 && view?.status !== 'done'; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      view = jobs.get(first.id);
+    }
+    expect(view?.status).toBe('done');
+    expect(view?.title).toBe('Demo');
+    expect(separate).toHaveBeenCalledTimes(1);
+
+    const second = await jobs.start('dQw4w9WgXcQ', 'Demo');
+    expect(second.status).toBe('done');
+    expect(second.stems).toEqual(['vocals', 'instrumental']);
+    expect(jobs.file(second.id, 'vocals')).toContain('vocals.wav');
+    expect(second.id).toBe(first.id);
+    expect(jobs.list()).toHaveLength(1);
+    expect(separate).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels a running separation', async () => {
+    const engine: StemEngine = {
+      status: async () => ({
+        available: true,
+        name: 'slow',
+        version: '1',
+        stems: ['vocals'],
+      }),
+      separate: (_input, _output, signal) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener('abort', () =>
+            reject(new ApiError('STEMS_CANCELLED', 'cancelled')),
+          );
+        }),
+    };
+    const { cache } = await fakeAudio();
+    const workRoot = await mkdtemp(join(tmpdir(), 'chordifree-stems-cancel-'));
+    const jobs = new StemJobs(engine, cache, workRoot, new StemCache(join(workRoot, 'cache')));
+
+    const started = await jobs.start('dQw4w9WgXcQ');
+    const cancelled = jobs.cancel(started.id);
+    expect(cancelled?.status).toBe('cancelled');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(jobs.get(started.id)?.status).toBe('cancelled');
+  });
+
+  it('lists and clears the persisted cache', async () => {
+    const root = await makeTempDir();
+    const source = join(root, 'source');
+    await mkdir(source, { recursive: true });
+    await writeFile(join(source, 'vocals.wav'), 'voice');
+    const cache = new StemCache(join(root, 'cache'));
+    await cache.save({
+      videoId: 'dQw4w9WgXcQ',
+      title: 'Demo',
+      plugin: 'fake@1',
+      sourceDir: source,
+      stems: ['vocals'],
+      midi: [],
+    });
+
+    const app = createApp({
+      config: makeConfig({ tempDir: root }),
+      store: new JobStore(),
+      queue: new JobQueue(1),
+      tools: makeTools(),
+      analyzer: makeAnalyzer(),
+      stemsCache: cache,
+    });
+    const listed = await request(app).get('/api/stems/cache');
+    expect(listed.status).toBe(200);
+    expect(listed.body.entries[0]).toMatchObject({
+      videoId: 'dQw4w9WgXcQ',
+      title: 'Demo',
+      stems: ['vocals'],
+    });
+    const removed = await request(app).delete('/api/stems/cache');
+    expect(removed.body.removed).toBe(1);
+  });
+
   it('requires the temporary audio first', async () => {
     const cache = { get: async () => null } as unknown as TemporaryAudioCache;
-    const jobs = new StemJobs(new NullStemEngine(), cache, tmpdir());
+    const jobs = new StemJobs(
+      new NullStemEngine(),
+      cache,
+      tmpdir(),
+      new StemCache(join(tmpdir(), 'chordifree-stems-cache-empty')),
+    );
     await expect(jobs.start('dQw4w9WgXcQ')).rejects.toMatchObject({ code: 'AUDIO_NOT_READY' });
   });
 });

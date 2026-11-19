@@ -34,10 +34,8 @@ function renderHome(overrides: Partial<Parameters<typeof Home>[0]> = {}) {
     preferences: DEFAULT_PREFERENCES,
     analyzerVersion: 'essentia-1.0',
     analyzerStatus: 'ok',
-    libraryCount: 0,
     notice: null,
     onDismissNotice: vi.fn(),
-    onOpenLibrary: vi.fn(),
     onAnalyzed,
     ...overrides,
   };

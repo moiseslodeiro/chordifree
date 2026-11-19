@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createYoutubeAnalysis, deleteAccount } from './lib/api';
+import { createYoutubeAnalysis, deleteAccount, getStemsStatus } from './lib/api';
 import { isDesktopApp } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT } from './i18n';
@@ -130,6 +130,20 @@ export default function App() {
 
   const nickname = useProfile(cloudEnabled);
   const [nicknameEditing, setNicknameEditing] = useState(false);
+  const [stemsAvailable, setStemsAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getStemsStatus()
+      .then((next) => {
+        if (!cancelled) setStemsAvailable(next.available);
+      })
+      .catch(() => {
+        if (!cancelled) setStemsAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const applyCloudSnapshot = useCallback(
     (snapshot: { songs: Song[]; setlists: typeof setlists }) => {
@@ -320,6 +334,7 @@ export default function App() {
         desktop={desktop}
         preferences={preferences}
         nickname={nickname.profile?.nickname ?? null}
+        stemsAvailable={stemsAvailable}
         onEditNickname={() => setNicknameEditing(true)}
         onNavigate={navigate}
         onPreferences={updatePreferences}

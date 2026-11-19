@@ -11,6 +11,8 @@ export interface PlayerAdapter {
   setPitch?(semitones: number): void;
   /** Center-channel cancellation for a karaoke-style backing track. */
   setKaraoke?(enabled: boolean): void;
+  /** Per-stem volume in the mix (0 to 1). */
+  setStemVolume?(stem: string, value: number): void;
   destroy(): void;
 }
 

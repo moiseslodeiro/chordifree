@@ -162,13 +162,16 @@ export function SongView({
   const [shareOpen, setShareOpen] = useState(false);
   const [karaoke, setKaraoke] = useState(false);
   const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
-  const stems = useStems(videoId);
-  const [stemSelected, setStemSelected] = useState<string | null>(null);
-  const [stemUrl, setStemUrl] = useState<string | null>(null);
-  const [stemLoading, setStemLoading] = useState<string | null>(null);
+  const stems = useStems(videoId, song.title);
+  const [mixActive, setMixActive] = useState(false);
+  const [mixBusy, setMixBusy] = useState(false);
+  const [stemMix, setStemMix] = useState<{
+    stems: Array<{ name: string; url: string }>;
+  } | null>(null);
+  const [stemGains, setStemGains] = useState<Record<string, number>>({});
   const [stemMidiBusy, setStemMidiBusy] = useState(false);
   const [stemError, setStemError] = useState<string | null>(null);
-  const stemUrlRef = useRef<string | null>(null);
+  const stemUrlsRef = useRef<string[]>([]);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     message: string;
@@ -495,45 +498,76 @@ export function SongView({
   }, [clock, beats]);
 
   useEffect(() => {
-    if (stemUrlRef.current) {
-      URL.revokeObjectURL(stemUrlRef.current);
-      stemUrlRef.current = null;
-    }
-    setStemUrl(null);
-    setStemSelected(null);
+    for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+    stemUrlsRef.current = [];
+    setStemMix(null);
+    setMixActive(false);
+    setStemGains({});
     setStemError(null);
   }, [song.id]);
 
   useEffect(
     () => () => {
-      if (stemUrlRef.current) URL.revokeObjectURL(stemUrlRef.current);
+      for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
     },
     [],
   );
 
-  const selectStem = async (stem: string | null) => {
-    setStemError(null);
-    if (!stem || !stems.job) {
-      if (stemUrlRef.current) {
-        URL.revokeObjectURL(stemUrlRef.current);
-        stemUrlRef.current = null;
+  useEffect(() => {
+    if (!stems.job || stems.job.status !== 'done') return;
+    setStemGains((current) => {
+      const next = { ...current };
+      for (const stem of stems.job!.stems) {
+        if (next[stem] === undefined) next[stem] = 1;
       }
-      setStemUrl(null);
-      setStemSelected(null);
+      return next;
+    });
+  }, [stems.job]);
+
+  const toggleMix = async (active: boolean) => {
+    if (!active) {
+      for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+      stemUrlsRef.current = [];
+      setStemMix(null);
+      setMixActive(false);
       return;
     }
-    setStemLoading(stem);
+    const job = stems.job;
+    if (!job || job.status !== 'done' || mixBusy) return;
+    setMixBusy(true);
+    setStemError(null);
     try {
-      const url = await prepareStemAudio(stems.job.id, stem);
-      if (stemUrlRef.current) URL.revokeObjectURL(stemUrlRef.current);
-      stemUrlRef.current = url;
-      setStemUrl(url);
-      setStemSelected(stem);
+      const urls = await Promise.all(
+        job.stems.map(async (stem) => ({
+          name: stem,
+          url: await prepareStemAudio(job.id, stem),
+        })),
+      );
+      for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+      stemUrlsRef.current = urls.map((entry) => entry.url);
+      setStemMix({ stems: urls });
+      setMixActive(true);
     } catch {
       setStemError(t('stems.loadFailed'));
     } finally {
-      setStemLoading(null);
+      setMixBusy(false);
     }
+  };
+
+  const changeStemGain = (stem: string, value: number) => {
+    setStemGains((current) => ({
+      ...current,
+      [stem]: Math.max(0, Math.min(1, value)),
+    }));
+  };
+
+  const downloadStemByName = (stem: string) => {
+    if (!stems.job) return;
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    void downloadStem(stems.job.id, stem, `${base}-${stem}.wav`).catch(() =>
+      setStemError(t('stems.loadFailed')),
+    );
   };
 
   const downloadStemMidi = async () => {
@@ -558,15 +592,6 @@ export function SongView({
     } finally {
       setStemMidiBusy(false);
     }
-  };
-
-  const downloadSelectedStem = (stem: string) => {
-    if (!stems.job) return;
-    const base =
-      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
-    void downloadStem(stems.job.id, stem, `${base}-${stem}.wav`).catch(() =>
-      setStemError(t('stems.loadFailed')),
-    );
   };
 
   const seek = (time: number) => {
@@ -1271,7 +1296,9 @@ export function SongView({
                 variant="compact"
                 pitch={pitch}
                 karaoke={karaoke}
-                overrideUrl={stemUrl}
+                overrideUrl={null}
+                mix={mixActive ? stemMix : null}
+                stemGains={stemGains}
                 onAdapter={handleAdapter}
                 onPlaybackError={setPlaybackError}
               />
@@ -1286,11 +1313,12 @@ export function SongView({
               pitch={pitch}
               onPitchChange={(value) => updatePractice({ pitch: value })}
               pitchAvailable={
-                song.source.type === 'youtube' || typeof adapter?.setPitch === 'function'
+                !mixActive &&
+                (song.source.type === 'youtube' || typeof adapter?.setPitch === 'function')
               }
               karaoke={karaoke}
               onKaraokeChange={setKaraoke}
-              karaokeAvailable={typeof adapter?.setKaraoke === 'function'}
+              karaokeAvailable={!mixActive && typeof adapter?.setKaraoke === 'function'}
             >
               {videoId && stems.status?.available ? (
                 <StemsPanel
@@ -1298,12 +1326,15 @@ export function SongView({
                   job={stems.job}
                   busy={stems.busy}
                   error={stems.error ?? stemError}
-                  selected={stemSelected}
-                  loadingStem={stemLoading}
                   midiBusy={stemMidiBusy}
+                  mixActive={mixActive}
+                  mixBusy={mixBusy}
+                  gains={stemGains}
                   onSeparate={() => void stems.separate()}
-                  onSelect={(stem) => void selectStem(stem)}
-                  onDownload={downloadSelectedStem}
+                  onCancel={() => void stems.cancel()}
+                  onToggleMix={(active) => void toggleMix(active)}
+                  onGainChange={changeStemGain}
+                  onDownloadStem={downloadStemByName}
                   onDownloadMidi={() => void downloadStemMidi()}
                   onRetry={() => void stems.separate()}
                 />
