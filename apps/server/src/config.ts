@@ -35,6 +35,8 @@ const EnvSchema = z.object({
   YOUTUBE_EXTRACTOR_TOKEN: z.string().default(''),
   YOUTUBE_EXTRACTOR_TIMEOUT_MS: z.coerce.number().int().min(1000).default(240_000),
   STEMS_PLUGIN_DIR: z.string().default(''),
+  STEMS_SETUP_DIR: z.string().default(''),
+  STEMS_PLUGIN_SOURCE: z.string().default(''),
   STEMS_SERVICE_URL: z.union([z.literal(''), z.string().url()]).default(''),
   STEMS_SERVICE_TOKEN: z.string().default(''),
   STEMS_SERVICE_TIMEOUT_MS: z.coerce
@@ -72,6 +74,10 @@ export interface AppConfig {
   youtubeExtractorToken: string;
   youtubeExtractorTimeoutMs: number;
   stemsPluginDir?: string;
+  stemsSetupDir?: string;
+  stemsPluginSource?: string;
+  /** Loopback host/origin: local plugins and the setup UI are allowed. */
+  local: boolean;
   stemsServiceUrl?: string;
   stemsServiceToken: string;
   stemsServiceTimeoutMs: number;
@@ -134,6 +140,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     youtubeExtractorToken: parsed.YOUTUBE_EXTRACTOR_TOKEN,
     youtubeExtractorTimeoutMs: parsed.YOUTUBE_EXTRACTOR_TIMEOUT_MS,
     ...(parsed.STEMS_PLUGIN_DIR.trim() ? { stemsPluginDir: parsed.STEMS_PLUGIN_DIR.trim() } : {}),
+    ...(parsed.STEMS_SETUP_DIR.trim() ? { stemsSetupDir: parsed.STEMS_SETUP_DIR.trim() } : {}),
+    ...(parsed.STEMS_PLUGIN_SOURCE.trim()
+      ? { stemsPluginSource: parsed.STEMS_PLUGIN_SOURCE.trim() }
+      : {}),
+    local,
     ...(parsed.STEMS_SERVICE_URL.trim()
       ? { stemsServiceUrl: parsed.STEMS_SERVICE_URL.trim() }
       : {}),

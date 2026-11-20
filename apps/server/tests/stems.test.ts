@@ -343,6 +343,63 @@ describe('stem jobs', () => {
     expect(removed.body.removed).toBe(1);
   });
 
+  it('exposes the local plugin setup endpoints', async () => {
+    const job = {
+      id: 'install-1',
+      status: 'running' as const,
+      step: 'pip' as const,
+      progress: 42,
+      message: 'Installing PyTorch and Demucs',
+      startedAt: '2026-11-19T10:00:00.000Z',
+      updatedAt: '2026-11-19T10:00:00.000Z',
+    };
+    const setup = {
+      status: vi.fn(async () => ({
+        supported: true,
+        installed: false,
+        managed: false,
+        pluginDir: '/tmp/chordifree-stems',
+        python: { command: 'python3', version: '3.12.3' },
+        job,
+      })),
+      install: vi.fn(async () => job),
+      cancel: vi.fn(() => job),
+      getJob: vi.fn(() => job),
+      uninstall: vi.fn(async () => undefined),
+    };
+    const app = createApp({ config: makeConfig(), stemsSetup: setup });
+
+    const status = await request(app).get('/api/stems/setup');
+    expect(status.status).toBe(200);
+    expect(status.body).toMatchObject({
+      supported: true,
+      installed: false,
+      python: { version: '3.12.3' },
+    });
+
+    const installed = await request(app).post('/api/stems/setup/install');
+    expect(installed.status).toBe(202);
+    expect(installed.body.step).toBe('pip');
+    expect(setup.install).toHaveBeenCalledTimes(1);
+
+    const cancelled = await request(app).post('/api/stems/setup/cancel');
+    expect(cancelled.status).toBe(200);
+    expect(setup.cancel).toHaveBeenCalledTimes(1);
+
+    const removed = await request(app).delete('/api/stems/setup');
+    expect(removed.status).toBe(200);
+    expect(setup.uninstall).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports the setup as unsupported without an installer', async () => {
+    const app = createApp({ config: makeConfig() });
+    const status = await request(app).get('/api/stems/setup');
+    expect(status.body).toEqual({ supported: false, installed: false, managed: false });
+    const install = await request(app).post('/api/stems/setup/install');
+    expect(install.status).toBe(404);
+    expect(install.body.error.code).toBe('STEMS_SETUP_UNAVAILABLE');
+  });
+
   it('requires the temporary audio first', async () => {
     const cache = { get: async () => null } as unknown as TemporaryAudioCache;
     const jobs = new StemJobs(

@@ -257,6 +257,35 @@ const en = {
   'menu.share': 'Share',
   'menu.export': 'Export',
   'menu.analysis': 'Analysis',
+  'stemsSetup.eyebrow': 'On-device separation',
+  'stemsSetup.title': 'Separate the song on this computer',
+  'stemsSetup.description':
+    'Chordifree installs the Demucs separation engine in a private folder inside the app. You can cancel the download at any time and remove the plugin later.',
+  'stemsSetup.refresh': 'Check again',
+  'stemsSetup.pythonFound': 'Python {version} found ({command}).',
+  'stemsSetup.pythonMissing': 'Python 3.10 to 3.13 is required. Install it from',
+  'stemsSetup.install': 'Install plugin',
+  'stemsSetup.starting': 'Starting…',
+  'stemsSetup.cancel': 'Cancel installation',
+  'stemsSetup.installed': 'The stems plugin is installed.',
+  'stemsSetup.installedHint': 'Open a song and expand Audio to separate and mix the four stems.',
+  'stemsSetup.uninstall': 'Uninstall plugin',
+  'stemsSetup.uninstallConfirm':
+    'Remove the plugin, its virtual environment and the downloaded model? Songs will have to be separated again.',
+  'stemsSetup.notResponding':
+    'The plugin is installed but the server cannot load its manifest. Check again or reinstall it.',
+  'stemsSetup.failed': 'The installation failed: {message}',
+  'stemsSetup.retryHint':
+    'The installation did not finish. You can start it again or check the Python version.',
+  'stemsSetup.size': 'About 1.5 GB, downloaded once.',
+  'stemsSetup.privacy':
+    'The plugin runs on this device. The model and the virtual environment stay in the Chordifree folder; the hosted instance never installs or separates audio.',
+  'stemsSetup.stepPython': 'Looking for Python',
+  'stemsSetup.stepFiles': 'Copying the plugin',
+  'stemsSetup.stepVenv': 'Creating the Python environment',
+  'stemsSetup.stepPip': 'Installing PyTorch and Demucs',
+  'stemsSetup.stepVerify': 'Checking the installation',
+  'stemsSetup.stepDone': 'Done',
   'stemsLibrary.eyebrow': 'Audio',
   'stemsLibrary.title': 'Separated stems',
   'stemsLibrary.description':
@@ -1051,6 +1080,36 @@ const es: Record<MessageKey, string> = {
   'menu.share': 'Compartir',
   'menu.export': 'Exportar',
   'menu.analysis': 'Análisis',
+  'stemsSetup.eyebrow': 'Separación en tu equipo',
+  'stemsSetup.title': 'Separa la canción en este ordenador',
+  'stemsSetup.description':
+    'Chordifree instala el motor de separación Demucs en una carpeta privada de la app. Puedes cancelar la descarga en cualquier momento y quitar el plugin después.',
+  'stemsSetup.refresh': 'Volver a comprobar',
+  'stemsSetup.pythonFound': 'Python {version} detectado ({command}).',
+  'stemsSetup.pythonMissing': 'Hace falta Python 3.10 a 3.13. Instálalo desde',
+  'stemsSetup.install': 'Instalar plugin',
+  'stemsSetup.starting': 'Iniciando…',
+  'stemsSetup.cancel': 'Cancelar instalación',
+  'stemsSetup.installed': 'El plugin de pistas está instalado.',
+  'stemsSetup.installedHint':
+    'Abre una canción y despliega Audio para separar y mezclar las cuatro pistas.',
+  'stemsSetup.uninstall': 'Desinstalar plugin',
+  'stemsSetup.uninstallConfirm':
+    '¿Quitar el plugin, su entorno de Python y el modelo descargado? Habrá que separar las canciones otra vez.',
+  'stemsSetup.notResponding':
+    'El plugin está instalado, pero el servidor no puede cargar su manifiesto. Vuelve a comprobarlo o reinstálalo.',
+  'stemsSetup.failed': 'La instalación falló: {message}',
+  'stemsSetup.retryHint':
+    'La instalación no terminó. Puedes volver a intentarlo o revisar la versión de Python.',
+  'stemsSetup.size': 'Unos 1,5 GB, solo la primera vez.',
+  'stemsSetup.privacy':
+    'El plugin se ejecuta en este equipo. El modelo y el entorno de Python se quedan en la carpeta de Chordifree; la instancia alojada nunca instala ni separa audio.',
+  'stemsSetup.stepPython': 'Buscando Python',
+  'stemsSetup.stepFiles': 'Copiando el plugin',
+  'stemsSetup.stepVenv': 'Creando el entorno de Python',
+  'stemsSetup.stepPip': 'Instalando PyTorch y Demucs',
+  'stemsSetup.stepVerify': 'Comprobando la instalación',
+  'stemsSetup.stepDone': 'Listo',
   'stemsLibrary.eyebrow': 'Audio',
   'stemsLibrary.title': 'Pistas separadas',
   'stemsLibrary.description':

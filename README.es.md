@@ -139,10 +139,12 @@ El botón de karaoke funciona en todas las versiones: elimina el canal central p
 pista instrumental. El tono (±12 semitonos) cambia el audio sin tocar los acordes; ambos se
 aplican a la pista original.
 
-En escritorio, `STEMS_PLUGIN_DIR` activa la separación real. La vista de canción muestra una
-tarjeta **Pistas** dentro de **Audio**: separar, cancelar, reproducir la mezcla sincronizada con
-un volumen por pista, volver a la pista original, descargar un WAV o generar un MIDI desde las
-pistas. Los trabajos siguen en segundo plano al cambiar de canción o cerrar la vista. Las
+En escritorio, abre **Pistas** (`#/stems`) y pulsa **Instalar plugin**. Chordifree copia los
+scripts incluidos, crea un entorno de Python y descarga PyTorch CPU y Demucs (unos 1,5 GB,
+solo la primera vez). Puedes cancelar la descarga y desinstalar el plugin desde la misma
+pantalla. La vista de canción muestra entonces una tarjeta **Pistas** dentro de **Audio**:
+separar, cancelar, reproducir la mezcla sincronizada con un volumen por pista, volver a la
+pista original, descargar un WAV o generar un MIDI desde las pistas. Los trabajos siguen en segundo plano al cambiar de canción o cerrar la vista. Las
 separaciones completadas se guardan en `$TEMP_DIR/stems-cache` (20 entradas / 2 GB, se expulsa
 la más antigua primero) y se gestionan desde `#/stems` (**Pistas** en la cabecera), donde puedes
 cancelar trabajos, escuchar la mezcla o una pista suelta y vaciar la caché. El plugin no se

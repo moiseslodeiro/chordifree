@@ -47,6 +47,7 @@ import {
 } from './services/analysis-log';
 import { StemJobs } from './services/stem-jobs';
 import { StemCache } from './services/stem-cache';
+import { StemInstaller, type StemInstallerLike } from './services/stem-installer';
 import {
   NullStemEngine,
   PluginStemEngine,
@@ -73,6 +74,7 @@ export interface AppDependencies {
   stemsEngine: StemEngine;
   stems: StemJobs;
   stemsCache: StemCache;
+  stemsSetup?: StemInstallerLike;
   webDist: string;
 }
 
@@ -163,6 +165,14 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         ? new PluginStemEngine(config.stemsPluginDir)
         : new NullStemEngine());
   const stemsCache = options.stemsCache ?? new StemCache(resolve(config.tempDir, 'stems-cache'));
+  const stemsSetup =
+    options.stemsSetup ??
+    (config.local && config.stemsSetupDir && config.stemsPluginSource
+      ? new StemInstaller({
+          pluginDir: config.stemsSetupDir,
+          sourceDir: config.stemsPluginSource,
+        })
+      : undefined);
   const deps: AppDependencies = {
     config,
     store: options.store ?? new JobStore(),
@@ -204,6 +214,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       options.stems ??
       new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems'), stemsCache),
     stemsCache,
+    ...(stemsSetup ? { stemsSetup } : {}),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -287,7 +298,10 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   );
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
   app.use('/api/profile', createProfileRouter(deps.auth, deps.profiles));
-  app.use('/api/stems', createStemsRouter(deps.stemsEngine, deps.stems, deps.stemsCache));
+  app.use(
+    '/api/stems',
+    createStemsRouter(deps.stemsEngine, deps.stems, deps.stemsCache, deps.stemsSetup),
+  );
   app.use('/api/collab', createCollabRouter({ collab: deps.collab, profiles: deps.profiles }));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));

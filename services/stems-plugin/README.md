@@ -13,11 +13,18 @@ point the server at it with `STEMS_PLUGIN_DIR`.
 
 ## Install
 
+On desktop, open **Pistas** (`#/stems`) and press **Install plugin**. The app
+copies `separate.py`, `transcribe.py` and the manifest into its user data folder,
+creates the virtualenv and installs the dependencies. You can cancel the
+download and uninstall it later from the same screen.
+
+Manual install:
+
 ```bash
 python3 -m venv ~/.local/share/chordifree/stems-venv
 ~/.local/share/chordifree/stems-venv/bin/pip install -r requirements.txt
 mkdir -p ~/.config/chordifree/stems
-cp run.sh transcribe.py manifest.json ~/.config/chordifree/stems/
+cp run.sh separate.py transcribe.py manifest.json ~/.config/chordifree/stems/
 ```
 
 `ffmpeg` must be on `PATH`. The first run downloads the Demucs model (~80 MB).

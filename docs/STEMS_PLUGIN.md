@@ -22,7 +22,44 @@ alternative for a quick instrumental.
 3. Start the server or desktop app with `STEMS_PLUGIN_DIR` pointing at it.
 
 The directory is trusted executable code. Keep it owned by your user with mode
-`0700`; the app does not download or update plugins by itself.
+`0700`. The app downloads the dependencies only when you press **Install
+plugin** in `#/stems`; it does not update them on its own.
+
+## Install from the app (desktop)
+
+The desktop build can install the plugin without leaving Chordifree. Open
+**Pistas separadas** (`#/stems`, also in the header) and press **Install
+plugin**. The app:
+
+1. looks for Python 3.10 to 3.13 (`python3.12`, `python3.11`, `py -3.12`…);
+2. copies the scripts bundled with the app (`separate.py`, `transcribe.py`);
+3. creates a virtualenv inside the app's user data folder and installs CPU
+   PyTorch, Demucs and librosa (about 1.5 GB, once);
+4. writes the plugin manifest and checks that the packages import.
+
+The download can be cancelled while it runs. Uninstall removes the virtualenv
+and the downloaded model; the separated-stem cache is managed separately in the
+same screen.
+
+The installer only accepts the scripts shipped with Chordifree and runs a fixed
+set of commands; it never downloads code from a URL. It also refuses to write
+into a folder that already contains a plugin it did not create. The endpoints
+exist only in local mode; the hosted instance reports `supported: false` and
+cannot install or separate audio.
+
+For the local web build (not the packaged app), point the server at a managed
+folder and the repository scripts:
+
+```bash
+STEMS_PLUGIN_DIR=$HOME/.local/share/chordifree/stems \
+STEMS_SETUP_DIR=$HOME/.local/share/chordifree/stems \
+STEMS_PLUGIN_SOURCE=$PWD/services/stems-plugin \
+pnpm dev
+```
+
+The packaged desktop app sets those variables itself. The plugin is not part of
+the installer; the first run downloads the Demucs weights (~80 MB) into the
+managed folder.
 
 ## Manifest
 
@@ -198,6 +235,7 @@ STEMS_SERVICE_TIMEOUT_MS=1800000
 sent as a Bearer header. The UI and `GET /api/stems` show the remote service
 exactly like the local plugin, so the app does not care where the model runs.
 Hosted Cloud Run can use this to reach a machine with more CPU or a GPU.
+The in-app installer is disabled there; configure the remote service instead.
 
 The server uploads the cached audio to the remote service, so it leaves the
 instance: only configure it with a service you trust. The contract is:

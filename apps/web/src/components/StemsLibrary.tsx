@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   cancelStemJob,
+  cancelStemsInstall,
   clearStemCache,
+  getStemsSetup,
   getStemsStatus,
+  installStems,
   listStemCache,
   listStemJobs,
   prepareStemAudio,
   removeStemCache,
   startStems,
+  uninstallStems,
   type StemCacheEntry,
   type StemJobView,
+  type StemSetupStatus,
   type StemsStatus,
 } from '../lib/api';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { StemMixerAdapter } from '../player/stem-mixer';
 import { stemLabel } from '../lib/stem-labels';
+import { StemsSetup } from './StemsSetup';
 import { useConfirm } from './ConfirmDialog';
 
 interface StemsLibraryProps {
@@ -46,8 +52,10 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
   const [status, setStatus] = useState<StemsStatus | null>(null);
   const [jobs, setJobs] = useState<StemJobView[]>([]);
   const [entries, setEntries] = useState<StemCacheEntry[]>([]);
+  const [setup, setSetup] = useState<StemSetupStatus | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [setupBusy, setSetupBusy] = useState(false);
   const [playing, setPlaying] = useState<{ key: string; mode: 'mix' | string } | null>(null);
   const [loadingPlayback, setLoadingPlayback] = useState<string | null>(null);
   const mixRef = useRef<StemMixerAdapter | null>(null);
@@ -77,14 +85,16 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
 
   const load = useCallback(async () => {
     try {
-      const [nextStatus, nextJobs, nextEntries] = await Promise.all([
+      const [nextStatus, nextJobs, nextEntries, nextSetup] = await Promise.all([
         getStemsStatus().catch(() => ({ available: false }) as StemsStatus),
         listStemJobs().catch(() => []),
         listStemCache().catch(() => []),
+        getStemsSetup().catch(() => null),
       ]);
       setStatus(nextStatus);
       setJobs(nextJobs);
       setEntries(nextEntries);
+      setSetup(nextSetup);
       setProblem(null);
     } catch {
       setProblem(t('stemsLibrary.error'));
@@ -106,6 +116,48 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
       setProblem(t('stemsLibrary.error'));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const installPlugin = async () => {
+    setSetupBusy(true);
+    setProblem(null);
+    try {
+      const job = await installStems();
+      setSetup((current) => (current ? { ...current, job } : current));
+      await load();
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : t('stemsLibrary.error'));
+    } finally {
+      setSetupBusy(false);
+    }
+  };
+
+  const cancelInstall = async () => {
+    try {
+      await cancelStemsInstall();
+      await load();
+    } catch {
+      setProblem(t('stemsLibrary.error'));
+    }
+  };
+
+  const uninstallPlugin = async () => {
+    const accepted = await confirm({
+      title: t('stemsSetup.uninstall'),
+      description: t('stemsSetup.uninstallConfirm'),
+      confirmLabel: t('stemsSetup.uninstall'),
+      tone: 'danger',
+    });
+    if (!accepted) return;
+    setSetupBusy(true);
+    try {
+      await uninstallStems();
+      await load();
+    } catch {
+      setProblem(t('stemsLibrary.error'));
+    } finally {
+      setSetupBusy(false);
     }
   };
 
@@ -214,10 +266,35 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
         <p className="p-6 text-sm text-danger sm:p-8" role="alert">
           {problem}
         </p>
+      ) : !status?.available && setup?.supported ? (
+        <div className="p-6 sm:p-8">
+          <StemsSetup
+            setup={setup}
+            busy={setupBusy}
+            available={Boolean(status?.available)}
+            onInstall={() => void installPlugin()}
+            onCancel={() => void cancelInstall()}
+            onRefresh={() => void load()}
+            onUninstall={() => void uninstallPlugin()}
+          />
+        </div>
       ) : status && !status.available ? (
         <p className="p-6 text-sm text-ink2 sm:p-8">{t('stemsLibrary.unavailable')}</p>
       ) : (
         <div className="divide-y divide-line">
+          {setup?.supported && setup.installed ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-3 text-xs text-ink3 sm:px-8">
+              <span>{t('stemsSetup.installed')}</span>
+              <button
+                type="button"
+                className="btn btn-danger min-h-0 px-3 py-1.5 text-xs"
+                disabled={setupBusy}
+                onClick={() => void uninstallPlugin()}
+              >
+                {t('stemsSetup.uninstall')}
+              </button>
+            </div>
+          ) : null}
           <div className="p-6 sm:p-8">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-ink">{t('stemsLibrary.jobs')}</h2>

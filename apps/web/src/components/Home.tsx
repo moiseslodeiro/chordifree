@@ -446,9 +446,8 @@ export function Home({
         </div>
 
         <aside
-          className={`flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10 ${
-            showLegalNote ? 'lg:justify-between' : ''
-          }`}
+          className="flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10"
+          data-testid="home-sidebar"
         >
           {desktop ? (
             <div>
@@ -520,7 +519,7 @@ export function Home({
             </div>
           )}
 
-          <div>
+          <div data-testid="home-how">
             <p className="eyebrow">{t('home.howItWorks')}</p>
             <ol className="mt-3 space-y-3">
               {guideSteps.map(([number, title, body]) => (
@@ -538,7 +537,10 @@ export function Home({
           </div>
 
           {showLegalNote ? (
-            <div className="note note-info text-xs leading-relaxed">
+            <div
+              className="note note-info mt-auto text-xs leading-relaxed"
+              data-testid="home-legal"
+            >
               <strong className="font-semibold text-ink">{t('home.legalTitle')}</strong>{' '}
               {t('home.legalBody')}
             </div>

@@ -4,6 +4,7 @@ import { ApiError, errorBody } from '../errors';
 import type { StemJobs } from '../services/stem-jobs';
 import type { StemCache, StemCacheEntry } from '../services/stem-cache';
 import type { StemEngine } from '../services/stems';
+import type { StemInstallerLike } from '../services/stem-installer';
 import { isVideoId } from '../youtube';
 
 const JOB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,7 +27,12 @@ function publicEntry(entry: StemCacheEntry) {
   };
 }
 
-export function createStemsRouter(engine: StemEngine, jobs: StemJobs, cache: StemCache): Router {
+export function createStemsRouter(
+  engine: StemEngine,
+  jobs: StemJobs,
+  cache: StemCache,
+  setup?: StemInstallerLike,
+): Router {
   const router = Router();
   const startLimiter = rateLimit({
     windowMs: 60_000,
@@ -87,6 +93,55 @@ export function createStemsRouter(engine: StemEngine, jobs: StemJobs, cache: Ste
       const job = jobs.cancel(req.params.id);
       if (!job) throw new ApiError('NOT_FOUND', 'The separation job does not exist');
       res.json(job);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/setup', async (_req, res, next) => {
+    try {
+      res.setHeader('Cache-Control', 'no-store');
+      if (!setup) {
+        res.json({ supported: false, installed: false, managed: false });
+        return;
+      }
+      res.json(await setup.status());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/setup/install', async (_req, res, next) => {
+    try {
+      if (!setup) {
+        throw new ApiError('STEMS_SETUP_UNAVAILABLE', 'The plugin installer is not available');
+      }
+      res.status(202).json(await setup.install());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/setup/cancel', (req, res, next) => {
+    try {
+      if (!setup) {
+        throw new ApiError('STEMS_SETUP_UNAVAILABLE', 'The plugin installer is not available');
+      }
+      const job = setup.cancel();
+      if (!job) throw new ApiError('NOT_FOUND', 'There is no installation to cancel');
+      res.json(job);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/setup', async (_req, res, next) => {
+    try {
+      if (!setup) {
+        throw new ApiError('STEMS_SETUP_UNAVAILABLE', 'The plugin installer is not available');
+      }
+      await setup.uninstall();
+      res.json({ removed: true });
     } catch (error) {
       next(error);
     }

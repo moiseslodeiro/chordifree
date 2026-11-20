@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setLanguage } from '../src/i18n';
 import { StemsLibrary } from '../src/components/StemsLibrary';
+import type { StemInstallJobView, StemSetupStatus } from '../src/lib/api';
 
 afterEach(() => {
   FakeAudio.instances = [];
@@ -92,6 +93,9 @@ describe('StemsLibrary', () => {
       if (url === '/api/stems') {
         return response({ available: true, name: 'demucs-4stems', version: '4.1.0' });
       }
+      if (url === '/api/stems/setup') {
+        return response({ supported: false, installed: false, managed: false });
+      }
       if (url === '/api/stems/jobs' && !init?.method) {
         return response({
           jobs: [
@@ -159,11 +163,74 @@ describe('StemsLibrary', () => {
     );
   });
 
+  it('installs and cancels the local plugin from the setup panel', async () => {
+    setLanguage('es');
+    const job: StemInstallJobView = {
+      id: 'install-1',
+      status: 'running',
+      step: 'pip',
+      progress: 42,
+      message: 'Descargando torch y torchaudio',
+      startedAt: '2026-11-19T10:00:00.000Z',
+      updatedAt: '2026-11-19T10:00:00.000Z',
+    };
+    let setup: StemSetupStatus = {
+      supported: true,
+      installed: false,
+      managed: false,
+      pluginDir: '/home/demo/.config/chordifree/stems',
+      python: { command: 'python3', version: '3.12.3' },
+    };
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/stems') return response({ available: false });
+      if (url === '/api/stems/setup' && !init?.method) return response(setup);
+      if (url === '/api/stems/setup/install') {
+        setup = { ...setup, job };
+        return response(job);
+      }
+      if (url === '/api/stems/setup/cancel') {
+        setup = { ...setup, job: { ...job, status: 'cancelled' } };
+        return response(setup.job);
+      }
+      if (url === '/api/stems/jobs') return response({ jobs: [] });
+      if (url === '/api/stems/cache') return response({ entries: [] });
+      return response({});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<StemsLibrary onBack={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: 'Instalar plugin' })).toBeVisible();
+    expect(screen.getByText(/Python 3.12.3 detectado/)).toBeInTheDocument();
+    expect(screen.getByText(/1,5 GB/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Instalar plugin' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/stems/setup/install',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+    expect(await screen.findByText('Descargando torch y torchaudio')).toBeInTheDocument();
+    expect(screen.getByText('42%')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar instalación' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/stems/setup/cancel',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+  });
+
   it('plays the cached mix or a single stem', async () => {
     setLanguage('es');
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === '/api/stems') {
         return response({ available: true, name: 'demucs-4stems', version: '4.1.0' });
+      }
+      if (url === '/api/stems/setup') {
+        return response({ supported: false, installed: false, managed: false });
       }
       if (url === '/api/stems/jobs' && !init?.method) return response({ jobs: [] });
       if (url === '/api/stems/cache') return response({ entries: [cachedEntry] });

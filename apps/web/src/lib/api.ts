@@ -474,6 +474,60 @@ export async function cancelStemJob(id: string): Promise<StemJobView> {
   return parseResponse<StemJobView>(response);
 }
 
+export type StemInstallStatus = 'running' | 'done' | 'error' | 'cancelled';
+export type StemInstallStep = 'python' | 'files' | 'venv' | 'pip' | 'verify' | 'done';
+
+export interface StemInstallJobView {
+  id: string;
+  status: StemInstallStatus;
+  step: StemInstallStep;
+  progress: number;
+  message: string;
+  detail?: string;
+  error?: { code: string; message: string };
+  startedAt: string;
+  updatedAt: string;
+}
+
+export interface StemSetupStatus {
+  supported: boolean;
+  installed: boolean;
+  managed: boolean;
+  pluginDir?: string;
+  python?: { command: string; version: string };
+  job?: StemInstallJobView;
+  error?: string;
+}
+
+export async function getStemsSetup(signal?: AbortSignal): Promise<StemSetupStatus> {
+  const response = await fetch('/api/stems/setup', { signal, headers: authHeaders() });
+  return parseResponse<StemSetupStatus>(response);
+}
+
+export async function installStems(): Promise<StemInstallJobView> {
+  const response = await fetch('/api/stems/setup/install', {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemInstallJobView>(response);
+}
+
+export async function cancelStemsInstall(): Promise<StemInstallJobView> {
+  const response = await fetch('/api/stems/setup/cancel', {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemInstallJobView>(response);
+}
+
+export async function uninstallStems(): Promise<void> {
+  const response = await fetch('/api/stems/setup', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  await parseResponse<{ removed?: boolean }>(response);
+}
+
 export async function getStemNotes(
   id: string,
   stem: string,
