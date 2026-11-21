@@ -122,7 +122,7 @@ describe('stems plugin engine', () => {
   });
 });
 
-async function fakeRemoteService() {
+async function fakeRemoteService(stems = ['vocals', 'no_vocals']) {
   const server = createServer((req, res) => {
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -131,7 +131,7 @@ async function fakeRemoteService() {
           status: 'ok',
           name: 'remote-demucs',
           version: '9.9.9',
-          stems: ['vocals', 'no_vocals'],
+          stems,
         }),
       );
       return;
@@ -140,20 +140,13 @@ async function fakeRemoteService() {
       req.resume();
       req.on('end', () => {
         res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(
-          JSON.stringify({ id: 'job-remote', status: 'done', stems: ['vocals', 'no_vocals'] }),
-        );
+        res.end(JSON.stringify({ id: 'job-remote', status: 'done', stems }));
       });
       return;
     }
-    if (req.url === '/jobs/job-remote/vocals') {
+    if (req.url?.startsWith('/jobs/job-remote/')) {
       res.writeHead(200, { 'content-type': 'audio/wav' });
-      res.end('vocals-bytes');
-      return;
-    }
-    if (req.url === '/jobs/job-remote/no_vocals') {
-      res.writeHead(200, { 'content-type': 'audio/wav' });
-      res.end('instrumental-bytes');
+      res.end('stem-bytes');
       return;
     }
     res.writeHead(404);
@@ -189,8 +182,24 @@ describe('remote stems service', () => {
       const output = await mkdtemp(join(tmpdir(), 'chordifree-stems-remote-'));
       const result = await engine.separate(input, output);
       expect([...result.stems.keys()]).toEqual(['vocals', 'no_vocals']);
-      expect(await readFile(result.stems.get('vocals')!, 'utf8')).toBe('vocals-bytes');
-      expect(await readFile(result.stems.get('no_vocals')!, 'utf8')).toBe('instrumental-bytes');
+      expect(await readFile(result.stems.get('vocals')!, 'utf8')).toBe('stem-bytes');
+      expect(await readFile(result.stems.get('no_vocals')!, 'utf8')).toBe('stem-bytes');
+    } finally {
+      await new Promise((resolve) => remote.server.close(resolve));
+    }
+  });
+
+  it('rejects remote stem names that could escape the output directory', async () => {
+    const remote = await fakeRemoteService(['../outside']);
+    const root = await mkdtemp(join(tmpdir(), 'chordifree-stems-remote-path-'));
+    const output = join(root, 'output');
+    const outside = join(root, 'outside.wav');
+    try {
+      const engine = new RemoteStemEngine(remote.url);
+      const { input } = await fakeAudio();
+
+      await expect(engine.separate(input, output)).rejects.toMatchObject({ code: 'STEMS_FAILED' });
+      await expect(readFile(outside)).rejects.toMatchObject({ code: 'ENOENT' });
     } finally {
       await new Promise((resolve) => remote.server.close(resolve));
     }

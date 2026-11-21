@@ -100,17 +100,34 @@ function substitute(args: string[], input: string, output: string): string[] {
   return args.map((arg) => arg.replaceAll('{input}', input).replaceAll('{output}', output));
 }
 
-/**
- * Runs the command declared by the plugin manifest. The manifest is trusted
- * code: it is only read from the directory the operator configured, it never
- * runs through a shell, and `{input}`/`{output}` are substituted as single
- * arguments so paths cannot inject extra flags.
- */
-interface RemoteJob {
-  id: string;
-  status: 'queued' | 'processing' | 'done' | 'error';
-  stems?: string[];
-  error?: { code?: string; message?: string };
+const RemoteJobSchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    status: z.enum(['queued', 'processing', 'done', 'error']),
+    stems: z.array(z.string().regex(/^[a-z0-9_-]{1,32}$/)).max(12).optional(),
+    error: z
+      .object({
+        code: z.string().max(100).optional(),
+        message: z.string().max(1000).optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
+
+type RemoteJob = z.infer<typeof RemoteJobSchema>;
+
+async function readRemoteJob(response: Response): Promise<RemoteJob> {
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new ApiError('STEMS_FAILED', 'The stems service returned an invalid job');
+  }
+  const parsed = RemoteJobSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new ApiError('STEMS_FAILED', 'The stems service returned an invalid job');
+  }
+  return parsed.data;
 }
 
 /**
@@ -175,7 +192,7 @@ export class RemoteStemEngine implements StemEngine {
     if (!response.ok) {
       throw new ApiError('STEMS_FAILED', `The stems service answered HTTP ${response.status}`);
     }
-    let job = (await response.json()) as RemoteJob;
+    let job = await readRemoteJob(response);
     const startedAt = Date.now();
     while (job.status === 'queued' || job.status === 'processing') {
       if (signal?.aborted) throw new ApiError('STEMS_CANCELLED', 'Separation cancelled');
@@ -189,7 +206,7 @@ export class RemoteStemEngine implements StemEngine {
       });
       if (!poll.ok)
         throw new ApiError('STEMS_FAILED', `The stems service answered HTTP ${poll.status}`);
-      job = (await poll.json()) as RemoteJob;
+      job = await readRemoteJob(poll);
     }
     if (job.status === 'error') {
       throw new ApiError('STEMS_FAILED', job.error?.message ?? 'The stems service failed');
@@ -222,6 +239,12 @@ export class RemoteStemEngine implements StemEngine {
   }
 }
 
+/**
+ * Runs the command declared by the plugin manifest. The manifest is trusted
+ * code: it is only read from the directory the operator configured, it never
+ * runs through a shell, and `{input}`/`{output}` are substituted as single
+ * arguments so paths cannot inject extra flags.
+ */
 export class PluginStemEngine implements StemEngine {
   constructor(private readonly directory: string) {}
 
