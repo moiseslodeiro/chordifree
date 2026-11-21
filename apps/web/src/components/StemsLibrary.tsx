@@ -76,6 +76,8 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
     urlsRef.current = [];
   }, []);
 
+  const hasRunningJob = jobs.some((job) => job.status === 'queued' || job.status === 'processing');
+
   const stopPlayback = useCallback(() => {
     stopAudio();
     setPlaying(null);
@@ -252,7 +254,18 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
             {t('stemsLibrary.description')}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {setup?.installed && status?.available ? (
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={setupBusy || hasRunningJob}
+              title={hasRunningJob ? t('stemsSetup.uninstallRunning') : undefined}
+              onClick={() => void uninstallPlugin()}
+            >
+              {setupBusy ? t('stemsSetup.uninstalling') : t('stemsSetup.uninstall')}
+            </button>
+          ) : null}
           <button type="button" className="btn" onClick={() => void load()} disabled={busy}>
             {t('stemsLibrary.refresh')}
           </button>
@@ -282,19 +295,6 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
         <p className="p-6 text-sm text-ink2 sm:p-8">{t('stemsLibrary.unavailable')}</p>
       ) : (
         <div className="divide-y divide-line">
-          {setup?.supported && setup.installed ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-3 text-xs text-ink3 sm:px-8">
-              <span>{t('stemsSetup.installed')}</span>
-              <button
-                type="button"
-                className="btn btn-danger min-h-0 px-3 py-1.5 text-xs"
-                disabled={setupBusy}
-                onClick={() => void uninstallPlugin()}
-              >
-                {t('stemsSetup.uninstall')}
-              </button>
-            </div>
-          ) : null}
           <div className="p-6 sm:p-8">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-ink">{t('stemsLibrary.jobs')}</h2>

@@ -37,7 +37,7 @@ import {
 } from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { buildMidi, downloadMidi, type MidiOverrides } from '../lib/midi';
-import { downloadStem, getStemNotes, prepareStemAudio } from '../lib/api';
+import { downloadStem, getStemNotes, prepareStemAudio, uninstallStems } from '../lib/api';
 import { useStems } from '../hooks/useStems';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
@@ -71,6 +71,7 @@ import { MoreSettings } from './MoreSettings';
 import { AudioControls } from './AudioControls';
 import { SectionsPanel } from './SectionsPanel';
 import { StemsPanel } from './StemsPanel';
+import { StemsInstallPrompt } from './StemsInstallPrompt';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
@@ -101,6 +102,7 @@ interface SongViewProps {
   reanalyzeProgress: number | null;
   onBack: () => void;
   onOpenLibrary: () => void;
+  onOpenStems: () => void;
   onPreferences: (patch: Partial<Preferences>) => void;
   language: Preferences['language'];
   collabShare: CollabShare | null;
@@ -136,6 +138,7 @@ export function SongView({
   reanalyzeProgress,
   onBack,
   onOpenLibrary,
+  onOpenStems,
   onPreferences,
   language,
   collabShare,
@@ -171,6 +174,7 @@ export function SongView({
   const [stemGains, setStemGains] = useState<Record<string, number>>({});
   const [stemMidiBusy, setStemMidiBusy] = useState(false);
   const [stemError, setStemError] = useState<string | null>(null);
+  const [uninstalling, setUninstalling] = useState(false);
   const stemUrlsRef = useRef<string[]>([]);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
@@ -559,6 +563,27 @@ export function SongView({
       ...current,
       [stem]: Math.max(0, Math.min(1, value)),
     }));
+  };
+
+  const uninstallPlugin = async () => {
+    const accepted = await confirm({
+      title: t('stemsSetup.uninstall'),
+      description: t('stemsSetup.uninstallConfirm'),
+      confirmLabel: t('stemsSetup.uninstall'),
+      tone: 'danger',
+    });
+    if (!accepted) return;
+    setUninstalling(true);
+    setStemError(null);
+    try {
+      if (mixActive) await toggleMix(false);
+      await uninstallStems();
+      await stems.refresh();
+    } catch {
+      setStemError(t('stems.uninstallFailed'));
+    } finally {
+      setUninstalling(false);
+    }
   };
 
   const downloadStemByName = (stem: string) => {
@@ -1330,6 +1355,8 @@ export function SongView({
                   mixActive={mixActive}
                   mixBusy={mixBusy}
                   gains={stemGains}
+                  canUninstall={Boolean(stems.setup?.managed)}
+                  uninstalling={uninstalling}
                   onSeparate={() => void stems.separate()}
                   onCancel={() => void stems.cancel()}
                   onToggleMix={(active) => void toggleMix(active)}
@@ -1337,7 +1364,10 @@ export function SongView({
                   onDownloadStem={downloadStemByName}
                   onDownloadMidi={() => void downloadStemMidi()}
                   onRetry={() => void stems.separate()}
+                  onUninstall={() => void uninstallPlugin()}
                 />
+              ) : videoId && stems.setup?.supported ? (
+                <StemsInstallPrompt installed={stems.setup.installed} onOpenSetup={onOpenStems} />
               ) : null}
             </AudioControls>
           </div>

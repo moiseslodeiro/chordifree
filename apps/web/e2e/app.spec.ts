@@ -813,6 +813,50 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-row-0')).toBeVisible();
   });
 
+  test('opens the stems setup page from the song audio card', async ({ page }) => {
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ available: false }),
+      }),
+    );
+    await page.route('**/api/stems/setup', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          supported: true,
+          installed: false,
+          managed: false,
+          pluginDir: '/tmp/chordifree/stems',
+          python: { command: 'python3.12', version: '3.12.3' },
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ jobs: [] }),
+      }),
+    );
+    await page.route('**/api/stems/cache', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ entries: [] }),
+      }),
+    );
+
+    await analyze(page);
+    await openAudio(page);
+    await expect(page.getByTestId('stems-install-prompt')).toBeVisible();
+    await page.getByRole('button', { name: 'Ir a instalar' }).click();
+    await expect(page.getByTestId('stems-setup')).toBeVisible();
+    expect(new URL(page.url()).hash).toBe('#/stems');
+  });
+
   test('installs and cancels the stems plugin from the setup screen', async ({ page }) => {
     const job = {
       id: 'install-e2e',

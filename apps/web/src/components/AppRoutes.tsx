@@ -235,6 +235,7 @@ export function AppRoutes({
         reanalyzeProgress={reanalyzingId === song.id ? reanalyzeProgress : null}
         onBack={() => onNavigate({ name: 'home' })}
         onOpenLibrary={() => onNavigate({ name: 'library' })}
+        onOpenStems={() => onNavigate({ name: 'stems' })}
         onPreferences={onPreferences}
         language={preferences.language}
         collabShare={collabShare}

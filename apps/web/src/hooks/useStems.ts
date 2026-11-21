@@ -3,9 +3,11 @@ import {
   cancelStemJob,
   getStemCache,
   getStemsJob,
+  getStemsSetup,
   getStemsStatus,
   startStems,
   type StemJobView,
+  type StemSetupStatus,
   type StemsStatus,
 } from '../lib/api';
 
@@ -14,11 +16,13 @@ const MAX_POLL_MS = 60 * 60 * 1000;
 
 export interface StemsController {
   status: StemsStatus | null;
+  setup: StemSetupStatus | null;
   job: StemJobView | null;
   busy: boolean;
   error: string | null;
   separate: () => Promise<void>;
   cancel: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -28,6 +32,7 @@ export interface StemsController {
  */
 export function useStems(videoId: string | null, title?: string): StemsController {
   const [status, setStatus] = useState<StemsStatus | null>(null);
+  const [setup, setSetup] = useState<StemSetupStatus | null>(null);
   const [job, setJob] = useState<StemJobView | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,16 +43,30 @@ export function useStems(videoId: string | null, title?: string): StemsControlle
 
   useEffect(() => {
     let cancelled = false;
-    getStemsStatus()
-      .then((next) => {
-        if (!cancelled) setStatus(next);
-      })
-      .catch(() => {
-        if (!cancelled) setStatus({ available: false });
-      });
+    Promise.all([
+      getStemsStatus().catch(() => ({ available: false }) as StemsStatus),
+      getStemsSetup().catch(() => null),
+    ]).then(([nextStatus, nextSetup]) => {
+      if (cancelled) return;
+      setStatus(nextStatus);
+      setSetup(nextSetup);
+    });
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const [nextStatus, nextSetup] = await Promise.all([
+      getStemsStatus().catch(() => ({ available: false }) as StemsStatus),
+      getStemsSetup().catch(() => null),
+    ]);
+    setStatus(nextStatus);
+    setSetup(nextSetup);
+    if (!nextStatus.available) {
+      setJob(null);
+      setBusy(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -113,5 +132,5 @@ export function useStems(videoId: string | null, title?: string): StemsControlle
     }
   }, [job, videoId]);
 
-  return { status, job, busy, error, separate, cancel };
+  return { status, setup, job, busy, error, separate, cancel, refresh };
 }

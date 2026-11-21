@@ -30,6 +30,8 @@ function renderPanel(overrides: Partial<Parameters<typeof StemsPanel>[0]> = {}) 
     mixActive: false,
     mixBusy: false,
     gains: {},
+    canUninstall: false,
+    uninstalling: false,
     onSeparate: vi.fn(),
     onCancel: vi.fn(),
     onToggleMix: vi.fn(),
@@ -37,6 +39,7 @@ function renderPanel(overrides: Partial<Parameters<typeof StemsPanel>[0]> = {}) 
     onDownloadStem: vi.fn(),
     onDownloadMidi: vi.fn(),
     onRetry: vi.fn(),
+    onUninstall: vi.fn(),
     ...overrides,
   };
   render(<StemsPanel {...props} />);
@@ -113,6 +116,12 @@ describe('StemsPanel', () => {
     expect(midi).toHaveAttribute('title', 'Incluye las pistas transcritas: Bajo, Batería');
     fireEvent.click(midi);
     expect(props.onDownloadMidi).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers to uninstall a managed plugin', () => {
+    const props = renderPanel({ job: done, canUninstall: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Desinstalar plugin' }));
+    expect(props.onUninstall).toHaveBeenCalledTimes(1);
   });
 
   it('reports a failure and allows retrying', () => {

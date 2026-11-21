@@ -270,6 +270,9 @@ const en = {
   'stemsSetup.installed': 'The stems plugin is installed.',
   'stemsSetup.installedHint': 'Open a song and expand Audio to separate and mix the four stems.',
   'stemsSetup.uninstall': 'Uninstall plugin',
+  'stemsSetup.uninstalling': 'Uninstalling…',
+  'stemsSetup.uninstallRunning': 'Cancel the running separations before uninstalling the plugin.',
+  'stemsSetup.installedShort': 'Plugin installed',
   'stemsSetup.uninstallConfirm':
     'Remove the plugin, its virtual environment and the downloaded model? Songs will have to be separated again.',
   'stemsSetup.notResponding':
@@ -314,6 +317,15 @@ const en = {
   'stems.statusError': 'Error',
   'stems.title': 'Stems',
   'stems.eyebrow': 'Local audio',
+  'stems.installPromptTitle': 'Separate the song into stems',
+  'stems.installPromptBody':
+    'The local separation plugin is not installed. Install it from Stems to mix the vocals, drums, bass and other instruments.',
+  'stems.installPromptAction': 'Go to install',
+  'stems.notRespondingTitle': 'The stems plugin is not responding',
+  'stems.notRespondingBody':
+    'It is installed, but the server cannot load it. Open Stems to check the installation.',
+  'stems.openSetup': 'Open Stems',
+  'stems.uninstallFailed': 'The stems plugin could not be uninstalled.',
   'stems.description':
     'Separate the song with the local plugin and practise with fewer instruments. It runs on this device, on the CPU, and can take several minutes.',
   'stems.mix': 'Mix stems',
@@ -1094,6 +1106,10 @@ const es: Record<MessageKey, string> = {
   'stemsSetup.installedHint':
     'Abre una canción y despliega Audio para separar y mezclar las cuatro pistas.',
   'stemsSetup.uninstall': 'Desinstalar plugin',
+  'stemsSetup.uninstalling': 'Desinstalando…',
+  'stemsSetup.uninstallRunning':
+    'Cancela las separaciones en curso antes de desinstalar el plugin.',
+  'stemsSetup.installedShort': 'Plugin instalado',
   'stemsSetup.uninstallConfirm':
     '¿Quitar el plugin, su entorno de Python y el modelo descargado? Habrá que separar las canciones otra vez.',
   'stemsSetup.notResponding':
@@ -1139,6 +1155,15 @@ const es: Record<MessageKey, string> = {
   'stems.statusError': 'Error',
   'stems.title': 'Pistas',
   'stems.eyebrow': 'Audio local',
+  'stems.installPromptTitle': 'Separa la canción en pistas',
+  'stems.installPromptBody':
+    'El plugin local de separación no está instalado. Instálalo desde Pistas para mezclar la voz, la batería, el bajo y el resto de instrumentos.',
+  'stems.installPromptAction': 'Ir a instalar',
+  'stems.notRespondingTitle': 'El plugin de pistas no responde',
+  'stems.notRespondingBody':
+    'Está instalado, pero el servidor no puede cargarlo. Abre Pistas para revisar la instalación.',
+  'stems.openSetup': 'Abrir Pistas',
+  'stems.uninstallFailed': 'No se pudo desinstalar el plugin de pistas.',
   'stems.description':
     'Separa la canción con el plugin local y practica con menos instrumentos. Se ejecuta en este dispositivo, por CPU, y puede tardar varios minutos.',
   'stems.mix': 'Mezclar pistas',

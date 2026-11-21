@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setLanguage } from '../src/i18n';
 import { StemsLibrary } from '../src/components/StemsLibrary';
+import { ConfirmProvider } from '../src/components/ConfirmDialog';
 import type { StemInstallJobView, StemSetupStatus } from '../src/lib/api';
 
 afterEach(() => {
@@ -158,6 +159,46 @@ describe('StemsLibrary', () => {
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/stems/cache/dQw4w9WgXcQ',
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
+    );
+  });
+
+  it('uninstalls a managed plugin from the header', async () => {
+    setLanguage('es');
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/stems/setup' && init?.method === 'DELETE')
+        return response({ removed: true });
+      if (url === '/api/stems') {
+        return response({ available: true, name: 'demucs-4stems', version: '4.1.0' });
+      }
+      if (url === '/api/stems/setup') {
+        return response({
+          supported: true,
+          installed: true,
+          managed: true,
+          pluginDir: '/tmp/chordifree/stems',
+          python: { command: 'python3.12', version: '3.12.3' },
+        });
+      }
+      if (url === '/api/stems/jobs') return response({ jobs: [] });
+      if (url === '/api/stems/cache') return response({ entries: [] });
+      return response({});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <ConfirmProvider>
+        <StemsLibrary onBack={vi.fn()} />
+      </ConfirmProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Desinstalar plugin' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Desinstalar plugin' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/stems/setup',
         expect.objectContaining({ method: 'DELETE' }),
       ),
     );

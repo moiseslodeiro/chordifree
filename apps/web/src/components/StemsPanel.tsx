@@ -11,6 +11,8 @@ interface StemsPanelProps {
   mixActive: boolean;
   mixBusy: boolean;
   gains: Record<string, number>;
+  canUninstall: boolean;
+  uninstalling: boolean;
   onSeparate: () => void;
   onCancel: () => void;
   onToggleMix: (active: boolean) => void;
@@ -18,6 +20,7 @@ interface StemsPanelProps {
   onDownloadStem: (stem: string) => void;
   onDownloadMidi: () => void;
   onRetry: () => void;
+  onUninstall: () => void;
 }
 
 function percent(value: number): number {
@@ -38,6 +41,8 @@ export function StemsPanel({
   mixActive,
   mixBusy,
   gains,
+  canUninstall,
+  uninstalling,
   onSeparate,
   onCancel,
   onToggleMix,
@@ -45,6 +50,7 @@ export function StemsPanel({
   onDownloadStem,
   onDownloadMidi,
   onRetry,
+  onUninstall,
 }: StemsPanelProps) {
   const t = useT();
   if (!status?.available) return null;
@@ -202,6 +208,19 @@ export function StemsPanel({
           {t('stems.separate')}
         </button>
       )}
+
+      {canUninstall && !working ? (
+        <div className="mt-3 border-t border-line pt-2">
+          <button
+            type="button"
+            className="tool-chip text-[0.65rem]"
+            onClick={onUninstall}
+            disabled={uninstalling}
+          >
+            {uninstalling ? t('stemsSetup.uninstalling') : t('stemsSetup.uninstall')}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
