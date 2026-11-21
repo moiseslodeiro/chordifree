@@ -1,3 +1,67 @@
+# Chordifree 0.5.1
+
+Install local stem separation from the app, reattach running jobs and harden the server.
+
+## Highlights
+
+- **In-app stems installer (desktop)**: the **Pistas** screen and the song's Audio card can
+  install the optional Demucs plugin without leaving the app. It copies the bundled scripts,
+  creates a virtual environment in the app data folder and installs CPU PyTorch and Demucs.
+  The panel shows the current step, a percentage bar and a console with the real `pip` output;
+  the install can be cancelled. The plugin is only marked as available after its imports are
+  verified, so a separation can no longer start against a half-installed environment.
+- **Uninstall**: the managed plugin can be removed from the song's Audio card or from the
+  **Pistas** screen, with a confirmation step.
+- **One separation per song**: opening a song reattaches to a job that is already running and
+  hides the start button until it finishes. Concurrent requests for the same video now share a
+  single job on the server.
+- **Cache actions**: cached songs and finished jobs have **Go to song** when the song is in the
+  library, and **Download stems** to save every separated WAV in one go.
+- **Security**: writes no longer trust an `Origin` that matches an attacker-controlled `Host`
+  header (DNS rebinding). Uploads accept exactly one multipart part and no form fields, and job
+  payloads from a remote stems service are validated before any file is written.
+
+## Upgrade notes
+
+- The Plugin screen keeps working without changes; existing caches are reused.
+- The bundled desktop app does not ship the Demucs model. Install it from **Pistas**; the app
+  downloads the dependencies once into its user data folder.
+- See `docs/STEMS_PLUGIN.md` for the installer, cache and remote service details.
+
+## Web
+
+The public build at <https://moiseslodeiro.github.io/chordifree/> remains local-only.
+Online mode is available when the API and Google OAuth are configured.
+
+## Desktop
+
+The installers are built from the tagged commit. They bundle the local analyzer, ffmpeg and the
+ONNX models; the stems plugin is installed from the app, see `docs/STEMS_PLUGIN.md`.
+
+### Windows
+
+- Download `chordifree-0.5.1-setup.exe`.
+- Verify `SHA256SUMS.txt` before running it.
+- SmartScreen: **More info → Run anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/WINDOWS_INSTALL.md>
+
+### macOS
+
+- Apple Silicon: `chordifree-0.5.1-arm64.dmg`
+- Verify `SHA256SUMS.txt` before opening it.
+- The app is ad-hoc signed, not notarized. If Gatekeeper blocks it, open **System
+  Settings → Privacy & Security → Open Anyway**.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/MACOS_INSTALL.md>
+
+### Linux
+
+- `chordifree-0.5.1-x86_64.AppImage` or `chordifree-0.5.1-amd64.deb`
+- Verify `SHA256SUMS.txt` before running it.
+- The AppImage may need FUSE (`libfuse2` or `libfuse2t64`); the `.deb` installs with `apt`.
+- Guide: <https://github.com/moiseslodeiro/chordifree/blob/main/docs/LINUX_INSTALL.md>
+
+Code signing, notarization and automatic installation of updates are not available yet.
+
 # Chordifree 0.5.0
 
 Karaoke, automatic sections, a multi-track MIDI export and local stem separation on desktop.
