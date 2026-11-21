@@ -15,6 +15,8 @@ export interface StemInstallJobView {
   progress: number;
   message: string;
   detail?: string;
+  /** Bounded installer output for the in-app console. */
+  logs?: string[];
   error?: { code: string; message: string };
   startedAt: string;
   updatedAt: string;
@@ -67,6 +69,7 @@ interface StoredJob {
   view: StemInstallJobView;
   controller: AbortController;
   python: PythonCandidate;
+  logs: string[];
 }
 
 interface Marker {
@@ -265,8 +268,10 @@ export class StemInstaller implements StemInstallerLike {
       },
       controller: new AbortController(),
       python,
+      logs: [],
     };
     this.job = job;
+    this.log(job, '[1/5] python');
     void this.execute(job);
     return job.view;
   }
@@ -312,6 +317,7 @@ export class StemInstaller implements StemInstallerLike {
       await this.verify(job, venv);
       await this.writeMarker(job);
       await rm(join(this.options.pluginDir, '.cache'), { recursive: true, force: true });
+      this.log(job, 'done');
       this.update(job, {
         status: 'done',
         step: 'done',
@@ -323,6 +329,7 @@ export class StemInstaller implements StemInstallerLike {
       const cancelled = job.controller.signal.aborted;
       if (cancelled) {
         await this.cleanupPartial();
+        this.log(job, 'cancelled');
         this.update(job, {
           status: 'cancelled',
           message: timedOut ? 'Installation timed out; start it again' : 'Installation cancelled',
@@ -330,6 +337,7 @@ export class StemInstaller implements StemInstallerLike {
         });
       } else {
         const message = error instanceof Error ? error.message : 'The installation failed';
+        this.log(job, `error: ${message}`);
         this.update(job, {
           status: 'error',
           message: 'The stems plugin could not be installed',
@@ -344,6 +352,7 @@ export class StemInstaller implements StemInstallerLike {
   }
 
   private async copyFiles(job: StoredJob): Promise<void> {
+    this.log(job, '[2/5] plugin files');
     this.update(job, { step: 'files', progress: 12, message: 'Copying the plugin files' });
     const dir = this.options.pluginDir;
     await mkdir(dir, { recursive: true });
@@ -352,12 +361,15 @@ export class StemInstaller implements StemInstallerLike {
       if (existsSync(source)) await copyFile(source, join(dir, file));
     }
     await writeFile(join(dir, 'requirements.txt'), REQUIREMENTS);
-    await writeFile(join(dir, 'manifest.json'), `${JSON.stringify(this.manifest(), null, 2)}\n`);
+    // Keep the manifest out of the folder until the engine is verified: the
+    // server treats its presence as "plugin available".
+    await rm(join(dir, 'manifest.json'), { force: true });
     await rm(this.markerPath, { force: true });
   }
 
   private async createVenv(job: StoredJob): Promise<string> {
     this.assertActive(job);
+    this.log(job, '[3/5] virtualenv');
     this.update(job, { step: 'venv', progress: 20, message: 'Creating the Python environment' });
     const venv = join(this.options.pluginDir, 'venv');
     await rm(venv, { recursive: true, force: true });
@@ -375,6 +387,7 @@ export class StemInstaller implements StemInstallerLike {
 
   private async installPackages(job: StoredJob, python: string): Promise<void> {
     this.assertActive(job);
+    this.log(job, '[4/5] pip install');
     this.update(job, {
       step: 'pip',
       progress: 32,
@@ -399,6 +412,7 @@ export class StemInstaller implements StemInstallerLike {
           PIP_DISABLE_PIP_VERSION_CHECK: '1',
         },
         onLine: (line) => {
+          this.log(job, line);
           if (line.startsWith('Downloading')) progress = Math.min(80, progress + 1);
           else if (line.startsWith('Installing collected packages')) progress = 86;
           else if (line.startsWith('Successfully installed')) progress = 92;
@@ -416,6 +430,7 @@ export class StemInstaller implements StemInstallerLike {
 
   private async verify(job: StoredJob, python: string): Promise<void> {
     this.assertActive(job);
+    this.log(job, '[5/5] verify');
     this.update(job, { step: 'verify', progress: 95, message: 'Checking the installation' });
     const result = await this.run(
       python,
@@ -426,6 +441,10 @@ export class StemInstaller implements StemInstallerLike {
   }
 
   private async writeMarker(job: StoredJob): Promise<void> {
+    await writeFile(
+      join(this.options.pluginDir, 'manifest.json'),
+      `${JSON.stringify(this.manifest(), null, 2)}\n`,
+    );
     const marker: Marker = {
       managedBy: 'chordifree',
       pluginVersion: PLUGIN_VERSION,
@@ -544,7 +563,19 @@ export class StemInstaller implements StemInstallerLike {
     };
   }
 
+  private log(job: StoredJob, line: string): void {
+    const text = line.replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (!text) return;
+    job.logs.push(text);
+    if (job.logs.length > 120) job.logs.splice(0, job.logs.length - 120);
+  }
+
   private update(job: StoredJob, patch: Partial<StemInstallJobView>): void {
-    job.view = { ...job.view, ...patch, updatedAt: new Date(this.now()).toISOString() };
+    job.view = {
+      ...job.view,
+      ...patch,
+      logs: [...job.logs],
+      updatedAt: new Date(this.now()).toISOString(),
+    };
   }
 }

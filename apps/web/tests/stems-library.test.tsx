@@ -164,6 +164,77 @@ describe('StemsLibrary', () => {
     );
   });
 
+  it('opens the song and downloads the cached stems', async () => {
+    setLanguage('es');
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/stems') {
+        return response({ available: true, name: 'demucs-4stems', version: '4.1.0' });
+      }
+      if (url === '/api/stems/setup') {
+        return response({ supported: false, installed: false, managed: false });
+      }
+      if (url === '/api/stems/jobs' && !init?.method) return response({ jobs: [] });
+      if (url === '/api/stems/cache') return response({ entries: [cachedEntry] });
+      if (url === '/api/stems/dQw4w9WgXcQ') {
+        return response({
+          id: 'job-cache',
+          videoId: 'dQw4w9WgXcQ',
+          title: 'Demo',
+          status: 'done',
+          stems: ['vocals', 'instrumental'],
+          createdAt: cachedEntry.createdAt,
+          updatedAt: cachedEntry.createdAt,
+        });
+      }
+      if (url.startsWith('/api/stems/jobs/job-cache/')) return audioResponse();
+      return response({});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:stem'),
+      revokeObjectURL: vi.fn(),
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const onOpenSong = vi.fn();
+
+    render(
+      <StemsLibrary
+        onBack={vi.fn()}
+        songs={[
+          {
+            id: 'song-1',
+            title: 'Demo',
+            source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
+            duration: 64,
+            updatedAt: '2026-11-19T10:00:00.000Z',
+          },
+        ]}
+        onOpenSong={onOpenSong}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ir a la canción' }));
+    expect(onOpenSong).toHaveBeenCalledWith('song-1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar pistas' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/stems/dQw4w9WgXcQ',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+    await waitFor(
+      () =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          '/api/stems/jobs/job-cache/vocals',
+          expect.anything(),
+        ),
+      { timeout: 2000 },
+    );
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
+  });
+
   it('uninstalls a managed plugin from the header', async () => {
     setLanguage('es');
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -212,6 +283,7 @@ describe('StemsLibrary', () => {
       step: 'pip',
       progress: 42,
       message: 'Descargando torch y torchaudio',
+      logs: ['[4/5] pip install', 'Downloading torch', 'Collecting demucs'],
       startedAt: '2026-11-19T10:00:00.000Z',
       updatedAt: '2026-11-19T10:00:00.000Z',
     };
@@ -252,8 +324,11 @@ describe('StemsLibrary', () => {
         expect.objectContaining({ method: 'POST' }),
       ),
     );
-    expect(await screen.findByText('Descargando torch y torchaudio')).toBeInTheDocument();
-    expect(screen.getByText('42%')).toBeInTheDocument();
+    expect(await screen.findByText('Instalando PyTorch y Demucs')).toBeInTheDocument();
+    expect(screen.getAllByText('42%').length).toBeGreaterThan(0);
+    expect(screen.getByRole('log', { name: 'Consola de instalación' })).toHaveTextContent(
+      'Downloading torch',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar instalación' }));
     await waitFor(() =>

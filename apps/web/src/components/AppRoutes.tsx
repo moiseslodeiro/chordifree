@@ -178,7 +178,13 @@ export function AppRoutes({
   }
 
   if (route.name === 'stems') {
-    return <StemsLibrary onBack={() => onNavigate({ name: 'library' })} />;
+    return (
+      <StemsLibrary
+        onBack={() => onNavigate({ name: 'library' })}
+        songs={songs}
+        onOpenSong={(id) => onNavigate({ name: 'song', id })}
+      />
+    );
   }
 
   if (route.name === 'setlists') {

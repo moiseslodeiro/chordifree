@@ -6,6 +6,7 @@ interface StemsPanelProps {
   status: StemsStatus | null;
   job: StemJobView | null;
   busy: boolean;
+  checking: boolean;
   error: string | null;
   midiBusy: boolean;
   mixActive: boolean;
@@ -36,6 +37,7 @@ export function StemsPanel({
   status,
   job,
   busy,
+  checking,
   error,
   midiBusy,
   mixActive,
@@ -103,6 +105,14 @@ export function StemsPanel({
             {t('stems.cancel')}
           </button>
         </div>
+      ) : checking ? (
+        <p className="mt-3 flex items-center gap-2 text-xs text-ink2" role="status">
+          <span
+            aria-hidden="true"
+            className="inline-block size-2 animate-pulse rounded-full bg-accent"
+          />
+          {t('stems.checking')}
+        </p>
       ) : ready && job ? (
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('stems.mode')}>

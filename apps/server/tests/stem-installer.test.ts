@@ -85,6 +85,8 @@ describe('StemInstaller', () => {
       installer.getJob()?.status === 'done' ? installer.getJob() : undefined,
     );
     expect(finished?.progress).toBe(100);
+    expect(finished?.logs).toContain('[4/5] pip install');
+    expect(finished?.logs?.some((line) => line.includes('Downloading torch'))).toBe(true);
 
     const after = await installer.status();
     expect(after.installed).toBe(true);

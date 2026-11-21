@@ -3,6 +3,7 @@ import {
   cancelStemJob,
   cancelStemsInstall,
   clearStemCache,
+  downloadStem,
   getStemsSetup,
   getStemsStatus,
   installStems,
@@ -17,6 +18,7 @@ import {
   type StemSetupStatus,
   type StemsStatus,
 } from '../lib/api';
+import type { SongSummary } from '../types';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { StemMixerAdapter } from '../player/stem-mixer';
@@ -26,6 +28,8 @@ import { useConfirm } from './ConfirmDialog';
 
 interface StemsLibraryProps {
   onBack: () => void;
+  songs?: SongSummary[];
+  onOpenSong?: (id: string) => void;
 }
 
 const STATUS_KEYS: Record<StemJobView['status'], MessageKey> = {
@@ -46,7 +50,7 @@ function formatBytes(bytes: number): string {
  * cache and its cleanup. It is only reachable from the header when the plugin
  * is available, and it never talks to a cloud instance.
  */
-export function StemsLibrary({ onBack }: StemsLibraryProps) {
+export function StemsLibrary({ onBack, songs, onOpenSong }: StemsLibraryProps) {
   const t = useT();
   const confirm = useConfirm();
   const [status, setStatus] = useState<StemsStatus | null>(null);
@@ -56,6 +60,7 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [setupBusy, setSetupBusy] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [playing, setPlaying] = useState<{ key: string; mode: 'mix' | string } | null>(null);
   const [loadingPlayback, setLoadingPlayback] = useState<string | null>(null);
   const mixRef = useRef<StemMixerAdapter | null>(null);
@@ -76,7 +81,50 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
     urlsRef.current = [];
   }, []);
 
+  const songIdFor = (videoId: string): string | undefined =>
+    songs?.find((song) => song.source.type === 'youtube' && song.source.videoId === videoId)?.id;
+
+  const saveStems = async (jobId: string, stems: string[], title?: string) => {
+    const base =
+      (title ?? 'chordifree').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') ||
+      'chordifree';
+    for (const stem of stems) {
+      await downloadStem(jobId, stem, `${base}-${stem}.wav`);
+      // Give the browser a moment between automatic downloads.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  };
+
+  const downloadEntry = async (entry: StemCacheEntry) => {
+    if (downloading) return;
+    setDownloading(entry.key);
+    setProblem(null);
+    try {
+      const job = await startStems(entry.videoId, entry.title);
+      await saveStems(job.id, job.stems, entry.title ?? entry.videoId);
+    } catch {
+      setProblem(t('stemsLibrary.downloadFailed'));
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const downloadJob = async (job: StemJobView) => {
+    if (downloading || job.stems.length === 0) return;
+    setDownloading(job.id);
+    setProblem(null);
+    try {
+      await saveStems(job.id, job.stems, job.title ?? job.videoId);
+    } catch {
+      setProblem(t('stemsLibrary.downloadFailed'));
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const hasRunningJob = jobs.some((job) => job.status === 'queued' || job.status === 'processing');
+  const installing = setup?.job?.status === 'running';
+  const showSetup = Boolean(setup?.supported && (!status?.available || installing));
 
   const stopPlayback = useCallback(() => {
     stopAudio();
@@ -108,6 +156,14 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
     const timer = window.setInterval(() => void load(), 4000);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  // While an installation is running, poll faster so the progress bar and the
+  // console follow pip instead of jumping every four seconds.
+  useEffect(() => {
+    if (setup?.job?.status !== 'running') return;
+    const timer = window.setInterval(() => void load(), 1000);
+    return () => window.clearInterval(timer);
+  }, [load, setup?.job?.status]);
 
   const cancel = async (job: StemJobView) => {
     setBusy(true);
@@ -279,7 +335,7 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
         <p className="p-6 text-sm text-danger sm:p-8" role="alert">
           {problem}
         </p>
-      ) : !status?.available && setup?.supported ? (
+      ) : showSetup && setup ? (
         <div className="p-6 sm:p-8">
           <StemsSetup
             setup={setup}
@@ -326,6 +382,31 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
                       >
                         {t('stemsLibrary.cancel')}
                       </button>
+                    ) : job.status === 'done' && job.stems.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {songIdFor(job.videoId) ? (
+                          <button
+                            type="button"
+                            className="btn min-h-0 px-3 py-1.5 text-xs"
+                            onClick={() => {
+                              const id = songIdFor(job.videoId);
+                              if (id) onOpenSong?.(id);
+                            }}
+                          >
+                            {t('stemsLibrary.openSong')}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="btn min-h-0 px-3 py-1.5 text-xs"
+                          disabled={Boolean(downloading)}
+                          onClick={() => void downloadJob(job)}
+                        >
+                          {downloading === job.id
+                            ? t('stemsLibrary.downloading')
+                            : t('stemsLibrary.download')}
+                        </button>
+                      </div>
                     ) : null}
                   </li>
                 ))}
@@ -412,6 +493,28 @@ export function StemsLibrary({ onBack }: StemsLibraryProps) {
                           </button>
                         );
                       })}
+                      {songIdFor(entry.videoId) ? (
+                        <button
+                          type="button"
+                          className="btn min-h-0 px-2.5 py-1 text-[0.65rem]"
+                          onClick={() => {
+                            const id = songIdFor(entry.videoId);
+                            if (id) onOpenSong?.(id);
+                          }}
+                        >
+                          {t('stemsLibrary.openSong')}
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn min-h-0 px-2.5 py-1 text-[0.65rem]"
+                        disabled={Boolean(downloading)}
+                        onClick={() => void downloadEntry(entry)}
+                      >
+                        {downloading === entry.key
+                          ? t('stemsLibrary.downloading')
+                          : t('stemsLibrary.download')}
+                      </button>
                     </div>
                   </li>
                 ))}

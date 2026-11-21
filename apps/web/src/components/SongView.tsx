@@ -1350,6 +1350,7 @@ export function SongView({
                   status={stems.status}
                   job={stems.job}
                   busy={stems.busy}
+                  checking={stems.checking}
                   error={stems.error ?? stemError}
                   midiBusy={stemMidiBusy}
                   mixActive={mixActive}

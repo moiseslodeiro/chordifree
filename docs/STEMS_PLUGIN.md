@@ -146,9 +146,10 @@ card inside the collapsible **Audio** section for YouTube songs:
    drums. **Pistas separadas** (`#/stems`, also in the header) shows all jobs,
    the cache size and the buttons to remove one song or clear everything. Each
    cached song has a **Play mix** button and one button per stem, so the cache
-   can be auditioned without opening the song again. A managed plugin can be
-   uninstalled from that screen or from the song's **Stems** card; the app asks
-   for confirmation first.
+   can be auditioned without opening the song again. It also has **Go to song**
+   when the song is in the library, and **Download stems** to save every WAV in
+   one go. A managed plugin can be uninstalled from that screen or from the
+   song's **Stems** card; the app asks for confirmation first.
 5. The header links **Biblioteca**, **Listas** and **Pistas** from every
    screen; the stems link only appears when the plugin or service is available.
 

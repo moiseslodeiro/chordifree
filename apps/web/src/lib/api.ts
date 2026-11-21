@@ -484,6 +484,8 @@ export interface StemInstallJobView {
   progress: number;
   message: string;
   detail?: string;
+  /** Bounded installer output for the in-app console. */
+  logs?: string[];
   error?: { code: string; message: string };
   startedAt: string;
   updatedAt: string;

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import type { StemInstallStep, StemSetupStatus } from '../lib/api';
@@ -42,6 +43,13 @@ export function StemsSetup({
   const cancelled = job?.status === 'cancelled';
   const done = job?.status === 'done';
   const progress = Math.max(0, Math.min(100, job?.progress ?? 0));
+  const logs = job?.logs ?? [];
+  const consoleRef = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    const node = consoleRef.current;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, [job?.logs?.length, job?.status]);
 
   return (
     <section
@@ -106,7 +114,6 @@ export function StemsSetup({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-ink2">{job?.message}</p>
           {job?.detail ? (
             <p className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[0.62rem] text-ink3">
               {job.detail}
@@ -164,6 +171,30 @@ export function StemsSetup({
           </div>
         </div>
       )}
+
+      {logs.length > 0 ? (
+        <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-[#0c0d10] text-[#dbe7ff]">
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.14em] text-white/55">
+            <span>chordifree-stems</span>
+            <span className="tabular-nums">{progress}%</span>
+          </div>
+          <pre
+            ref={consoleRef}
+            role="log"
+            aria-live="polite"
+            aria-label={t('stemsSetup.consoleAria')}
+            className="max-h-44 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-[0.62rem] leading-relaxed"
+          >
+            {logs.join('\n')}
+            {running ? (
+              <>
+                {'\n'}
+                <span className="animate-pulse">▌</span>
+              </>
+            ) : null}
+          </pre>
+        </div>
+      ) : null}
 
       <p className="mt-5 border-t border-line pt-4 text-[0.65rem] leading-relaxed text-ink3">
         {t('stemsSetup.privacy')}

@@ -283,6 +283,30 @@ describe('stem jobs', () => {
     expect(separate).toHaveBeenCalledTimes(1);
   });
 
+  it('deduplicates concurrent requests for the same video', async () => {
+    const dir = await fakePlugin(process.execPath, (script) => [script, '{input}', '{output}']);
+    const { cache } = await fakeAudio();
+    const workRoot = await mkdtemp(join(tmpdir(), 'chordifree-stems-race-'));
+    const engine = new PluginStemEngine(dir);
+    const separate = vi.spyOn(engine, 'separate');
+    const jobs = new StemJobs(engine, cache, workRoot, new StemCache(join(workRoot, 'cache')));
+
+    const [first, second] = await Promise.all([
+      jobs.start('dQw4w9WgXcQ', 'Demo'),
+      jobs.start('dQw4w9WgXcQ', 'Demo'),
+    ]);
+
+    expect(first.id).toBe(second.id);
+    let view = jobs.get(first.id);
+    for (let attempt = 0; attempt < 100 && view?.status !== 'done'; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      view = jobs.get(first.id);
+    }
+    expect(view?.status).toBe('done');
+    expect(separate).toHaveBeenCalledTimes(1);
+    expect(jobs.list()).toHaveLength(1);
+  });
+
   it('cancels a running separation', async () => {
     const engine: StemEngine = {
       status: async () => ({

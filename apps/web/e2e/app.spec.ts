@@ -864,6 +864,7 @@ test.describe('full flow', () => {
       step: 'pip',
       progress: 42,
       message: 'Descargando torch',
+      logs: ['[4/5] pip install', 'Downloading torch'],
       startedAt: '2026-11-19T10:00:00.000Z',
       updatedAt: '2026-11-19T10:00:00.000Z',
     };
@@ -926,10 +927,56 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('stems-setup')).toBeVisible();
     await expect(page.getByText('Python 3.12.3 detectado', { exact: false })).toBeVisible();
     await page.getByRole('button', { name: 'Instalar plugin' }).click();
-    await expect(page.getByText('Descargando torch')).toBeVisible();
-    await expect(page.getByText('42%')).toBeVisible();
+    await expect(page.getByText('Instalando PyTorch y Demucs')).toBeVisible();
+    await expect(page.getByText('42%').first()).toBeVisible();
+    await expect(page.getByRole('log', { name: 'Consola de instalación' })).toContainText(
+      'Downloading torch',
+    );
     await page.getByRole('button', { name: 'Cancelar instalación' }).click();
     await expect(page.getByText('La instalación no terminó', { exact: false })).toBeVisible();
+  });
+
+  test('reattaches to a running separation and hides the start button', async ({ page }) => {
+    const running = {
+      id: 'job-running',
+      videoId: 'dQw4w9WgXcQ',
+      status: 'processing',
+      stems: [],
+      createdAt: '2026-11-21T10:00:00.000Z',
+      updatedAt: '2026-11-21T10:00:00.000Z',
+    };
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          name: 'demucs-4stems',
+          version: '4.1.0',
+          stems: ['vocals', 'drums', 'bass', 'other'],
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ jobs: [running] }),
+      }),
+    );
+    await page.route('**/api/stems/jobs/job-running', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(running),
+      }),
+    );
+
+    await analyze(page);
+    await openAudio(page);
+    await expect(page.getByText(/Separando/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Separar pistas' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Cancelar separación' })).toBeVisible();
   });
 
   test('keeps the player, active chord and tools stacked in the right rail', async ({ page }) => {
