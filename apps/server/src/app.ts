@@ -130,9 +130,9 @@ function sameOriginWriteGuard(config: AppConfig) {
       return;
     }
 
-    const host = req.get('host');
-    const requestOrigin = host ? `${req.protocol}://${host}` : null;
-    if (origin !== config.corsOrigin && origin !== requestOrigin) {
+    // Do not derive an allowed origin from the Host header. A DNS-rebinding
+    // page can make Host and Origin match while both point at this local API.
+    if (origin !== config.corsOrigin) {
       res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
       return;
     }

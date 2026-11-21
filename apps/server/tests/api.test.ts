@@ -263,6 +263,28 @@ describe('POST /api/analyses', () => {
     expect(probes).toBe(0);
   });
 
+  it('does not trust an attacker-controlled Host as an allowed origin', async () => {
+    let probes = 0;
+    const app = await buildApp({
+      tools: makeTools({
+        probeYoutube: async () => {
+          probes += 1;
+          return { duration: 10 };
+        },
+      }),
+    });
+
+    const response = await request(app)
+      .post('/api/analyses')
+      .set('Host', 'evil.example')
+      .set('Origin', 'http://evil.example')
+      .send({ youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe('FORBIDDEN');
+    expect(probes).toBe(0);
+  });
+
   it('accepts writes from the configured origin', async () => {
     const app = await buildApp();
     const response = await request(app)
@@ -291,6 +313,16 @@ describe('POST /api/analyses', () => {
     expect(response.status).toBe(202);
     const body = await waitFor(app, response.body.id, 'done');
     expect(body.result.source).toEqual({ type: 'upload', filename: 'cancion.wav' });
+  });
+
+  it('rejects multipart form fields alongside an upload', async () => {
+    const app = await buildApp();
+    const response = await request(app)
+      .post('/api/analyses')
+      .field('title', 'unexpected')
+      .attach('file', wavBuffer(), { filename: 'cancion.wav', contentType: 'audio/wav' });
+
+    expect(response.status).toBe(400);
   });
 
   it('rejects a file that is not audio', async () => {

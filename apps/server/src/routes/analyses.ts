@@ -117,7 +117,9 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
 
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: deps.config.maxUploadBytes, files: 1 },
+    // Uploads accept exactly one file and no form fields. Bound multipart
+    // parser work as well as the file buffer size.
+    limits: { fileSize: deps.config.maxUploadBytes, files: 1, fields: 0, parts: 1 },
   });
 
   const limiter = rateLimit({
