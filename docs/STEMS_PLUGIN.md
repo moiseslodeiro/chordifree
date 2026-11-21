@@ -129,10 +129,11 @@ derived audio. Delete entries with the API above or from **Pistas separadas**
 When the API reports the plugin as available, the song view shows a **Stems**
 card inside the collapsible **Audio** section for YouTube songs:
 
-1. Press **Separate stems**. A cached song opens instantly; otherwise the card
-   shows the running job and a **Cancel separation** button. You can leave the
-   song while it works and come back later: the card reattaches to the job, or
-   to the cache once it finishes.
+1. If the plugin is not installed, the **Audio** card shows a **Go to install**
+   link to the **Stems** screen. Once installed, press **Separate stems**. A
+   cached song opens instantly; otherwise the card shows the running job and a
+   **Cancel separation** button. You can leave the song while it works and come
+   back later: the card reattaches to the job, or to the cache once it finishes.
 2. When the job is done, **Mix stems** loads the four WAVs as synchronized
    audio elements and plays them together; only then do the per-stem volume
    sliders appear (for example vocals 50%, drums 0%, other 100%). **Original**
@@ -145,7 +146,9 @@ card inside the collapsible **Audio** section for YouTube songs:
    drums. **Pistas separadas** (`#/stems`, also in the header) shows all jobs,
    the cache size and the buttons to remove one song or clear everything. Each
    cached song has a **Play mix** button and one button per stem, so the cache
-   can be auditioned without opening the song again.
+   can be auditioned without opening the song again. A managed plugin can be
+   uninstalled from that screen or from the song's **Stems** card; the app asks
+   for confirmation first.
 5. The header links **Biblioteca**, **Listas** and **Pistas** from every
    screen; the stems link only appears when the plugin or service is available.
 
