@@ -130,7 +130,9 @@ async function startServer(analyzerUrl, token) {
 
   const port = await freePort();
   const tempDir = path.join(app.getPath('userData'), 'tmp');
+  const stemsDir = path.join(app.getPath('userData'), 'stems');
   mkdirSync(tempDir, { recursive: true });
+  mkdirSync(stemsDir, { recursive: true });
 
   Object.assign(process.env, {
     HOST: '127.0.0.1',
@@ -144,6 +146,14 @@ async function startServer(analyzerUrl, token) {
     RATE_LIMIT_MAX: '1000',
     FFMPEG_PATH: mediaPath('FFMPEG_PATH', 'ffmpeg-static', null, 'ffmpeg'),
     FFPROBE_PATH: mediaPath('FFPROBE_PATH', 'ffprobe-static', 'path', 'ffprobe'),
+    STEMS_PLUGIN_DIR: stemsDir,
+    STEMS_SETUP_DIR: stemsDir,
+    STEMS_PLUGIN_SOURCE: app.isPackaged
+      ? packagedResource('stems-plugin')
+      : path.join(__dirname, '..', '..', 'services', 'stems-plugin'),
+    // Keep the Demucs weights beside the managed plugin so uninstalling it
+    // removes the model too. The stems cache lives in TEMP_DIR and is separate.
+    TORCH_HOME: path.join(stemsDir, 'torch'),
   });
 
   await import(pathToFileURL(serverEntry).href);

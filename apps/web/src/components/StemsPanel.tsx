@@ -6,11 +6,14 @@ interface StemsPanelProps {
   status: StemsStatus | null;
   job: StemJobView | null;
   busy: boolean;
+  checking: boolean;
   error: string | null;
   midiBusy: boolean;
   mixActive: boolean;
   mixBusy: boolean;
   gains: Record<string, number>;
+  canUninstall: boolean;
+  uninstalling: boolean;
   onSeparate: () => void;
   onCancel: () => void;
   onToggleMix: (active: boolean) => void;
@@ -18,6 +21,7 @@ interface StemsPanelProps {
   onDownloadStem: (stem: string) => void;
   onDownloadMidi: () => void;
   onRetry: () => void;
+  onUninstall: () => void;
 }
 
 function percent(value: number): number {
@@ -33,11 +37,14 @@ export function StemsPanel({
   status,
   job,
   busy,
+  checking,
   error,
   midiBusy,
   mixActive,
   mixBusy,
   gains,
+  canUninstall,
+  uninstalling,
   onSeparate,
   onCancel,
   onToggleMix,
@@ -45,6 +52,7 @@ export function StemsPanel({
   onDownloadStem,
   onDownloadMidi,
   onRetry,
+  onUninstall,
 }: StemsPanelProps) {
   const t = useT();
   if (!status?.available) return null;
@@ -97,6 +105,14 @@ export function StemsPanel({
             {t('stems.cancel')}
           </button>
         </div>
+      ) : checking ? (
+        <p className="mt-3 flex items-center gap-2 text-xs text-ink2" role="status">
+          <span
+            aria-hidden="true"
+            className="inline-block size-2 animate-pulse rounded-full bg-accent"
+          />
+          {t('stems.checking')}
+        </p>
       ) : ready && job ? (
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('stems.mode')}>
@@ -202,6 +218,19 @@ export function StemsPanel({
           {t('stems.separate')}
         </button>
       )}
+
+      {canUninstall && !working ? (
+        <div className="mt-3 border-t border-line pt-2">
+          <button
+            type="button"
+            className="tool-chip text-[0.65rem]"
+            onClick={onUninstall}
+            disabled={uninstalling}
+          >
+            {uninstalling ? t('stemsSetup.uninstalling') : t('stemsSetup.uninstall')}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -178,9 +178,12 @@ The karaoke toggle works everywhere: it removes the center channel to approximat
 instrumental. Pitch (±12 semitones) changes the audio without touching the chords; both apply
 to the original track.
 
-On desktop, `STEMS_PLUGIN_DIR` enables real separation. The song view shows a **Stems** card
-inside the collapsible **Audio** section: separate, cancel, play the synchronized mix with one
-volume per stem, return to the original track, download a WAV or build a MIDI from the stems.
+On desktop, open **Stems** (`#/stems`) and press **Install plugin**. Chordifree copies the
+bundled scripts, creates a Python virtualenv and downloads CPU PyTorch and Demucs (about
+1.5 GB, once). You can cancel the download and uninstall the plugin from the same screen. The
+song view then shows a **Stems** card inside the collapsible **Audio** section: separate,
+cancel, play the synchronized mix with one volume per stem, return to the original track,
+download a WAV or build a MIDI from the stems.
 Jobs keep running when you change songs or close the view. Completed separations are cached in
 `$TEMP_DIR/stems-cache` (20 entries / 2 GB, oldest evicted first) and managed from `#/stems`
 (**Pistas** in the header), including cancellation, playback of a cached mix or a single stem

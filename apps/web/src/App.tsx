@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createYoutubeAnalysis, deleteAccount, getStemsStatus } from './lib/api';
+import { createYoutubeAnalysis, deleteAccount, getStemsSetup, getStemsStatus } from './lib/api';
 import { isDesktopApp } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT } from './i18n';
@@ -133,9 +133,12 @@ export default function App() {
   const [stemsAvailable, setStemsAvailable] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    getStemsStatus()
-      .then((next) => {
-        if (!cancelled) setStemsAvailable(next.available);
+    Promise.all([
+      getStemsStatus().catch(() => ({ available: false })),
+      getStemsSetup().catch(() => ({ supported: false })),
+    ])
+      .then(([status, setup]) => {
+        if (!cancelled) setStemsAvailable(status.available || setup.supported);
       })
       .catch(() => {
         if (!cancelled) setStemsAvailable(false);

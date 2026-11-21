@@ -181,7 +181,10 @@ The desktop build can run an optional local separation plugin from
 `STEMS_PLUGIN_DIR`, or use a remote service configured with `STEMS_SERVICE_URL`.
 It is disabled by default, the server never downloads or updates it, and the
 hosted Cloud Run instance reports `available: false` unless a service is
-configured. When the plugin declares `transcribe`, the API also serves the
+configured. The desktop build installs the plugin from `#/stems`: it creates a
+virtualenv in the app data folder and downloads CPU PyTorch, Demucs and the
+model on first use. The installer is local-only; the hosted instance never
+exposes it. When the plugin declares `transcribe`, the API also serves the
 notes at `/api/stems/jobs/:id/notes/:stem` and the song view offers a MIDI built
 from the separated bass and drums.
 

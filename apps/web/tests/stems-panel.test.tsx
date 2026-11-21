@@ -25,11 +25,14 @@ function renderPanel(overrides: Partial<Parameters<typeof StemsPanel>[0]> = {}) 
     status: available,
     job: null,
     busy: false,
+    checking: false,
     error: null,
     midiBusy: false,
     mixActive: false,
     mixBusy: false,
     gains: {},
+    canUninstall: false,
+    uninstalling: false,
     onSeparate: vi.fn(),
     onCancel: vi.fn(),
     onToggleMix: vi.fn(),
@@ -37,6 +40,7 @@ function renderPanel(overrides: Partial<Parameters<typeof StemsPanel>[0]> = {}) 
     onDownloadStem: vi.fn(),
     onDownloadMidi: vi.fn(),
     onRetry: vi.fn(),
+    onUninstall: vi.fn(),
     ...overrides,
   };
   render(<StemsPanel {...props} />);
@@ -56,6 +60,12 @@ describe('StemsPanel', () => {
     expect(screen.getByText(/Separando/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar separación' }));
     expect(props.onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a checking state and hides the start button while reattaching', () => {
+    renderPanel({ checking: true });
+    expect(screen.getByText(/Comprobando el estado/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Separar pistas' })).not.toBeInTheDocument();
   });
 
   it('starts a new separation', () => {
@@ -113,6 +123,12 @@ describe('StemsPanel', () => {
     expect(midi).toHaveAttribute('title', 'Incluye las pistas transcritas: Bajo, Batería');
     fireEvent.click(midi);
     expect(props.onDownloadMidi).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers to uninstall a managed plugin', () => {
+    const props = renderPanel({ job: done, canUninstall: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Desinstalar plugin' }));
+    expect(props.onUninstall).toHaveBeenCalledTimes(1);
   });
 
   it('reports a failure and allows retrying', () => {

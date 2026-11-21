@@ -22,7 +22,44 @@ alternative for a quick instrumental.
 3. Start the server or desktop app with `STEMS_PLUGIN_DIR` pointing at it.
 
 The directory is trusted executable code. Keep it owned by your user with mode
-`0700`; the app does not download or update plugins by itself.
+`0700`. The app downloads the dependencies only when you press **Install
+plugin** in `#/stems`; it does not update them on its own.
+
+## Install from the app (desktop)
+
+The desktop build can install the plugin without leaving Chordifree. Open
+**Pistas separadas** (`#/stems`, also in the header) and press **Install
+plugin**. The app:
+
+1. looks for Python 3.10 to 3.13 (`python3.12`, `python3.11`, `py -3.12`…);
+2. copies the scripts bundled with the app (`separate.py`, `transcribe.py`);
+3. creates a virtualenv inside the app's user data folder and installs CPU
+   PyTorch, Demucs and librosa (about 1.5 GB, once);
+4. writes the plugin manifest and checks that the packages import.
+
+The download can be cancelled while it runs. Uninstall removes the virtualenv
+and the downloaded model; the separated-stem cache is managed separately in the
+same screen.
+
+The installer only accepts the scripts shipped with Chordifree and runs a fixed
+set of commands; it never downloads code from a URL. It also refuses to write
+into a folder that already contains a plugin it did not create. The endpoints
+exist only in local mode; the hosted instance reports `supported: false` and
+cannot install or separate audio.
+
+For the local web build (not the packaged app), point the server at a managed
+folder and the repository scripts:
+
+```bash
+STEMS_PLUGIN_DIR=$HOME/.local/share/chordifree/stems \
+STEMS_SETUP_DIR=$HOME/.local/share/chordifree/stems \
+STEMS_PLUGIN_SOURCE=$PWD/services/stems-plugin \
+pnpm dev
+```
+
+The packaged desktop app sets those variables itself. The plugin is not part of
+the installer; the first run downloads the Demucs weights (~80 MB) into the
+managed folder.
 
 ## Manifest
 
@@ -92,10 +129,11 @@ derived audio. Delete entries with the API above or from **Pistas separadas**
 When the API reports the plugin as available, the song view shows a **Stems**
 card inside the collapsible **Audio** section for YouTube songs:
 
-1. Press **Separate stems**. A cached song opens instantly; otherwise the card
-   shows the running job and a **Cancel separation** button. You can leave the
-   song while it works and come back later: the card reattaches to the job, or
-   to the cache once it finishes.
+1. If the plugin is not installed, the **Audio** card shows a **Go to install**
+   link to the **Stems** screen. Once installed, press **Separate stems**. A
+   cached song opens instantly; otherwise the card shows the running job and a
+   **Cancel separation** button. You can leave the song while it works and come
+   back later: the card reattaches to the job, or to the cache once it finishes.
 2. When the job is done, **Mix stems** loads the four WAVs as synchronized
    audio elements and plays them together; only then do the per-stem volume
    sliders appear (for example vocals 50%, drums 0%, other 100%). **Original**
@@ -108,7 +146,10 @@ card inside the collapsible **Audio** section for YouTube songs:
    drums. **Pistas separadas** (`#/stems`, also in the header) shows all jobs,
    the cache size and the buttons to remove one song or clear everything. Each
    cached song has a **Play mix** button and one button per stem, so the cache
-   can be auditioned without opening the song again.
+   can be auditioned without opening the song again. It also has **Go to song**
+   when the song is in the library, and **Download stems** to save every WAV in
+   one go. A managed plugin can be uninstalled from that screen or from the
+   song's **Stems** card; the app asks for confirmation first.
 5. The header links **Biblioteca**, **Listas** and **Pistas** from every
    screen; the stems link only appears when the plugin or service is available.
 
@@ -198,6 +239,7 @@ STEMS_SERVICE_TIMEOUT_MS=1800000
 sent as a Bearer header. The UI and `GET /api/stems` show the remote service
 exactly like the local plugin, so the app does not care where the model runs.
 Hosted Cloud Run can use this to reach a machine with more CPU or a GPU.
+The in-app installer is disabled there; configure the remote service instead.
 
 The server uploads the cached audio to the remote service, so it leaves the
 instance: only configure it with a service you trust. The contract is:

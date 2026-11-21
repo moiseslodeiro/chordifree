@@ -178,7 +178,13 @@ export function AppRoutes({
   }
 
   if (route.name === 'stems') {
-    return <StemsLibrary onBack={() => onNavigate({ name: 'library' })} />;
+    return (
+      <StemsLibrary
+        onBack={() => onNavigate({ name: 'library' })}
+        songs={songs}
+        onOpenSong={(id) => onNavigate({ name: 'song', id })}
+      />
+    );
   }
 
   if (route.name === 'setlists') {
@@ -235,6 +241,7 @@ export function AppRoutes({
         reanalyzeProgress={reanalyzingId === song.id ? reanalyzeProgress : null}
         onBack={() => onNavigate({ name: 'home' })}
         onOpenLibrary={() => onNavigate({ name: 'library' })}
+        onOpenStems={() => onNavigate({ name: 'stems' })}
         onPreferences={onPreferences}
         language={preferences.language}
         collabShare={collabShare}

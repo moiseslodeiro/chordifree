@@ -10,6 +10,7 @@ const repo = path.resolve(here, '../..');
 const webDist = process.env.CHORDIFREE_WEB_DIST ?? path.join(repo, 'apps/web/dist');
 const analyzerDir = process.env.CHORDIFREE_ANALYZER_DIR ?? path.join(repo, 'dist/analyzer');
 const serverBundle = path.join(here, 'dist/server.mjs');
+const stemsPlugin = path.join(repo, 'services/stems-plugin');
 const output = path.join(here, 'resources');
 
 async function ensure(target, label) {
@@ -40,6 +41,7 @@ function mediaBinaries() {
 await ensure(webDist, 'Web build');
 await ensure(analyzerDir, 'Analyzer bundle');
 await ensure(serverBundle, 'Server bundle');
+await ensure(stemsPlugin, 'Stems plugin source');
 
 await rm(output, { recursive: true, force: true });
 await mkdir(path.join(output, 'server'), { recursive: true });
@@ -54,6 +56,7 @@ await cp(analyzerDir, path.join(output, 'analyzer'), {
   verbatimSymlinks: true,
 });
 await cp(serverBundle, path.join(output, 'server', 'server.mjs'));
+await cp(stemsPlugin, path.join(output, 'stems-plugin'), { recursive: true });
 await cp(path.join(here, 'assets', 'icon.png'), path.join(output, 'icon.png'));
 
 for (const [name, source] of mediaBinaries()) {

@@ -39,6 +39,8 @@ const MAX_JOBS = 20;
  */
 export class StemJobs {
   private readonly jobs = new Map<string, StoredJob>();
+  /** Requests already looking up the plugin/cache for a video. */
+  private readonly starting = new Map<string, Promise<StemJobView>>();
 
   constructor(
     private readonly engine: StemEngine,
@@ -56,6 +58,19 @@ export class StemJobs {
     );
     if (running) return running.view;
 
+    // Two tabs (or a double click) can enter here before the first request
+    // creates the job. Share the lookup/creation promise per video so the
+    // CPU-heavy separation only starts once.
+    const pending = this.starting.get(videoId);
+    if (pending) return pending;
+    const promise = this.create(videoId, title).finally(() => {
+      this.starting.delete(videoId);
+    });
+    this.starting.set(videoId, promise);
+    return promise;
+  }
+
+  private async create(videoId: string, title?: string): Promise<StemJobView> {
     const status = await this.engine.status();
     const plugin = `${status.name ?? 'unknown'}@${status.version ?? '0'}`;
     const cached = await this.cache.get(videoId, plugin);
