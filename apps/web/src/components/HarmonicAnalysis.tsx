@@ -10,12 +10,14 @@ import {
 } from '@chordifree/chords';
 import { useT } from '../i18n';
 
-interface HarmonicAnalysisProps {
+export interface HarmonicAnalysisProps {
   segments: ChordSegment[];
   harmonyKey: EstimatedKey | null;
   notation: Notation;
   accidental: Accidental;
   capo?: number;
+  /** Renders the content without the card chrome (inside SongInfoPanel). */
+  bare?: boolean;
 }
 
 interface DegreeItem {
@@ -36,6 +38,7 @@ export function HarmonicAnalysis({
   notation,
   accidental,
   capo = 0,
+  bare = false,
 }: HarmonicAnalysisProps) {
   const t = useT();
   const degrees = useMemo(() => {
@@ -66,6 +69,16 @@ export function HarmonicAnalysis({
     [segments, harmonyKey],
   );
 
+  const chordNames = useMemo(() => {
+    const names: string[] = [];
+    for (const segment of segments) {
+      if (!segment.chord) continue;
+      const chord = formatChord(segment.chord, notation, accidental);
+      if (!names.includes(chord)) names.push(chord);
+    }
+    return names;
+  }, [segments, notation, accidental]);
+
   const confidence = useMemo(() => {
     const values = segments
       .filter((segment) => segment.chord !== null && typeof segment.confidence === 'number')
@@ -80,17 +93,23 @@ export function HarmonicAnalysis({
 
   return (
     <section
-      className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
+      className={
+        bare ? undefined : 'overflow-hidden rounded-xl border border-line bg-panel shadow-sm'
+      }
       aria-label={t('harmonic.aria')}
     >
-      <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-        {t('harmonic.title')}
-      </h2>
+      {bare ? null : (
+        <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
+          {t('harmonic.title')}
+        </h2>
+      )}
 
       {!hasChords ? (
-        <p className="px-4 py-4 text-sm text-ink2">{t('harmonic.empty')}</p>
+        <p className={bare ? 'text-sm text-ink2' : 'px-4 py-4 text-sm text-ink2'}>
+          {t('harmonic.empty')}
+        </p>
       ) : (
-        <div className="space-y-4 px-4 py-4">
+        <div className={bare ? 'space-y-4' : 'space-y-4 px-4 py-4'}>
           {harmonyKey ? (
             <>
               <div>
@@ -136,9 +155,21 @@ export function HarmonicAnalysis({
               </div>
             </>
           ) : (
-            <p className="text-sm text-ink2">
-              {t('harmonic.noKey')}
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-ink2">{t('harmonic.noKey')}</p>
+              {chordNames.length > 0 ? (
+                <ul className="flex flex-wrap gap-1.5" aria-label={t('details.chordsAria')}>
+                  {chordNames.map((chord) => (
+                    <li
+                      key={chord}
+                      className="border border-line px-2 py-0.5 font-display text-base font-semibold leading-snug text-ink"
+                    >
+                      {chord}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           )}
 
           {capo > 0 ? (
@@ -153,9 +184,7 @@ export function HarmonicAnalysis({
                 {t('harmonic.averageConfidence', { percent: percent(confidence.average) })}
                 {confidence.low > 0
                   ? ` · ${t(
-                      confidence.total === 1
-                        ? 'harmonic.doubtfulOne'
-                        : 'harmonic.doubtfulOther',
+                      confidence.total === 1 ? 'harmonic.doubtfulOne' : 'harmonic.doubtfulOther',
                       { low: confidence.low, total: confidence.total },
                     )}`
                   : ''}

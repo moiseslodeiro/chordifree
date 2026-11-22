@@ -1,6 +1,6 @@
 {
   "name": "@chordifree/desktop-spike",
-  "version": "0.3.0",
+  "version": "0.5.2",
   "private": true,
   "description": "Electron desktop shell for the local Chordifree stack",
   "author": "Chordifree contributors",

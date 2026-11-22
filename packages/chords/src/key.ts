@@ -6,6 +6,7 @@ import type {
   EstimatedKey,
   KeyMode,
   PitchClass,
+  Quality,
 } from './types';
 
 /** Krumhansl-Schmuckler profiles, rotated over the tonic. */
@@ -15,7 +16,7 @@ const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69
 const FLAT_MAJOR_TONICS = new Set<PitchClass>([5, 10, 3, 8, 1, 6, 11]);
 const FLAT_MINOR_TONICS = new Set<PitchClass>([2, 7, 0, 5, 10, 3, 8]);
 
-const CHORD_TONES: Record<string, number[]> = {
+export const CHORD_TONES: Record<Quality, number[]> = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
   dim: [0, 3, 6],

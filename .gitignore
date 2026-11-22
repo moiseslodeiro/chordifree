@@ -35,3 +35,6 @@ crash.*.log
 .impeccable/review/
 .impeccable/live/inject-journal.json
 deploy/gcp/backend.tf
+
+# Local desktop installers (already ignored in packaging/electron)
+packaging/electron/release/

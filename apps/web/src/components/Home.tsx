@@ -26,10 +26,10 @@ interface HomeProps {
   preferences: Preferences;
   analyzerVersion: string;
   analyzerStatus: 'ok' | 'down' | 'unknown';
-  libraryCount: number;
+  extractorStatus?: 'ok' | 'down' | 'unknown';
+  extractorVersion?: string;
   notice: AppNotice | null;
   onDismissNotice: () => void;
-  onOpenLibrary: () => void;
   onAnalyzed: (song: Song, audioUrl: string | null) => void;
   youtubeMode?: 'direct' | 'extractor' | 'hosted';
 }
@@ -54,10 +54,10 @@ export function Home({
   preferences,
   analyzerVersion,
   analyzerStatus,
-  libraryCount,
+  extractorStatus = 'unknown',
+  extractorVersion,
   notice,
   onDismissNotice,
-  onOpenLibrary,
   onAnalyzed,
   youtubeMode = 'direct',
 }: HomeProps) {
@@ -93,6 +93,7 @@ export function Home({
         ['02', t('home.step2Title'), t('home.step2Body')],
         ['03', t('home.step3Title'), t('home.step3Body')],
       ];
+  const showLegalNote = !desktop || mode === 'youtube';
 
   const submitYoutube = async (input = url) => {
     setProblem(null);
@@ -215,21 +216,20 @@ export function Home({
           </p>
 
           <div className="mt-8 flex flex-wrap border-b border-line" role="tablist">
-            {(desktop
-              ? (['upload', 'youtube'] as const)
-              : (['youtube', 'upload'] as const)
-            ).map((value, index, list) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={mode === value}
-                className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
-                onClick={() => setMode(value)}
-              >
-                {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
-              </button>
-            ))}
+            {(desktop ? (['upload', 'youtube'] as const) : (['youtube', 'upload'] as const)).map(
+              (value, index, list) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === value}
+                  className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
+                  onClick={() => setMode(value)}
+                >
+                  {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
+                </button>
+              ),
+            )}
           </div>
 
           <form
@@ -254,7 +254,7 @@ export function Home({
                     <input
                       id="youtube-search"
                       type="search"
-                      className="field"
+                      className="field min-w-0"
                       placeholder={t('home.searchPlaceholder')}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
@@ -287,6 +287,7 @@ export function Home({
                       <ul className="space-y-2">
                         {results.map((item) => {
                           const analyzing = analyzingId === item.videoId;
+                          const analyzed = item.analyzed === true;
                           const meta = [
                             item.uploader,
                             typeof item.duration === 'number'
@@ -298,7 +299,7 @@ export function Home({
                           return (
                             <li
                               key={item.videoId}
-                              className={`flex items-center gap-3 rounded-lg border p-2 ${
+                              className={`grid grid-cols-[auto_1fr] items-center gap-3 rounded-lg border p-2 sm:flex ${
                                 analyzing
                                   ? 'border-accent/50 bg-accent/5'
                                   : 'border-line bg-panel-2/60'
@@ -311,29 +312,40 @@ export function Home({
                                 height={72}
                                 loading="lazy"
                                 referrerPolicy="no-referrer"
-                                className="h-[4.5rem] w-32 shrink-0 rounded-md bg-panel object-cover"
+                                className="h-14 w-24 shrink-0 rounded-md bg-panel object-cover sm:h-[4.5rem] sm:w-32"
                               />
                               <div className="min-w-0 flex-1">
-                                <p
-                                  className="truncate text-sm font-semibold leading-snug text-ink"
-                                  title={item.title}
-                                >
-                                  {item.title}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p
+                                    className="truncate text-sm font-semibold leading-snug text-ink"
+                                    title={item.title}
+                                  >
+                                    {item.title}
+                                  </p>
+                                  {analyzed ? (
+                                    <span className="badge shrink-0 border-positive/60 text-positive">
+                                      ✓ {t('home.analyzed')}
+                                    </span>
+                                  ) : null}
+                                </div>
                                 {meta ? (
                                   <p className="mt-0.5 truncate text-xs text-ink3">{meta}</p>
                                 ) : null}
                               </div>
                               <button
                                 type="button"
-                                className="btn btn-primary shrink-0"
+                                className={`col-span-2 w-full justify-center sm:col-span-1 sm:w-auto ${
+                                  analyzed ? 'btn' : 'btn btn-primary'
+                                }`}
                                 onClick={() => void loadSearchResult(item)}
                                 disabled={busy}
                                 aria-busy={analyzing || undefined}
                                 aria-label={
                                   analyzing
                                     ? t('home.analyzingVideo', { title: item.title })
-                                    : t('home.analyzeVideo', { title: item.title })
+                                    : analyzed
+                                      ? t('home.openVideo', { title: item.title })
+                                      : t('home.analyzeVideo', { title: item.title })
                                 }
                               >
                                 {analyzing ? (
@@ -344,6 +356,8 @@ export function Home({
                                     />
                                     {t('home.analyzing')}
                                   </>
+                                ) : analyzed ? (
+                                  t('home.openResult')
                                 ) : (
                                   t('home.analyzeResult')
                                 )}
@@ -391,9 +405,7 @@ export function Home({
                   onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                   disabled={busy}
                 />
-                <p className="text-xs leading-relaxed text-ink3">
-                  {t('home.uploadHelp')}
-                </p>
+                <p className="text-xs leading-relaxed text-ink3">{t('home.uploadHelp')}</p>
               </div>
             )}
 
@@ -407,9 +419,6 @@ export function Home({
                 onClick={() => onAnalyzed(createDemoSong(preferences), DEMO_AUDIO_URL)}
               >
                 {t('home.demo')}
-              </button>
-              <button type="button" className="btn" onClick={onOpenLibrary}>
-                {t('home.library', { count: libraryCount })}
               </button>
             </div>
           </form>
@@ -436,7 +445,10 @@ export function Home({
           </div>
         </div>
 
-        <aside className="flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
+        <aside
+          className="flex flex-col gap-8 border-t border-line bg-panel-2/50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10"
+          data-testid="home-sidebar"
+        >
           {desktop ? (
             <div>
               <p className="eyebrow">{t('home.desktopLocalTitle')}</p>
@@ -444,9 +456,7 @@ export function Home({
                 <span aria-hidden="true" className="h-2 w-2 rounded-full bg-positive" />
                 {t('home.desktopLocalStatus')}
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-ink3">
-                {t('home.desktopLocalBody')}
-              </p>
+              <p className="mt-2 text-xs leading-relaxed text-ink3">{t('home.desktopLocalBody')}</p>
             </div>
           ) : (
             <div>
@@ -481,10 +491,35 @@ export function Home({
                   {t('home.analyzerHelp')}
                 </a>
               ) : null}
+              {youtubeMode === 'extractor' ? (
+                <div className="mt-4 border-t border-line pt-4">
+                  <p className="eyebrow">{t('home.extractorStatus')}</p>
+                  <p className="mt-3 flex items-center gap-2 font-display text-xl font-bold leading-none text-ink">
+                    <span
+                      aria-hidden="true"
+                      className={`h-2 w-2 rounded-full ${
+                        extractorStatus === 'ok'
+                          ? 'bg-positive'
+                          : extractorStatus === 'down'
+                            ? 'bg-accent'
+                            : 'bg-ink3'
+                      }`}
+                    />
+                    {extractorStatus === 'ok'
+                      ? t('home.available')
+                      : extractorStatus === 'down'
+                        ? t('home.unavailable')
+                        : t('home.checking')}
+                  </p>
+                  <p className="mt-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-ink3">
+                    {t('home.extractorRemote', { version: extractorVersion ?? '—' })}
+                  </p>
+                </div>
+              ) : null}
             </div>
           )}
 
-          <div>
+          <div data-testid="home-how">
             <p className="eyebrow">{t('home.howItWorks')}</p>
             <ol className="mt-3 space-y-3">
               {guideSteps.map(([number, title, body]) => (
@@ -493,9 +528,7 @@ export function Home({
                     {number}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-snug text-ink">
-                      {title}
-                    </span>
+                    <span className="block text-sm font-medium leading-snug text-ink">{title}</span>
                     <span className="mt-0.5 block text-xs leading-relaxed text-ink3">{body}</span>
                   </span>
                 </li>
@@ -503,8 +536,11 @@ export function Home({
             </ol>
           </div>
 
-          {!desktop || mode === 'youtube' ? (
-            <div className="note note-info mt-auto text-xs leading-relaxed">
+          {showLegalNote ? (
+            <div
+              className="note note-info mt-auto text-xs leading-relaxed"
+              data-testid="home-legal"
+            >
               <strong className="font-semibold text-ink">{t('home.legalTitle')}</strong>{' '}
               {t('home.legalBody')}
             </div>

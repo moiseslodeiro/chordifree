@@ -20,6 +20,8 @@ export interface LibraryActionsOptions {
   replaceAudioUrl: (url: string | null) => void;
   refreshLibrary: () => void;
   onNotice: (notice: AppNotice) => void;
+  /** Called after every successful save, including reanalysis. */
+  onSongSaved?: (song: Song) => void;
 }
 
 export interface LibraryActions {
@@ -44,6 +46,7 @@ export function useLibraryActions({
   replaceAudioUrl,
   refreshLibrary,
   onNotice,
+  onSongSaved,
 }: LibraryActionsOptions): LibraryActions {
   const t = useT();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export function useLibraryActions({
       setSavedSong(target);
       refreshLibrary();
       onNotice({ message: t('app.songSaved'), tone: 'success' });
+      onSongSaved?.(target);
     } catch (error) {
       onNotice({
         message: error instanceof StorageQuotaError ? t('app.saveQuota') : t('app.saveFailed'),
@@ -154,7 +158,7 @@ export function useLibraryActions({
     setReanalyzingId(target.id);
     onNotice({ message: t('app.reanalyzingProgress', { progress: 0 }), tone: 'info' });
     const result = await analysisRunner.run((signal) =>
-      createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal),
+      createYoutubeAnalysis(`https://youtu.be/${source.videoId}`, signal, true),
     );
     setReanalyzingId(null);
     if (!result) {
@@ -169,6 +173,7 @@ export function useLibraryActions({
       beats: result.beats ?? [],
       beatsPerBar: result.beatsPerBar ?? 4,
       vocalRegions: result.vocalRegions ?? [],
+      sections: undefined,
       duration: result.duration,
       analyzerVersion: result.analyzerVersion,
       lyricChordOffsets: undefined,
@@ -185,6 +190,7 @@ export function useLibraryActions({
       setSavedSong(updated);
       refreshLibrary();
       onNotice({ message: t('app.reanalyzed'), tone: 'success' });
+      onSongSaved?.(updated);
     } catch {
       onNotice({ message: t('app.reanalyzedNotSaved'), tone: 'warning' });
     }

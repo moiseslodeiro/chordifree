@@ -127,6 +127,21 @@ describe('Google auth boundary', () => {
       .set('Authorization', 'Bearer admin-token')
       .expect(204);
   });
+
+  it('sets security headers and keeps auth and admin responses out of caches', async () => {
+    const app = buildGoogleApp();
+
+    const auth = await request(app).get('/api/auth/config');
+    expect(auth.headers['cache-control']).toBe('no-store');
+    expect(auth.headers['permissions-policy']).toContain('microphone=(self)');
+    expect(auth.headers['x-content-type-options']).toBe('nosniff');
+    expect(auth.headers['strict-transport-security']).toContain('max-age=');
+
+    const admin = await request(app)
+      .get('/api/admin/access')
+      .set('Authorization', 'Bearer admin-token');
+    expect(admin.headers['cache-control']).toBe('no-store');
+  });
 });
 
 describe('MemoryAccessStore', () => {

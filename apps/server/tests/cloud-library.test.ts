@@ -5,6 +5,9 @@ import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
 import { createAuthContext, MemoryAccessStore } from '../src/services/auth';
 import { MemoryCloudLibraryStore } from '../src/services/cloud-library';
+import { MemoryAnalysisLogStore } from '../src/services/analysis-log';
+import { MemoryCollabStore } from '../src/services/collab';
+import { MemoryProfileStore } from '../src/services/profiles';
 import { makeConfig, makeTools } from './helpers';
 
 const ADMIN = 'admin@example.com';
@@ -30,6 +33,9 @@ function buildApp(cloudLibrary = new MemoryCloudLibraryStore()) {
     config,
     auth,
     cloudLibrary,
+    profiles: new MemoryProfileStore(),
+    collab: new MemoryCollabStore(),
+    analysisLog: new MemoryAnalysisLogStore(),
     store: new JobStore(),
     queue: new JobQueue(1),
     tools: makeTools(),

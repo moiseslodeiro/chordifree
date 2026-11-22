@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG NODE_VERSION=20-bookworm-slim
+ARG NODE_VERSION=22-bookworm-slim
 ARG PNPM_VERSION=9.15.9
 
 FROM node:${NODE_VERSION} AS build

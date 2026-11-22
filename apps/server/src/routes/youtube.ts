@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { ApiError, errorBody } from '../errors';
 import type { TemporaryAudioCache } from '../services/audio-cache';
+import type { AnalysisCacheStore } from '../services/analysis-cache';
 import type { MediaTools } from '../services/media';
 import { isVideoId } from '../youtube';
 
@@ -14,9 +15,16 @@ const SearchQuerySchema = z.object({
 export interface YoutubeRouterDeps {
   tools: MediaTools;
   audioCache: TemporaryAudioCache;
+  analysisCache: AnalysisCacheStore;
+  analyzerVersion: string;
 }
 
-export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): Router {
+export function createYoutubeRouter({
+  tools,
+  audioCache,
+  analysisCache,
+  analyzerVersion,
+}: YoutubeRouterDeps): Router {
   const router = Router();
 
   const limiter = rateLimit({
@@ -51,10 +59,19 @@ export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): R
     try {
       const parsed = SearchQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        throw new ApiError('INVALID_REQUEST', 'A search query between 1 and 120 characters is required');
+        throw new ApiError(
+          'INVALID_REQUEST',
+          'A search query between 1 and 120 characters is required',
+        );
       }
       const results = await tools.searchYoutube(parsed.data.q);
-      res.json({ results });
+      const annotated = await Promise.all(
+        results.map(async (result) => ({
+          ...result,
+          analyzed: await analysisCache.has(result.videoId, analyzerVersion).catch(() => false),
+        })),
+      );
+      res.json({ results: annotated });
     } catch (error) {
       next(error);
     }
@@ -112,7 +129,10 @@ export function createYoutubeRouter({ tools, audioCache }: YoutubeRouterDeps): R
           res
             .status(404)
             .json(
-              errorBody('AUDIO_NOT_READY', 'The temporary audio is not available. Prepare it again.'),
+              errorBody(
+                'AUDIO_NOT_READY',
+                'The temporary audio is not available. Prepare it again.',
+              ),
             );
           return;
         }

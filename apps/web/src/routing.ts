@@ -4,6 +4,8 @@ export type Route =
   | { name: 'setlists' }
   | { name: 'setlist'; id: string }
   | { name: 'song'; id: string }
+  | { name: 'collab'; id: string }
+  | { name: 'stems' }
   | { name: 'admin' };
 
 export function parseHash(): Route {
@@ -12,8 +14,11 @@ export function parseHash(): Route {
   if (hash === 'library') return { name: 'library' };
   if (hash === 'setlists') return { name: 'setlists' };
   if (hash === 'admin') return { name: 'admin' };
+  if (hash === 'stems') return { name: 'stems' };
   const setlistMatch = /^setlist\/(.+)$/.exec(hash);
   if (setlistMatch?.[1]) return { name: 'setlist', id: decodeURIComponent(setlistMatch[1]) };
+  const collabMatch = /^collab\/(.+)$/.exec(hash);
+  if (collabMatch?.[1]) return { name: 'collab', id: decodeURIComponent(collabMatch[1]) };
   const match = /^song\/(.+)$/.exec(hash);
   if (match?.[1]) return { name: 'song', id: decodeURIComponent(match[1]) };
   return { name: 'home' };
@@ -23,7 +28,9 @@ export function hashFor(route: Route): string {
   if (route.name === 'library') return '#/library';
   if (route.name === 'setlists') return '#/setlists';
   if (route.name === 'admin') return '#/admin';
+  if (route.name === 'stems') return '#/stems';
   if (route.name === 'setlist') return `#/setlist/${encodeURIComponent(route.id)}`;
   if (route.name === 'song') return `#/song/${encodeURIComponent(route.id)}`;
+  if (route.name === 'collab') return `#/collab/${encodeURIComponent(route.id)}`;
   return '#/';
 }

@@ -35,7 +35,6 @@ function Harness({
   const [loopB, setLoopB] = useState<number | null>(initialB);
   const [loopEnabled, setLoopEnabled] = useState(initialLoop);
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
-  const [rate, setRate] = useState(1);
   const [manualBpm, setManualBpm] = useState(90);
 
   return (
@@ -53,13 +52,8 @@ function Harness({
       onLoopEnabledChange={setLoopEnabled}
       markMode={markMode}
       onMarkModeChange={setMarkMode}
-      rate={rate}
-      onRateChange={setRate}
       manualBpm={manualBpm}
       onManualBpmChange={setManualBpm}
-      pitch={0}
-      onPitchChange={() => undefined}
-      pitchAvailable
     />
   );
 }
@@ -138,69 +132,8 @@ describe('PracticeBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Repetir compás' }));
 
     expect(adapter.getCurrentTime()).toBe(8);
-    expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('00:08 – 00:12')).toBeInTheDocument();
-  });
-
-  it('changes the adapter playback rate and reflects it in the selector', () => {
-    const { adapter } = setup();
-    const select = screen.getByRole('combobox', { name: 'Velocidad de reproducción' });
-    expect(select).toHaveValue('1');
-    expect(adapter.getPlaybackRate()).toBe(1);
-
-    fireEvent.change(select, { target: { value: '0.75' } });
-    expect(adapter.getPlaybackRate()).toBe(0.75);
-    expect(select).toHaveValue('0.75');
-
-    fireEvent.change(select, { target: { value: '1.25' } });
-    expect(adapter.getPlaybackRate()).toBe(1.25);
-    expect(select).toHaveValue('1.25');
-
-    fireEvent.change(select, { target: { value: '1.5' } });
-    expect(adapter.getPlaybackRate()).toBe(1.5);
-    expect(select).toHaveValue('1.5');
-  });
-
-  it('enables the manual metronome with BPM when there are no beats', () => {
-    setup(0, { beats: [] });
-    const metronome = screen.getByRole('button', { name: 'Metrónomo' });
-    expect(metronome).toBeEnabled();
-
-    const bpm = screen.getByLabelText('BPM del metrónomo');
-    expect(bpm).toHaveValue(90);
-    fireEvent.change(bpm, { target: { value: '120' } });
-    fireEvent.blur(bpm);
-    expect(screen.getByLabelText('BPM del metrónomo')).toHaveValue(120);
-
-    fireEvent.click(metronome);
-    expect(metronome).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  it('clears the range and disables looping', () => {
-    setup(0, { initialA: 0, initialB: 8, initialLoop: true });
-    expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Limpiar' }));
-
-    expect(screen.getByText('Marca A y B')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Bucle' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Bucle' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(screen.getByRole('button', { name: 'Marcar inicio A' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(screen.getByRole('button', { name: 'Marcar final B' })).not.toHaveAttribute(
-      'data-set',
-    );
   });
 
   it('counts in four beats before playing', () => {

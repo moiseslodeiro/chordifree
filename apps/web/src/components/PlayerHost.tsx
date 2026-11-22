@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PlayerAdapter } from '../player/types';
 import { AudioPlayerAdapter } from '../player/audio';
 import { FakePlayerAdapter } from '../player/fake';
+import { StemMixerAdapter, type StemSource } from '../player/stem-mixer';
 import { prepareYoutubeAudio } from '../lib/api';
 import { useT } from '../i18n';
 import type { Song } from '../types';
@@ -12,6 +13,12 @@ interface PlayerHostProps {
   forceFake: boolean;
   variant?: 'default' | 'compact';
   pitch: number;
+  karaoke?: boolean;
+  /** Plays a local stem instead of the original audio. */
+  overrideUrl?: string | null;
+  /** Synchronized stems, when the mixer is active. */
+  mix?: { stems: StemSource[] } | null;
+  stemGains?: Record<string, number>;
   onAdapter: (adapter: PlayerAdapter | null) => void;
   onPlaybackError: (message: string) => void;
 }
@@ -27,6 +34,10 @@ export function PlayerHost({
   forceFake,
   variant = 'default',
   pitch,
+  karaoke = false,
+  overrideUrl = null,
+  mix = null,
+  stemGains = {},
   onAdapter,
   onPlaybackError,
 }: PlayerHostProps) {
@@ -37,6 +48,10 @@ export function PlayerHost({
   const adapterRef = useRef<PlayerAdapter | null>(null);
   const pitchRef = useRef(pitch);
   pitchRef.current = pitch;
+  const karaokeRef = useRef(karaoke);
+  karaokeRef.current = karaoke;
+  const stemGainsRef = useRef(stemGains);
+  stemGainsRef.current = stemGains;
 
   const [temporary, setTemporary] = useState<TemporaryAudio | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -48,7 +63,8 @@ export function PlayerHost({
 
   const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
   const temporaryUrl = temporary && temporary.videoId === videoId ? temporary.url : null;
-  const playableUrl = videoId ? temporaryUrl : audioUrl;
+  const mixActive = Boolean(mix && mix.stems.length > 0);
+  const playableUrl = overrideUrl ?? (videoId ? temporaryUrl : audioUrl);
   const mode: 'audio' | 'fake' | 'missing' | 'video' = forceFake
     ? 'fake'
     : playableUrl
@@ -56,6 +72,13 @@ export function PlayerHost({
       : videoId
         ? 'video'
         : 'missing';
+
+  useEffect(() => {
+    const url = temporary?.url;
+    return () => {
+      if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+    };
+  }, [temporary?.url]);
 
   useEffect(() => {
     if (!videoId || forceFake) {
@@ -89,7 +112,9 @@ export function PlayerHost({
   useEffect(() => {
     let adapter: PlayerAdapter | null = null;
 
-    if (mode === 'fake') {
+    if (mixActive && mix) {
+      adapter = new StemMixerAdapter(mix.stems, stemGainsRef.current);
+    } else if (mode === 'fake') {
       adapter = new FakePlayerAdapter(0, true);
     } else if (mode === 'audio' && audioRef.current && playableUrl) {
       adapter = new AudioPlayerAdapter(audioRef.current);
@@ -97,6 +122,7 @@ export function PlayerHost({
 
     if (adapter) {
       adapter.setPitch?.(pitchRef.current);
+      adapter.setKaraoke?.(karaokeRef.current);
       adapterRef.current = adapter;
       adapterCallback.current(adapter);
     }
@@ -105,11 +131,21 @@ export function PlayerHost({
       adapterCallback.current(null);
       adapter?.destroy();
     };
-  }, [mode, song.id, playableUrl]);
+  }, [mixActive, mix, mode, song.id, playableUrl]);
 
   useEffect(() => {
     adapterRef.current?.setPitch?.(pitch);
   }, [pitch]);
+
+  useEffect(() => {
+    for (const [stem, value] of Object.entries(stemGains)) {
+      adapterRef.current?.setStemVolume?.(stem, value);
+    }
+  }, [stemGains]);
+
+  useEffect(() => {
+    adapterRef.current?.setKaraoke?.(karaoke);
+  }, [karaoke]);
 
   const audioError = () => {
     if (videoId) {
@@ -148,7 +184,7 @@ export function PlayerHost({
         </figure>
       ) : null}
 
-      {mode === 'audio' && playableUrl ? (
+      {!mixActive && mode === 'audio' && playableUrl ? (
         <audio
           key={playableUrl}
           ref={audioRef}
@@ -166,15 +202,11 @@ export function PlayerHost({
       ) : null}
 
       {mode === 'missing' ? (
-        <div className="note note-warning text-sm leading-relaxed">
-          {t('player.audioMissing')}
-        </div>
+        <div className="note note-warning text-sm leading-relaxed">{t('player.audioMissing')}</div>
       ) : null}
 
       {!videoId && mode === 'audio' ? (
-        <div className="note note-info text-sm leading-relaxed">
-          {t('player.audioFileHint')}
-        </div>
+        <div className="note note-info text-sm leading-relaxed">{t('player.audioFileHint')}</div>
       ) : null}
 
       {videoId && preparing ? (
@@ -196,19 +228,9 @@ export function PlayerHost({
           role="alert"
         >
           <span>{t('player.pitchAudioFailed')}</span>
-          <button
-            type="button"
-            className="btn min-h-0 px-3 py-1.5 text-xs"
-            onClick={retryAudio}
-          >
+          <button type="button" className="btn min-h-0 px-3 py-1.5 text-xs" onClick={retryAudio}>
             {t('common.retry')}
           </button>
-        </div>
-      ) : null}
-
-      {videoId && temporaryUrl && !preparing && !prepareFailed ? (
-        <div className="note note-info text-sm leading-relaxed">
-          {t('player.youtubeTemporary')}
         </div>
       ) : null}
     </div>

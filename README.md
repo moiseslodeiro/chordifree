@@ -2,9 +2,12 @@
 
 Turn a YouTube video or your own audio file into a synchronized chord timeline you can
 practice with. Chordifree estimates the key, beats, bars and chords, aligns lyrics with the
-sung sections, and lets you correct everything in the browser. Run it locally, or deploy a
-private online instance where only approved Google accounts can sign in and each user's
-library is stored in their account.
+sung sections, labels the song structure (intro, verse, chorus) so you can jump between
+sections while practicing, and lets you correct everything in the browser. It includes a
+karaoke-style instrumental, microphone feedback and a multi-track MIDI export; the desktop
+build can add local stem separation, synchronize the four stems in a mixer and transcribe the
+bass and drums for the MIDI export. Run it locally, or deploy a private online instance where
+only approved Google accounts can sign in and each user's library is stored in their account.
 
 Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to musicians.
 
@@ -16,10 +19,10 @@ Built by [Moisés Lodeiro](https://github.com/moiseslodeiro), from a musician to
 
 ## Two ways to run it
 
-| Mode | Sign-in | Library | Best for |
-|---|---|---|---|
-| Local / desktop | None | Browser local storage or the desktop app | Practice on one machine, offline use |
-| Private online (GCP) | Google, restricted to an allowlist | Firestore, per user | A small multi-device instance you host |
+| Mode                 | Sign-in                            | Library                                  | Best for                               |
+| -------------------- | ---------------------------------- | ---------------------------------------- | -------------------------------------- |
+| Local / desktop      | None                               | Browser local storage or the desktop app | Practice on one machine, offline use   |
+| Private online (GCP) | Google, restricted to an allowlist | Firestore, per user                      | A small multi-device instance you host |
 
 Local mode is the default and stays account-free. The online mode is opt-in: it does not
 remove the local library or the desktop workflow.
@@ -79,6 +82,13 @@ The [`deploy/gcp`](deploy/gcp/README.md) stack adds an optional online mode:
   they are always allowed; everyone else must be added from the web UI (`#/admin`).
 - **Per-user cloud library** under `chordifree_users/{uid}`. Songs and setlists merge with
   the local copy by song source and `updatedAt`.
+- **Collaborative songs:** share a song with a link, and every signed-in account on the
+  allowlist can edit it. Each save keeps a version with the author's nickname; you can open
+  the history, compare the changes and load any version. A stale save is rejected instead of
+  overwriting the newer work.
+- **Nickname:** chosen on first sign-in and editable in the account menu.
+- **Admin activity**: administrators see which songs were analyzed, when, and by which
+  account.
 - **Account deletion:** from the account menu, a user can delete their cloud library. A
   non-admin also loses allowlist access; the local copy stays on the device.
 - **Private analyzer** on Cloud Run. Only the server service account can invoke it, using a
@@ -118,7 +128,9 @@ sudo ./install.sh          # systemd, recommended for a Pi 2
 ```
 
 Then expose `127.0.0.1:8010` with Cloudflare Tunnel or Tailscale Funnel and set
-`YOUTUBE_EXTRACTOR_URL` / `YOUTUBE_EXTRACTOR_TOKEN` in Terraform.
+`YOUTUBE_EXTRACTOR_URL` / `YOUTUBE_EXTRACTOR_TOKEN` in Terraform. The complete headless
+installation and tunnel walkthrough is in
+[`docs/RASPBERRY_PI_EXTRACTOR.md`](docs/RASPBERRY_PI_EXTRACTOR.md).
 
 ## Features
 
@@ -133,7 +145,13 @@ Then expose `127.0.0.1:8010` with Cloudflare Tunnel or Tailscale Funnel and set
   play from A to B or loop the range.
 - **Transposition**, English/Spanish notation, sharps/flats, capo, guitar/piano/ukelele.
 - **Audio pitch** for uploaded files and temporary YouTube audio (±12 semitones) without
-  changing the tempo. YouTube songs show the thumbnail and play from the main player bar.
+  changing the tempo, plus **karaoke** center-channel vocal removal. YouTube songs show the
+  thumbnail and play from the main player bar.
+- **Microphone feedback (desktop)**: the sheet listens to your instrument and marks the
+  active chord once it matches the timeline. Audio is processed in the browser and never
+  recorded.
+- **Auto-scroll** inside the grid: playback keeps the active row in view with the next two
+  rows visible.
 - **Simplify / reduce chords** for simpler accompaniment.
 - **Local or private cloud library**: keep songs and setlists in the browser, on the
   desktop, or per-user in Firestore on the optional online instance. Setlists, JSON backups,
@@ -142,10 +160,34 @@ Then expose `127.0.0.1:8010` with Cloudflare Tunnel or Tailscale Funnel and set
   only approved accounts can enter.
 - **Sharing**: send a chord sheet to WhatsApp, Telegram or email, share a single song file, or
   share/print a complete setlist.
+- **Multi-track MIDI**: export the chords and pad from the analysis and the transcribed bass and
+  drums from the stems as a Standard MIDI File.
+- **Local stem separation (desktop)**: an optional plugin separates vocals, drums, bass and
+  other; a mixer plays the four synchronized tracks, each with its own volume, and the
+  **Stems** screen lists and cancels jobs and manages the persistent cache. See
+  [`docs/STEMS_PLUGIN.md`](docs/STEMS_PLUGIN.md).
 - **Performance mode**: full screen chord sheet with the editing chrome out of the way.
-- **Cache manager** in the library: analysis cache and temporary YouTube audio, with their
-  storage size and clear buttons.
+- **Cache manager** in the library for the analysis cache and temporary YouTube audio, plus
+  **Stems** (`#/stems`) for separated tracks and running jobs, with their storage size and
+  clear buttons.
 - **English and Spanish interface**, English by default.
+
+## Stems, karaoke and MIDI (desktop)
+
+The karaoke toggle works everywhere: it removes the center channel to approximate an
+instrumental. Pitch (±12 semitones) changes the audio without touching the chords; both apply
+to the original track.
+
+On desktop, open **Stems** (`#/stems`) and press **Install plugin**. Chordifree copies the
+bundled scripts, creates a Python virtualenv and downloads CPU PyTorch and Demucs (about
+1.5 GB, once). You can cancel the download and uninstall the plugin from the same screen. The
+song view then shows a **Stems** card inside the collapsible **Audio** section: separate,
+cancel, play the synchronized mix with one volume per stem, return to the original track,
+download a WAV or build a MIDI from the stems.
+Jobs keep running when you change songs or close the view. Completed separations are cached in
+`$TEMP_DIR/stems-cache` (20 entries / 2 GB, oldest evicted first) and managed from `#/stems`
+(**Pistas** in the header), including cancellation, playback of a cached mix or a single stem
+and cache cleanup. The plugin is not bundled with the installer.
 
 ## Local development
 
@@ -175,31 +217,33 @@ The analyzer downloads its ONNX models on the first analysis. To prefetch them, 
 
 Copy `.env.example` to `.env` and adjust as needed.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | `3001` | Express API port |
-| `HOST` | `127.0.0.1` | Bind address; use `0.0.0.0` only inside a container or behind a proxy |
-| `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origin |
-| `ANALYZER_URL` | `http://localhost:8001` | Internal analyzer URL |
-| `MAX_DURATION_SECONDS` | `900` | Maximum audio/video length |
-| `MAX_UPLOAD_BYTES` | `26214400` | Maximum upload size (25 MB) |
-| `RATE_LIMIT_MAX` | `60` | Analysis requests per window and IP |
-| `RATE_LIMIT_WINDOW_MS` | `3600000` | Rate-limit window |
-| `TRUST_PROXY` | `0` | Trusted reverse-proxy hops; set `1` behind nginx/Caddy |
-| `TEMP_DIR` | `./.tmp` | Temporary audio and analysis working directory |
-| `AUDIO_CACHE_TTL_MINUTES` | auto | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
-| `YTDLP_PATH` | `yt-dlp` | yt-dlp binary |
-| `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary |
-| `FFPROBE_PATH` | `ffprobe` | ffprobe binary |
-| `ANALYZER_VERSION` | `essentia-1.6` | Cache-busting analyzer version |
-| `ANALYZER_DOWNLOAD_MODELS` | `1` | Allow runtime model download |
-| `AUTH_MODE` | `none` | `none` for local/desktop, `google` for the hosted allowlisted instance |
-| `GOOGLE_CLIENT_ID` | empty | OAuth Web client ID used to verify Google ID tokens |
-| `ADMIN_EMAILS` | empty | Comma-separated administrators; always allowed and able to manage access |
-| `GOOGLE_CLOUD_PROJECT` | empty | Project for Firestore (allowlist and cloud libraries) |
-| `FIRESTORE_DATABASE` | `(default)` | Firestore database ID |
-| `ANALYZER_AUTH` | `token` | `google` makes the server call the analyzer with a Cloud Run ID token |
-| `ANALYZER_TOKEN` | empty | Shared token when `ANALYZER_AUTH=token` |
+| Variable                   | Default                 | Purpose                                                                                                        |
+| -------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | `3001`                  | Express API port                                                                                               |
+| `HOST`                     | `127.0.0.1`             | Bind address; use `0.0.0.0` only inside a container or behind a proxy                                          |
+| `CORS_ORIGIN`              | `http://localhost:5173` | Allowed browser origin                                                                                         |
+| `ANALYZER_URL`             | `http://localhost:8001` | Internal analyzer URL                                                                                          |
+| `MAX_DURATION_SECONDS`     | `900`                   | Maximum audio/video length                                                                                     |
+| `MAX_UPLOAD_BYTES`         | `26214400`              | Maximum upload size (25 MB)                                                                                    |
+| `RATE_LIMIT_MAX`           | `60`                    | Analysis requests per window and IP                                                                            |
+| `RATE_LIMIT_WINDOW_MS`     | `3600000`               | Rate-limit window                                                                                              |
+| `TRUST_PROXY`              | `0`                     | Trusted reverse-proxy hops; set `1` behind nginx/Caddy                                                         |
+| `TEMP_DIR`                 | `./.tmp`                | Temporary audio and analysis working directory                                                                 |
+| `AUDIO_CACHE_TTL_MINUTES`  | auto                    | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |
+| `STEMS_PLUGIN_DIR`         | empty                   | Optional local stems plugin for desktop. See `docs/STEMS_PLUGIN.md`                                            |
+| `STEMS_SERVICE_URL`        | empty                   | Optional remote stems service, preferred over the local plugin. See `docs/STEMS_PLUGIN.md`                     |
+| `YTDLP_PATH`               | `yt-dlp`                | yt-dlp binary                                                                                                  |
+| `FFMPEG_PATH`              | `ffmpeg`                | ffmpeg binary                                                                                                  |
+| `FFPROBE_PATH`             | `ffprobe`               | ffprobe binary                                                                                                 |
+| `ANALYZER_VERSION`         | `essentia-1.6`          | Cache-busting analyzer version                                                                                 |
+| `ANALYZER_DOWNLOAD_MODELS` | `1`                     | Allow runtime model download                                                                                   |
+| `AUTH_MODE`                | `none`                  | `none` for local/desktop, `google` for the hosted allowlisted instance                                         |
+| `GOOGLE_CLIENT_ID`         | empty                   | OAuth Web client ID used to verify Google ID tokens                                                            |
+| `ADMIN_EMAILS`             | empty                   | Comma-separated administrators; always allowed and able to manage access                                       |
+| `GOOGLE_CLOUD_PROJECT`     | empty                   | Project for Firestore (allowlist and cloud libraries)                                                          |
+| `FIRESTORE_DATABASE`       | `(default)`             | Firestore database ID                                                                                          |
+| `ANALYZER_AUTH`            | `token`                 | `google` makes the server call the analyzer with a Cloud Run ID token                                          |
+| `ANALYZER_TOKEN`           | empty                   | Shared token when `ANALYZER_AUTH=token`                                                                        |
 
 ## Architecture
 
@@ -272,9 +316,9 @@ To publish a GitHub release, dispatch the same workflow on a version tag; the
 release job only runs for `refs/tags/v*`:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
-gh workflow run desktop-builds.yml --ref v0.3.0
+git tag v0.5.0
+git push origin v0.5.0
+gh workflow run desktop-builds.yml --ref v0.5.0
 ```
 
 The executable is unsigned, so SmartScreen warns on first launch. See
@@ -309,7 +353,6 @@ Code signing and automatic installation of updates are still pending. The packag
 desktop app does check the latest GitHub release on startup and shows a dismissible
 notice with a download link; set `CHORDIFREE_DISABLE_UPDATE_CHECK=1` to disable the
 check. Only the app version and the public GitHub release metadata are involved.
-
 
 ## Landing page (GitHub Pages)
 
@@ -365,7 +408,6 @@ Spanish documentation: [`README.es.md`](README.es.md).
 - [Security policy](SECURITY.md)
 - [Privacy](PRIVACY.md)
 - [Terms of use](TERMS.md)
-
 
 ---
 

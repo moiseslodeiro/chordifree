@@ -63,14 +63,22 @@ resource "google_cloud_run_v2_service" "analyzer" {
   ]
 }
 
-# Only the server service account may call the analyzer. Cloud Run verifies the
-# ID token before the request reaches the container.
+# Only the server and analysis worker service accounts may call the analyzer.
+# Cloud Run verifies the ID token before the request reaches the container.
 resource "google_cloud_run_v2_service_iam_member" "analyzer_invoker" {
   project  = var.project_id
   location = google_cloud_run_v2_service.analyzer.location
   name     = google_cloud_run_v2_service.analyzer.name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.server.email}"
+}
+
+resource "google_cloud_run_v2_service_iam_member" "analyzer_worker_invoker" {
+  project  = var.project_id
+  location = google_cloud_run_v2_service.analyzer.location
+  name     = google_cloud_run_v2_service.analyzer.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.analysis_worker.email}"
 }
 
 resource "google_cloud_run_v2_service" "server" {
@@ -87,8 +95,8 @@ resource "google_cloud_run_v2_service" "server" {
 
     scaling {
       min_instance_count = 0
-      # Analysis jobs and temporary audio live in memory, so a single instance
-      # keeps the queue consistent and the cost predictable.
+      # The temporary playback cache is instance-local; a single API instance
+      # keeps it consistent while analysis jobs run independently in Firestore.
       max_instance_count = 1
     }
 
@@ -105,9 +113,9 @@ resource "google_cloud_run_v2_service" "server" {
           cpu    = var.server_cpu
           memory = var.server_memory
         }
-        # Jobs continue after the HTTP response that created them, so the CPU
-        # must stay allocated. Instances still scale to zero when idle.
-        cpu_idle = false
+        # Analysis runs in the separate Cloud Run Job, so the API only needs CPU
+        # while it is handling requests and can use request-based billing.
+        cpu_idle = true
       }
 
       env {
@@ -181,6 +189,16 @@ resource "google_cloud_run_v2_service" "server" {
       }
 
       env {
+        name  = "CLOUD_RUN_REGION"
+        value = var.region
+      }
+
+      env {
+        name  = "ANALYSIS_JOB_NAME"
+        value = google_cloud_run_v2_job.analysis.name
+      }
+
+      env {
         name  = "ANALYZER_URL"
         value = google_cloud_run_v2_service.analyzer.uri
       }
@@ -234,6 +252,8 @@ resource "google_cloud_run_v2_service" "server" {
     google_firestore_database.default,
     google_cloud_run_v2_service.analyzer,
     google_cloud_run_v2_service_iam_member.analyzer_invoker,
+    google_cloud_run_v2_job_iam_member.analysis_executor,
+    google_service_account_iam_member.server_can_run_analysis_worker,
   ]
 }
 

@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config "../tailwind.config.js";
 
 /* ---------------------------------------------------------------------------
    CHORDIFREE — visual system derived from the logo
@@ -83,46 +82,48 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-html {
-  background: rgb(var(--color-page));
-}
+@layer base {
+  html {
+    background: rgb(var(--color-page));
+  }
 
-body {
-  margin: 0;
-  min-height: 100%;
-  background-color: rgb(var(--color-page));
-  color: rgb(var(--color-ink));
-  font-family: var(--font-sans);
-  font-size: var(--step-0);
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  font-variant-numeric: lining-nums;
-}
+  body {
+    margin: 0;
+    min-height: 100%;
+    background-color: rgb(var(--color-page));
+    color: rgb(var(--color-ink));
+    font-family: var(--font-sans);
+    font-size: var(--step-0);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: lining-nums;
+  }
 
-::selection {
-  background: rgb(var(--color-accent));
-  color: rgb(var(--color-on-accent));
-}
+  ::selection {
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-on-accent));
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-display);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
 
-p {
-  text-wrap: pretty;
-}
+  p {
+    text-wrap: pretty;
+  }
 
-*:focus-visible {
-  outline: 2px solid rgb(var(--color-accent));
-  outline-offset: 2px;
+  *:focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 2px;
+  }
 }
 
 * {
@@ -369,6 +370,28 @@ p {
 
   .tool-chip-active:hover {
     background: rgb(var(--color-accent) / 0.16);
+  }
+
+  /* Toggle chips in the practice row (karaoke, microphone): same height and
+     spacing so they wrap as a single group instead of mixing sizes. */
+  .practice-toggle {
+    @apply inline-flex min-h-[2rem] items-center gap-1.5 border border-transparent px-2.5 py-1 text-[0.7rem] font-semibold text-ink2 transition;
+    border-radius: var(--radius-sm);
+  }
+
+  .practice-toggle:hover {
+    color: rgb(var(--color-ink));
+    background: rgb(var(--color-ink) / 0.05);
+  }
+
+  .practice-toggle[aria-pressed='true'] {
+    color: rgb(var(--color-accent));
+    background: rgb(var(--color-accent) / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-accent) / 0.35);
+  }
+
+  .practice-toggle:disabled {
+    @apply cursor-not-allowed opacity-40;
   }
 
   .tool-step {
@@ -630,7 +653,8 @@ p {
   *::after {
     scroll-behavior: auto !important;
     /* Keep colour and opacity feedback; drop spatial movement. */
-    transition-property: color, background-color, border-color, outline-color, box-shadow, opacity !important;
+    transition-property:
+      color, background-color, border-color, outline-color, box-shadow, opacity !important;
     transition-duration: 120ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -914,6 +938,8 @@ body.performance-mode .song-details-form,
 body.performance-mode .song-controls,
 body.performance-mode .song-toolbar,
 body.performance-mode .song-tools,
+body.performance-mode [data-testid='song-player-column'],
+body.performance-mode [data-testid='song-harmony-column'],
 body.performance-mode .print-sheet {
   display: none !important;
 }
@@ -1108,6 +1134,28 @@ body.performance-mode .song-view {
   box-shadow: 0 12px 30px rgb(var(--color-shadow) / 0.14);
 }
 
+.collapsible-marker {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: rgb(var(--color-ink-3));
+}
+
+.action-menu-group + .action-menu-group {
+  margin-top: 0.2rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgb(var(--color-line));
+}
+
+.action-menu-heading {
+  padding: 0.35rem 0.6rem 0.2rem;
+  color: rgb(var(--color-ink-3));
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .action-menu-item {
   display: block;
   width: 100%;
@@ -1209,4 +1257,45 @@ dialog.confirm-dialog::backdrop {
   background: rgb(0 0 0 / 0.45);
   overflow: hidden;
   overscroll-behavior: contain;
+}
+
+/* Microphone practice: a recognized chord segment turns green. */
+.beat-cell[data-practice-hit='true'],
+.bar-cell[data-practice-hit='true'] {
+  background: rgb(var(--color-positive) / 0.1);
+  box-shadow: inset 0 0 0 2px rgb(var(--color-positive) / 0.55);
+}
+
+.chord-row[data-practice-hit='true'] {
+  background: rgb(var(--color-positive) / 0.08);
+  box-shadow: inset 3px 0 0 rgb(var(--color-positive));
+}
+
+/* Practice disclosure: same hairline language, one collapsible block. */
+.practice-panel > summary {
+  list-style: none;
+}
+
+.practice-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.practice-panel > summary::before {
+  content: '';
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid rgb(var(--color-ink-3));
+  border-bottom: 2px solid rgb(var(--color-ink-3));
+  rotate: -45deg;
+  transition: rotate var(--dur-fast) var(--ease);
+}
+
+.practice-panel[open] > summary::before {
+  rotate: 45deg;
+}
+
+.practice-panel > summary:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
 }

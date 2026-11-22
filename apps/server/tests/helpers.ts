@@ -18,6 +18,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     rateLimitMax: 100,
     rateLimitWindowMs: 60_000,
     trustProxy: 1,
+    local: true,
     tempDir: join(tmpdir(), 'chordifree-test'),
     audioCacheTtlMinutes: 60,
     ytdlpPath: 'yt-dlp',
@@ -32,6 +33,8 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     analyzerAuth: 'token',
     youtubeExtractorToken: '',
     youtubeExtractorTimeoutMs: 240_000,
+    stemsServiceToken: '',
+    stemsServiceTimeoutMs: 30 * 60 * 1000,
     ...overrides,
   };
 }

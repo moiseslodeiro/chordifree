@@ -17,7 +17,7 @@ Escala: probabilidad e impacto `Baja / Media / Alta`; nivel = combinación cuali
 | RT-011 | `App.tsx` concentra demasiada lógica y favorece regresiones | Alta | Medio | Alto | Extraer hooks/páginas; tests de merge y sync | Web | Mitigado parcial |
 | RT-012 | Tipos web/servidor divergen | Media | Medio | Medio | `packages/contracts` con Zod | Web + server | Mitigado |
 | RT-013 | Dependencia con vulnerabilidad conocida | Media | Alto | Alto | `pnpm audit`, Dependabot, pin de versiones | Repo | Pendiente |
-| RT-014 | Firestore sin backup ni política de retención | Media | Alto | Alto | Export programado + runbook de borrado | Firestore | Pendiente |
+| RT-014 | Firestore sin backup ni política de retención | Media | Alto | Alto | TTL operativo; falta export programado + runbook de borrado | Firestore | Mitigado parcial |
 | RT-015 | El administrador no puede revocar acceso rápidamente | Baja | Medio | Bajo | Eliminar de `#/admin`; el token dura ~1 h | Auth | Mitigado parcial |
 | RT-016 | Análisis de audio de usuarios consume CPU/memoria y afecta a otros | Media | Medio | Medio | `max_instance_count=1`, rate limit, cuotas por usuario | Server / analyzer | Aceptado |
 | RT-017 | El fallo del analyzer deja la app “viva” pero inutilizable | Media | Medio | Medio | `/api/health` muestra `analyzer: down`; reintentos | Server | Mitigado |

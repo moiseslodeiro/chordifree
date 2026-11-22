@@ -1,11 +1,20 @@
 import type { AuthValue } from '../auth/AuthProvider';
+import { useT } from '../i18n';
 import type { AudioCacheState } from '../hooks/useAudioCache';
 import type { HealthState } from '../hooks/useHealth';
 import { analysisCacheStats } from '../storage/library';
 import type { StorageLike } from '../storage/keys';
 import type { HistoryMap } from '../storage/history';
 import type { CloudStatus } from '../sync/useCloudLibrary';
-import type { AppNotice, Preferences, Setlist, Song, SongSummary } from '../types';
+import type {
+  AppNotice,
+  CollabRevision,
+  CollabShare,
+  Preferences,
+  Setlist,
+  Song,
+  SongSummary,
+} from '../types';
 import type { Route } from '../routing';
 import { AdminAccess } from './AdminAccess';
 import { Home } from './Home';
@@ -13,6 +22,7 @@ import { LibraryList } from './LibraryList';
 import { SetlistList } from './SetlistList';
 import { SetlistView } from './SetlistView';
 import { SongView } from './SongView';
+import { StemsLibrary } from './StemsLibrary';
 
 interface AppRoutesProps {
   route: Route;
@@ -53,6 +63,15 @@ interface AppRoutesProps {
   onCreateSetlistWithSong: (name: string, song: Song) => void;
   onReanalyze: (song: Song) => void;
   onPreferences: (patch: Partial<Preferences>) => void;
+  collabShare: CollabShare | null;
+  collabLoading: boolean;
+  collabUid: string | null;
+  canCollaborate: boolean;
+  onShareCollab: (song: Song) => Promise<string | null>;
+  onLoadCollabRevision: (revisionId: string) => Promise<CollabRevision | null>;
+  onApplyCollabRevision: (revision: CollabRevision) => void;
+  onRefreshCollab: () => void;
+  onOpenAnalysis: (videoId: string) => Promise<boolean>;
 }
 
 export function AppRoutes({
@@ -94,7 +113,25 @@ export function AppRoutes({
   onCreateSetlistWithSong,
   onReanalyze,
   onPreferences,
+  collabShare,
+  collabLoading,
+  collabUid,
+  canCollaborate,
+  onShareCollab,
+  onLoadCollabRevision,
+  onApplyCollabRevision,
+  onRefreshCollab,
+  onOpenAnalysis,
 }: AppRoutesProps) {
+  const t = useT();
+  if (route.name === 'collab') {
+    return (
+      <p className="py-24 text-center text-sm text-ink3" role="status">
+        {t('collab.opening')}
+      </p>
+    );
+  }
+
   if (route.name === 'home') {
     return (
       <Home
@@ -102,10 +139,10 @@ export function AppRoutes({
         preferences={preferences}
         analyzerVersion={health.version}
         analyzerStatus={health.status}
-        libraryCount={songs.length}
+        extractorStatus={health.extractor}
+        extractorVersion={health.extractorVersion}
         notice={notice}
         onDismissNotice={onDismissNotice}
-        onOpenLibrary={() => onNavigate({ name: 'library' })}
         onAnalyzed={onAnalyzed}
         youtubeMode={features?.features.youtube ?? 'direct'}
       />
@@ -135,7 +172,19 @@ export function AppRoutes({
   }
 
   if (route.name === 'admin') {
-    return <AdminAccess onBack={() => onNavigate({ name: 'library' })} />;
+    return (
+      <AdminAccess onBack={() => onNavigate({ name: 'library' })} onOpenVideo={onOpenAnalysis} />
+    );
+  }
+
+  if (route.name === 'stems') {
+    return (
+      <StemsLibrary
+        onBack={() => onNavigate({ name: 'library' })}
+        songs={songs}
+        onOpenSong={(id) => onNavigate({ name: 'song', id })}
+      />
+    );
   }
 
   if (route.name === 'setlists') {
@@ -192,7 +241,17 @@ export function AppRoutes({
         reanalyzeProgress={reanalyzingId === song.id ? reanalyzeProgress : null}
         onBack={() => onNavigate({ name: 'home' })}
         onOpenLibrary={() => onNavigate({ name: 'library' })}
+        onOpenStems={() => onNavigate({ name: 'stems' })}
         onPreferences={onPreferences}
+        language={preferences.language}
+        collabShare={collabShare}
+        collabLoading={collabLoading}
+        collabUid={collabUid}
+        canCollaborate={canCollaborate}
+        onShareCollab={onShareCollab}
+        onLoadCollabRevision={onLoadCollabRevision}
+        onApplyCollabRevision={onApplyCollabRevision}
+        onRefreshCollab={onRefreshCollab}
       />
     );
   }

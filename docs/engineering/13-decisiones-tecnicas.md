@@ -38,16 +38,19 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
   que la validación recae en Zod. El snapshot completo simplifica la API pero limita el merge
   fino.
 
-## ADR-004 — Cloud Run scale-to-zero y servidor de 1 instancia
+## ADR-004 — Cloud Run scale-to-zero y análisis bajo demanda
 
 - **Estado:** Aceptada
-- **Contexto:** El coste debe ser mínimo y los jobs/audio viven en memoria.
-- **Decisión:** Cloud Run para servidor y analyzer, `min_instance_count=0`,
-  `max_instance_count=1`. El servidor usa `cpu_idle=false`; el analyzer `cpu_idle=true`.
-- **Alternativas:** VM siempre encendida; Kubernetes; Cloud Functions; más instancias con
-  estado compartido.
-- **Consecuencias:** Coste casi nulo en reposo y cold starts. Un reinicio pierde jobs. No hay
-  escalado horizontal. Es una decisión explícita, no un accidente.
+- **Contexto:** El coste debe ser mínimo y los análisis no deben mantener CPU asignada en el API
+  tras responder a la petición.
+- **Decisión:** El API y el analyzer usan Cloud Run con `min_instance_count=0`; el API usa
+  facturación por solicitud. Cada análisis se ejecuta como Cloud Run Job y su estado/upload
+  temporal se guarda en Firestore. Se limita cada ejecución a una tarea y el API a una instancia.
+- **Alternativas:** VM siempre encendida; Kubernetes; Cloud Functions; mantener la cola en el
+  proceso del API.
+- **Consecuencias:** El API escala a cero y los Jobs solo consumen recursos al analizar. Un fallo
+  del worker ya no pierde el estado del job, aunque cada análisis sigue consumiendo cuota y puede
+  generar cargos.
 
 ## ADR-005 — Biblioteca online como snapshot completo
 
@@ -110,15 +113,17 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
 - **Consecuencias:** Contratos explícitos y mensajes localizables. Los tipos web/servidor aún
   están duplicados; se propone `packages/contracts`.
 
-## ADR-011 — Cola de jobs en memoria
+## ADR-011 — Cola de jobs en memoria (local)
 
-- **Estado:** Aceptada (con deuda)
+- **Estado:** Sustituida en online por ADR-004; vigente en local y escritorio
 - **Contexto:** El análisis es asíncrono y el volumen esperado es bajo.
-- **Decisión:** `JobStore` + `JobQueue` en memoria, con concurrencia 2 y TTL 24 h.
+- **Decisión:** En local y escritorio, `JobStore` + `JobQueue` en memoria, con concurrencia 2 y
+  TTL 24 h. En la instancia online, los jobs y las subidas se persisten en Firestore y cada
+  análisis se ejecuta como Cloud Run Job (ADR-004).
 - **Alternativas:** Cloud Tasks + Firestore; BullMQ + Redis; cola en SQLite.
-- **Consecuencias:** Cero infraestructura extra y código simple. Los jobs se pierden al
-  reiniciar y no se puede escalar a más de una instancia. Es la primera cosa a cambiar si el
-  online crece.
+- **Consecuencias:** Cero infraestructura extra en local y código simple. En online los jobs ya
+  no se pierden al reiniciar y el API puede escalar; la caché de audio y los stems siguen siendo
+  locales a una instancia.
 
 ## ADR-012 — Sin load balancer ni IAP
 

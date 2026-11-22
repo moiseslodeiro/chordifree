@@ -7,18 +7,7 @@ resource "google_monitoring_notification_channel" "email" {
   display_name = "${var.name_prefix} alerts"
   type         = "email"
   labels = {
-    email = local.alert_email
-  }
-}
-
-resource "google_logging_metric" "analysis_failures" {
-  project = var.project_id
-  name    = "${replace(var.name_prefix, "-", "_")}_analysis_failures"
-  filter  = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${local.server_service_name}\" AND textPayload:\"[analysis]\" AND textPayload:\"failed\""
-
-  metric_descriptor {
-    metric_kind = "DELTA"
-    value_type  = "INT64"
+    email_address = local.alert_email
   }
 }
 
@@ -29,22 +18,16 @@ resource "google_monitoring_alert_policy" "analysis_failures" {
   severity     = "ERROR"
   enabled      = true
 
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
   conditions {
     display_name = "Failed analysis jobs"
-    condition_threshold {
-      filter          = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${local.server_service_name}\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.analysis_failures.name}\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = 0
-      duration        = "300s"
-
-      trigger {
-        count = 1
-      }
-
-      aggregations {
-        alignment_period   = "300s"
-        per_series_aligner = "ALIGN_SUM"
-      }
+    condition_matched_log {
+      filter = "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${local.analysis_job_name}\" AND textPayload:\"[analysis-worker]\" AND textPayload:\"failed\""
     }
   }
 
@@ -52,7 +35,7 @@ resource "google_monitoring_alert_policy" "analysis_failures" {
 
   documentation {
     mime_type = "text/markdown"
-    content   = "At least one analysis job failed in the last 5 minutes. Check the server logs for the `[analysis]` line and the error code (for example `VIDEO_UNAVAILABLE`, `YOUTUBE_BLOCKED`, `EXTRACTOR_UNAVAILABLE` or `ANALYSIS_FAILED`)."
+    content   = "At least one analysis job failed in the last 5 minutes. Check the Cloud Run Job worker logs for `[analysis-worker]` and the error code (for example `VIDEO_UNAVAILABLE`, `YOUTUBE_BLOCKED`, `EXTRACTOR_UNAVAILABLE` or `ANALYSIS_FAILED`)."
   }
 }
 

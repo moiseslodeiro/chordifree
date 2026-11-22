@@ -1,11 +1,12 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { ApiError } from '../src/errors';
 import { JobQueue } from '../src/jobs/queue';
 import { JobStore } from '../src/jobs/store';
+import { MemoryAnalysisCache } from '../src/services/analysis-cache';
 import {
   defaultRawAnalysis,
   makeAnalyzer,
@@ -92,6 +93,41 @@ describe('POST /api/analyses', () => {
     expect(second.status).toBe(202);
     expect(second.body.id).toBe(first.body.id);
     expect(probes).toBe(1);
+  });
+
+  it('reuses a persistent analysis across app instances', async () => {
+    const analysisCache = new MemoryAnalysisCache();
+    const first = await buildApp({ analysisCache });
+    const created = await request(first)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+    expect(created.status).toBe(202);
+    await waitFor(first, created.body.id, 'done');
+
+    let probes = 0;
+    const second = await buildApp({
+      analysisCache,
+      tools: makeTools({
+        probeYoutube: async () => {
+          probes += 1;
+          throw new Error('the extractor should not be called');
+        },
+      }),
+    });
+    const cached = await request(second)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+
+    expect(cached.status).toBe(202);
+    expect(cached.body.status).toBe('done');
+    expect(cached.body.result.analyzerVersion).toBe('essentia-test');
+    expect(probes).toBe(0);
+
+    const forced = await request(second)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', force: true });
+    expect(forced.status).toBe(202);
+    expect(forced.body.status).toBe('queued');
   });
 
   it('does not reuse a cached result from another analyzer version', async () => {
@@ -227,6 +263,28 @@ describe('POST /api/analyses', () => {
     expect(probes).toBe(0);
   });
 
+  it('does not trust an attacker-controlled Host as an allowed origin', async () => {
+    let probes = 0;
+    const app = await buildApp({
+      tools: makeTools({
+        probeYoutube: async () => {
+          probes += 1;
+          return { duration: 10 };
+        },
+      }),
+    });
+
+    const response = await request(app)
+      .post('/api/analyses')
+      .set('Host', 'evil.example')
+      .set('Origin', 'http://evil.example')
+      .send({ youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe('FORBIDDEN');
+    expect(probes).toBe(0);
+  });
+
   it('accepts writes from the configured origin', async () => {
     const app = await buildApp();
     const response = await request(app)
@@ -257,6 +315,35 @@ describe('POST /api/analyses', () => {
     expect(body.result.source).toEqual({ type: 'upload', filename: 'cancion.wav' });
   });
 
+  it('rejects multipart form fields alongside an upload', async () => {
+    const app = await buildApp();
+    const response = await request(app)
+      .post('/api/analyses')
+      .field('title', 'unexpected')
+      .attach('file', wavBuffer(), { filename: 'cancion.wav', contentType: 'audio/wav' });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('stores uploaded audio and dispatches analysis to the configured worker', async () => {
+    const store = new JobStore();
+    const put = vi.fn(async () => 1);
+    const dispatch = vi.fn(async () => undefined);
+    const app = await buildApp({
+      store,
+      analysisInputs: { put, get: vi.fn(), delete: vi.fn() },
+      analysisDispatcher: { dispatch },
+    });
+    const response = await request(app)
+      .post('/api/analyses')
+      .attach('file', wavBuffer(), { filename: 'cancion.wav', contentType: 'audio/wav' });
+
+    expect(response.status).toBe(202);
+    expect(put).toHaveBeenCalledWith(response.body.id, expect.any(Buffer));
+    expect(dispatch).toHaveBeenCalledWith(response.body.id);
+    expect((await store.get(response.body.id))?.status).toBe('queued');
+  });
+
   it('rejects a file that is not audio', async () => {
     const app = await buildApp();
     const response = await request(app)
@@ -280,7 +367,9 @@ describe('POST /api/analyses', () => {
   });
 
   it('rejects files that exceed the maximum size', async () => {
-    const app = await buildApp({ config: makeConfig({ maxUploadBytes: 16, tempDir: await makeTempDir() }) });
+    const app = await buildApp({
+      config: makeConfig({ maxUploadBytes: 16, tempDir: await makeTempDir() }),
+    });
     const response = await request(app)
       .post('/api/analyses')
       .attach('file', wavBuffer(64), { filename: 'grande.wav', contentType: 'audio/wav' });
@@ -365,7 +454,11 @@ describe('GET /api/analyses/:id', () => {
 describe('rate limiting', () => {
   it('returns 429 with Retry-After when the limit is exceeded', async () => {
     const app = await buildApp({
-      config: makeConfig({ rateLimitMax: 1, rateLimitWindowMs: 60_000, tempDir: await makeTempDir() }),
+      config: makeConfig({
+        rateLimitMax: 1,
+        rateLimitWindowMs: 60_000,
+        tempDir: await makeTempDir(),
+      }),
     });
     const first = await request(app)
       .post('/api/analyses')
@@ -398,6 +491,58 @@ describe('GET /api/health', () => {
     const response = await request(app).get('/api/health');
     expect(response.status).toBe(200);
     expect(response.body.analyzer).toBe('down');
+  });
+
+  it('reports the remote extractor when configured', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ status: 'ok', extractorVersion: '0.1.0' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const app = await buildApp({
+        config: makeConfig({
+          tempDir: await makeTempDir(),
+          youtubeExtractorUrl: 'https://extractor.example',
+          youtubeExtractorToken: 'token',
+        }),
+      });
+      const response = await request(app).get('/api/health');
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ extractor: 'ok', extractorVersion: '0.1.0' });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://extractor.example/health',
+        expect.objectContaining({ signal: expect.anything() }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('marks the remote extractor as down without failing health', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('offline');
+      }),
+    );
+    try {
+      const app = await buildApp({
+        config: makeConfig({
+          tempDir: await makeTempDir(),
+          youtubeExtractorUrl: 'https://extractor.example',
+          youtubeExtractorToken: 'token',
+        }),
+      });
+      const response = await request(app).get('/api/health');
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ status: 'ok', extractor: 'down' });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
@@ -460,7 +605,6 @@ describe('analyzer response normalization', () => {
     expect(body.result.beatsPerBar).toBe(4);
   });
 });
-
 
 describe('DELETE /api/analyses/:id', () => {
   it('deletes the job and makes it unavailable', async () => {
