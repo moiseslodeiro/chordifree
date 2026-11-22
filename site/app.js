@@ -127,6 +127,11 @@ const spanish = {
   'run.title': 'Una app de escritorio, o tu propio servidor.',
   'run.lead':
     'La versión de escritorio incluye el analizador. El stack de Docker pone la misma app en un portátil, un servidor doméstico o un VPS. Terraform despliega una instancia online privada en Cloud Run.',
+  'run.stemsTag': 'Pistas',
+  'run.stemsCaption':
+    'En escritorio, separa voz, batería, bajo y otros en tu equipo y reproduce la mezcla o una pista suelta. Las separaciones se guardan en una caché local.',
+  'run.stemsAlt':
+    'Pantalla de pistas separadas de Chordifree con trabajos en curso, la caché local y botones para reproducir la mezcla, la voz, la batería, el bajo y otros.',
   'run.windows.title': 'Vista previa para Windows',
   'run.windows.badge': 'Sin firma',
   'run.windows.body':
