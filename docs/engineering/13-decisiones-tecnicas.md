@@ -113,15 +113,17 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
 - **Consecuencias:** Contratos explícitos y mensajes localizables. Los tipos web/servidor aún
   están duplicados; se propone `packages/contracts`.
 
-## ADR-011 — Cola de jobs en memoria
+## ADR-011 — Cola de jobs en memoria (local)
 
-- **Estado:** Aceptada (con deuda)
+- **Estado:** Sustituida en online por ADR-004; vigente en local y escritorio
 - **Contexto:** El análisis es asíncrono y el volumen esperado es bajo.
-- **Decisión:** `JobStore` + `JobQueue` en memoria, con concurrencia 2 y TTL 24 h.
+- **Decisión:** En local y escritorio, `JobStore` + `JobQueue` en memoria, con concurrencia 2 y
+  TTL 24 h. En la instancia online, los jobs y las subidas se persisten en Firestore y cada
+  análisis se ejecuta como Cloud Run Job (ADR-004).
 - **Alternativas:** Cloud Tasks + Firestore; BullMQ + Redis; cola en SQLite.
-- **Consecuencias:** Cero infraestructura extra y código simple. Los jobs se pierden al
-  reiniciar y no se puede escalar a más de una instancia. Es la primera cosa a cambiar si el
-  online crece.
+- **Consecuencias:** Cero infraestructura extra en local y código simple. En online los jobs ya
+  no se pierden al reiniciar y el API puede escalar; la caché de audio y los stems siguen siendo
+  locales a una instancia.
 
 ## ADR-012 — Sin load balancer ni IAP
 
