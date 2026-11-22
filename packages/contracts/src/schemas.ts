@@ -45,3 +45,30 @@ export const CloudLibraryBodySchema = z.object({
 });
 
 export type CloudLibraryBody = z.infer<typeof CloudLibraryBodySchema>;
+
+/** The server stores the song snapshot as-is and only validates its identity. */
+export const CollabRevisionBodySchema = z
+  .object({
+    baseRevisionId: z.string().min(1),
+    song: CloudSongSchema,
+  })
+  .strict();
+
+export const CollabCreateBodySchema = z
+  .object({
+    song: CloudSongSchema,
+  })
+  .strict();
+
+export const NicknameSchema = z
+  .string()
+  .trim()
+  .min(2, 'The nickname needs at least 2 characters')
+  .max(32, 'The nickname is too long')
+  .regex(/^[\p{L}\p{N} ._'’-]+$/u, 'The nickname contains unsupported characters');
+
+export const ProfileBodySchema = z.object({ nickname: NicknameSchema }).strict();
+
+export type CollabRevisionBody = z.infer<typeof CollabRevisionBodySchema>;
+export type CollabCreateBody = z.infer<typeof CollabCreateBodySchema>;
+export type ProfileBody = z.infer<typeof ProfileBodySchema>;

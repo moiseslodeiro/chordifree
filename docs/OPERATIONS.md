@@ -15,6 +15,10 @@ cd deploy/gcp
 terraform destroy \
   -target=google_cloud_run_v2_service_iam_member.server_public \
   -target=google_cloud_run_v2_service_iam_member.analyzer_invoker \
+  -target=google_cloud_run_v2_service_iam_member.analyzer_worker_invoker \
+  -target=google_cloud_run_v2_job_iam_member.analysis_executor \
+  -target=google_service_account_iam_member.server_can_run_analysis_worker \
+  -target=google_cloud_run_v2_job.analysis \
   -target=google_cloud_run_v2_service.server \
   -target=google_cloud_run_v2_service.analyzer
 ```
@@ -35,11 +39,11 @@ YouTube extractor are enabled.
 
 ## Logs
 
-Job failures are logged with the source and error code:
+Worker failures are logged with the job ID and error code:
 
 ```bash
 gcloud logging read \
-  'resource.type="cloud_run_revision" AND resource.labels.service_name="chordifree-server" AND textPayload:"[analysis]"' \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="chordifree-analysis" AND textPayload:"[analysis-worker]"' \
   --limit=50 --format='value(timestamp,textPayload)'
 ```
 
@@ -115,6 +119,10 @@ OAuth client ID, administrator emails and the extractor token.
 
 ## YouTube extractor
 
+The full Raspberry Pi installation, headless boot files, Tailscale Funnel, Cloudflare named
+tunnel and token rotation are documented in
+[`RASPBERRY_PI_EXTRACTOR.md`](RASPBERRY_PI_EXTRACTOR.md).
+
 On the Pi:
 
 ```bash
@@ -127,6 +135,69 @@ If it is offline, YouTube analysis fails with `EXTRACTOR_UNAVAILABLE`; audio upl
 work. Rotate `EXTRACTOR_TOKEN` in `/etc/chordifree-extractor.env` and `terraform.tfvars`, then
 restart the Pi service and re-apply Terraform.
 
+## Analysis cache
+
+Completed YouTube analyses are stored in Firestore in `chordifree_analysis`, keyed by
+`videoId + analyzerVersion`. A repeated analysis returns the stored result without calling the
+extractor, and the YouTube search results mark those videos as **Analyzed**. The document has
+a 90-day `expiresAt` TTL and is removed automatically. Clicking **Reanalyze** sends
+`force: true` and bypasses the cache, replacing the stored result.
+
+The cache stores only chords, beats and analysis metadata; it never stores audio.
+
+## Analysis activity
+
+Every completed analysis is recorded in `chordifree_analysis_log` with the account that
+started it (`uid`, email and nickname), the source, the YouTube title or uploaded filename,
+the duration, the chord count and the analyzer version. Administrators see the newest 100
+entries in **Administration → Recent analyses**. Entries expire after 90 days and are
+deleted when the account is deleted. Cache hits are not logged again because no new analysis
+ran.
+
+## Collaborative songs
+
+In online mode, **More actions → Collaborate** shares a song and copies a link. The instances
+keep:
+
+- `chordifree_shared/{shareId}`: owner, original song ID, current revision and timestamps.
+- `chordifree_shared/{shareId}/revisions/{revisionId}`: one song snapshot per save with the
+  author UID, nickname and date. The latest 100 revisions are kept.
+- `chordifree_profiles/{uid}`: the nickname shown on revisions. Without it, the server falls
+  back to the Google name.
+
+Every signed-in account on the allowlist with the link can open the shared song and publish
+a version. A save sends the revision it was based on; if someone saved first, the API answers
+`409 CONFLICT` and the client reloads the history instead of overwriting. Loading an older
+version publishes it as a new revision, so the history is never rewritten. No audio is
+stored.
+
+Deleting an account removes the shares it owns, its nickname and its library; versions it
+published in shares owned by other users remain there with its nickname.
+
+Abuse limits: share identifiers are 128-bit random hex, reads are limited to 120 per minute
+per account, writes to 40, each account owns at most 200 shares and one snapshot cannot
+exceed 256 KB. The cloud library sync and the account-deletion route have their own rate
+limits, and the analysis activity feed is administrator-only.
+
+## Stems plugin (desktop)
+
+The desktop build can run an optional local separation plugin from
+`STEMS_PLUGIN_DIR`, or use a remote service configured with `STEMS_SERVICE_URL`.
+It is disabled by default, the server never downloads or updates it, and the
+hosted Cloud Run instance reports `available: false` unless a service is
+configured. The desktop build installs the plugin from `#/stems`: it creates a
+virtualenv in the app data folder and downloads CPU PyTorch, Demucs and the
+model on first use. The installer is local-only; the hosted instance never
+exposes it. When the plugin declares `transcribe`, the API also serves the
+notes at `/api/stems/jobs/:id/notes/:stem` and the song view offers a MIDI built
+from the separated bass and drums.
+
+Completed separations are cached under `$TEMP_DIR/stems-cache` (20 entries /
+2 GB, oldest evicted first) and jobs keep running in the background when the
+user changes songs. Users can cancel jobs, audition a cached mix or a single
+stem and clear the cache from `#/stems` (**Pistas** in the header). The manifest, security model, API,
+cache and mixer are documented in [`STEMS_PLUGIN.md`](STEMS_PLUGIN.md).
+
 ## Access and OAuth
 
 - Add/remove accounts in `#/admin`. Administrators come from `ADMIN_EMAILS`.
@@ -138,14 +209,15 @@ restart the Pi service and re-apply Terraform.
 ## Cost and budget
 
 - Check **Billing → Budgets & alerts** and the Cloud Run metrics.
-- Cloud Run scales to zero, but the server uses `cpu_idle = false` while an instance is alive.
+- The API uses request-based billing; analysis workers run as on-demand Cloud Run Jobs.
+- Job CPU and memory still count toward the Cloud Run free tier while analyses are running.
 - Artifact Registry keeps the last three images. Lower `keep_count` in `main.tf` if needed.
-- Stop Cloud Run when the instance will not be used for a while.
+- Use a Cloud Run spend cap if you want Cloud Run to pause after a monthly cost threshold.
 
 ## Incident checklist
 
 1. Check `/api/health` and `/api/config`.
-2. Check the server and analyzer logs with the filters above.
+2. Check the API, analyzer and Cloud Run Job worker logs with the filters above.
 3. If only YouTube fails, inspect the extractor or use audio upload.
 4. If authentication fails, verify the OAuth origin, client ID and allowlist.
 5. If Firestore fails, check quotas, IAM and the database name.

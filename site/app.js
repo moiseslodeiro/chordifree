@@ -3,7 +3,11 @@ const STORAGE_KEY = 'chordifree-landing-lang';
 const spanish = {
   'a11y.skip': 'Saltar al contenido',
   'nav.features': 'Funciones',
+  'nav.primaryAria': 'Principal',
+  'nav.languageAria': 'Idioma',
+  'nav.mobileAria': 'Móvil',
   'nav.timeline': 'Línea de tiempo',
+  'nav.compare': 'Comparativa',
   'nav.run': 'Ejecutar',
   'nav.faq': 'Preguntas',
   'nav.github': 'GitHub',
@@ -13,7 +17,7 @@ const spanish = {
 
   'hero.title': 'Acordes que siguen la canción.',
   'hero.lead':
-    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo o transpón la canción sin cambiar los acordes. Ejecútala en local o aloja una instancia privada para cuentas aprobadas.',
+    'Busca en YouTube por nombre o trae tu propio audio y obtén una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Baja el tempo, transpón la canción, canta sobre una mezcla karaoke o separa la canción en pistas en la versión de escritorio. Ejecútala en local o aloja una instancia privada para cuentas aprobadas.',
   'hero.primary': 'Consigue la app',
   'hero.secondary': 'Verla en acción',
   'hero.proofOpen': 'Gratis y de código abierto',
@@ -21,6 +25,8 @@ const spanish = {
   'hero.windowTag': 'Vista por compases',
   'hero.caption':
     'La canción de demostración, con una sola barra de reproducción, la vista de compases y el diagrama del acorde activo.',
+  'hero.alt':
+    'Vista de canción de Chordifree con la barra de reproducción, la barra de herramientas de acordes y la rejilla de compases de la demo, con los acordes Do, Sol, Lam y Fa y el diagrama de guitarra.',
 
   'sheet.one': 'Toma el',
   'sheet.two': 'siguiente compás,',
@@ -31,7 +37,7 @@ const spanish = {
   'sheet.loop': 'Bucle A–B',
 
   'features.eyebrow': 'Qué hace',
-  'features.title': 'Una hoja de acordes, no una adivinanza.',
+  'features.title': 'Cada acorde sale del audio.',
   'features.lead':
     'Todas las vistas salen del mismo análisis: tonalidad, rejilla de pulsos, compases, acordes y las partes donde alguien canta.',
   'feature.find.title': 'Encuentra',
@@ -47,7 +53,7 @@ const spanish = {
   'feature.2.tag': 'Regiones vocales',
   'feature.3.title': 'Practica',
   'feature.3.body':
-    'Marca A y B en la rejilla, previsualiza un compás al pasar el ratón y reproduce el rango o ponlo en bucle. Baja el tempo, transpón la canción y cuenta antes de empezar.',
+    'Marca A y B en la rejilla, previsualiza un compás al pasar el ratón y reproduce el rango o ponlo en bucle. Baja el tempo, transpón la canción y cuenta antes de empezar. La hoja sigue la reproducción y, en escritorio, puede marcar el acorde con el micrófono.',
   'feature.3.tag': 'Bucle A–B',
   'feature.4.title': 'Ajusta',
   'feature.4.body':
@@ -55,12 +61,18 @@ const spanish = {
   'feature.4.tag': 'Guitarra · piano · uke',
   'feature.5.title': 'Guarda',
   'feature.5.body':
-    'Guarda canciones y repertorios en tu navegador, en tu equipo o en una instancia online privada vinculada a tu cuenta de Google. Exporta ChordPro o MusicXML, imprime un PDF, haz una copia en JSON o comparte la hoja.',
+    'Guarda canciones y repertorios en tu navegador, en tu equipo o en una instancia online privada vinculada a tu cuenta de Google. Exporta ChordPro, MusicXML o un MIDI multipista con el bajo y la batería transcritos, imprime un PDF, haz una copia en JSON o comparte la hoja.',
   'feature.5.tag': 'Local o nube privada',
+  'feature.6.title': 'Separa',
+  'feature.6.body':
+    'En escritorio, un plugin local divide la canción en voz, batería, bajo y otros. Reproduce las cuatro pistas sincronizadas, cada una con su volumen, escucha una pista cada vez o exporta el resultado. Las separaciones se guardan en una caché local que puedes vaciar.',
+  'feature.6.tag': 'Escritorio · en tu equipo',
 
   'features.searchTag': 'Búsqueda en YouTube',
   'features.searchCaption':
     'Busca por nombre, revisa el canal y carga un resultado con un clic.',
+  'features.searchAlt':
+    'Búsqueda de Radiohead Creep en Chordifree con miniaturas, nombres de canal, duraciones y un botón Analizar junto a cada resultado.',
 
   'product.eyebrow': 'La línea de tiempo',
   'product.title': 'Mira cada compás antes de tocarlo.',
@@ -71,6 +83,31 @@ const spanish = {
   'product.caption2': 'El pulso activo sigue la reproducción',
   'product.caption3': 'Haz clic en un compás para saltar o repetir',
   'product.caption4': 'Diagrama del acorde actual',
+  'product.alt':
+    'Parrilla de pulsos de la demo de Chordifree, con dos compases por fila, cuatro pulsos por compás y los acordes Do, Sol, Lam y Fa.',
+
+  'compare.eyebrow': 'Comparativa',
+  'compare.title': 'Cómo se compara.',
+  'compare.lead':
+    'Chordifree cubre el flujo de práctica con tu propio audio y tu propia biblioteca. Símbolos: ✓ sí, ~ limitado o de pago, — no.',
+  'compare.caption':
+    'Comparativa de funciones entre Chordifree, Chordify, Moises y Ultimate Guitar.',
+  'compare.feature': 'Función',
+  'compare.sync': 'Acordes sincronizados',
+  'compare.edit': 'Hoja de acordes editable',
+  'compare.export': 'ChordPro · MusicXML · MIDI',
+  'compare.karaoke': 'Karaoke / quitar la voz',
+  'compare.stems': 'Mezclador de cuatro pistas',
+  'compare.offline': 'Funciona sin conexión',
+  'compare.open': 'Código abierto / autoalojado',
+  'compare.free': 'Gratis sin cuenta',
+  'compare.web': 'Funciona en el navegador',
+  'compare.yes': 'Sí',
+  'compare.no': 'No',
+  'compare.limited': 'Limitado o de pago',
+  'compare.desktop': 'Sí, con el plugin de escritorio',
+  'compare.note':
+    '✓ sí · ~ limitado o de pago · — no. * El mezclador de cuatro pistas necesita el plugin opcional de escritorio. Las funciones dependen del plan y pueden cambiar.',
 
   'how.eyebrow': 'Del audio a la práctica',
   'how.title': 'Tres pasos, sin cuenta obligatoria.',
@@ -196,6 +233,9 @@ const spanish = {
   'faq.7.q': '¿Puedo usarla sin conexión?',
   'faq.7.a':
     'La app de escritorio instalada funciona sin conexión. La app web necesita la API y el analizador en marcha, pero la interfaz se puede instalar como PWA.',
+  'faq.17.q': '¿Puedo quitar la voz o exportar MIDI?',
+  'faq.17.a':
+    'En la versión de escritorio, un plugin local opcional (Demucs) separa la canción en voz, batería, bajo y otros. Puedes mezclar las cuatro pistas con volumen independiente, escuchar una sola y exportar un MIDI multipista con el bajo y la batería transcritos. Se ejecuta en tu equipo y guarda una caché que puedes vaciar; la instancia alojada no separa audio.',
   'faq.8.q': '¿Qué instrumentos e idiomas admite?',
   'faq.8.a':
     'Guitarra, piano y ukelele; inglés y español; sostenidos, bemoles, solfeo, cejilla, transposición y acordes simplificados o reducidos.',
@@ -213,6 +253,8 @@ const spanish = {
   'finale.author': 'Hecho por Moisés Lodeiro.',
 
   'footer.tagline': 'Musica laetitiae comes, medicina dolorum.',
+  'footer.taglineTitle': 'La música acompaña la alegría y alivia el dolor.',
+  'footer.linksAria': 'Pie de página',
   'footer.github': 'GitHub',
   'footer.readme': 'README',
   'footer.privacy': 'Privacidad',
@@ -226,19 +268,24 @@ const meta = {
   en: {
     title: 'Chordifree — synchronized chords from YouTube or your audio',
     description:
-      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, or your own private cloud.',
+      'Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics, karaoke, A–B practice, MIDI export and desktop stem separation. Local-first, or your own private cloud.',
   },
   es: {
     title: 'Chordifree — acordes sincronizados desde YouTube o tu audio',
     description:
-      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra y práctica A–B. Local first, o tu propia nube privada.',
+      'Busca en YouTube por nombre o sube tu propio audio. Una hoja de acordes sincronizada con pulsos, compases, letra, karaoke, práctica A–B, MIDI y separación de pistas en escritorio. Local first, o tu propia nube privada.',
   },
 };
 
 const textNodes = [...document.querySelectorAll('[data-i18n]')];
 const ariaNodes = [...document.querySelectorAll('[data-i18n-aria]')];
+const altNodes = [...document.querySelectorAll('[data-i18n-alt]')];
+const titleNodes = [...document.querySelectorAll('[data-i18n-title]')];
+const imageNodes = [...document.querySelectorAll('[data-src-en][data-src-es]')];
 const englishText = new Map(textNodes.map((node) => [node.dataset.i18n, node.textContent.trim()]));
 const englishAria = new Map(ariaNodes.map((node) => [node.dataset.i18nAria, node.getAttribute('aria-label')]));
+const englishAlt = new Map(altNodes.map((node) => [node.dataset.i18nAlt, node.getAttribute('alt')]));
+const englishTitle = new Map(titleNodes.map((node) => [node.dataset.i18nTitle, node.getAttribute('title')]));
 
 const langButtons = [...document.querySelectorAll('.lang-btn')];
 const descriptionTag = document.querySelector('meta[name="description"]');
@@ -264,6 +311,21 @@ function applyLanguage(language) {
   for (const node of ariaNodes) {
     const key = node.dataset.i18nAria;
     node.setAttribute('aria-label', isSpanish ? (spanish[key] ?? englishAria.get(key)) : englishAria.get(key));
+  }
+
+  for (const node of altNodes) {
+    const key = node.dataset.i18nAlt;
+    node.setAttribute('alt', isSpanish ? (spanish[key] ?? englishAlt.get(key)) : englishAlt.get(key));
+  }
+
+  for (const node of titleNodes) {
+    const key = node.dataset.i18nTitle;
+    node.setAttribute('title', isSpanish ? (spanish[key] ?? englishTitle.get(key)) : englishTitle.get(key));
+  }
+
+  for (const node of imageNodes) {
+    const source = isSpanish ? node.dataset.srcEs : node.dataset.srcEn;
+    if (source && node.getAttribute('src') !== source) node.setAttribute('src', source);
   }
 
   const labels = meta[currentLanguage];

@@ -2,13 +2,19 @@ import type { AccidentalPreference, Notation } from '@chordifree/chords';
 import type { AnalysisResult, AnalysisSource, Song } from '@chordifree/contracts';
 
 export type {
+  AnalysisLogEntry,
   AnalysisResult,
   AnalysisSource,
   AnalysisStatus,
   AnalysisView,
+  CollabRevision,
+  CollabRevisionSummary,
+  CollabShare,
   LyricsResult,
   Setlist,
   Song,
+  SongSection,
+  UserProfile,
   YoutubeSearchResult,
 } from '@chordifree/contracts';
 

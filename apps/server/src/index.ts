@@ -1,7 +1,8 @@
 import { shutdownTracing } from './tracing';
 import { mkdir } from 'node:fs/promises';
 import { createApp } from './app';
-import { JobStore } from './jobs/store';
+import { FirestoreAnalysisJobStore, JobStore } from './jobs/store';
+import { createFirestore } from './services/auth';
 import { loadConfig } from './config';
 import { audioCacheDirectory, sweepAudioCache } from './services/audio-cache';
 import { sweepTempDirectory } from './services/cleanup';
@@ -9,7 +10,10 @@ import { sweepTempDirectory } from './services/cleanup';
 const config = loadConfig();
 
 await mkdir(config.tempDir, { recursive: true });
-const store = new JobStore();
+const store =
+  config.analysisJobName && config.authMode === 'google'
+    ? new FirestoreAnalysisJobStore(createFirestore(config))
+    : new JobStore();
 const app = createApp({ config, store });
 
 const server = app.listen(config.port, config.host, () => {
@@ -25,7 +29,7 @@ const sweep = () => {
 };
 sweep();
 const sweeper = setInterval(sweep, 10 * 60 * 1000);
-const storeSweeper = setInterval(() => store.sweep(), 10 * 60 * 1000);
+const storeSweeper = setInterval(() => void store.sweep(), 10 * 60 * 1000);
 
 const shutdown = (signal: string) => {
   console.log(`Received ${signal}, shutting down...`);

@@ -7,6 +7,7 @@ import {
   type Notation,
 } from '@chordifree/chords';
 import { useT } from '../i18n';
+import { keepLookaheadVisible } from '../grid/scroll';
 import { buildBeatRows } from '../grid/beats';
 import { chooseBarAlignment, type BarTempo } from '../grid/barAlignment';
 import type { PlaybackClock } from '../sync/clock';
@@ -22,6 +23,7 @@ interface ChordRowProps {
   notation: Notation;
   accidental: Accidental;
   clock: PlaybackClock | null;
+  practiceHit: boolean;
   onSeek: (time: number) => void;
   onFocusRow: (index: number) => void;
 }
@@ -51,6 +53,7 @@ const ChordRow = memo(function ChordRow({
   notation,
   accidental,
   clock,
+  practiceHit,
   onSeek,
   onFocusRow,
 }: ChordRowProps) {
@@ -64,6 +67,7 @@ const ChordRow = memo(function ChordRow({
         type="button"
         data-testid={`chord-row-${index}`}
         data-active={active ? 'true' : 'false'}
+        data-practice-hit={practiceHit ? 'true' : undefined}
         aria-current={active ? 'true' : undefined}
         className="chord-row grid w-full grid-cols-[3.5rem_minmax(0,1fr)_auto] items-baseline gap-3 px-2 py-2.5 text-left focus-visible:outline-offset-[-2px]"
         onClick={() => onSeek(segment.start)}
@@ -86,9 +90,13 @@ const ChordRow = memo(function ChordRow({
         <span className="font-mono text-[0.7rem] tabular-nums text-ink3">
           {formatTime(segment.start)}
         </span>
-        <span className="truncate font-display text-xl font-bold leading-tight text-ink">{label}</span>
+        <span className="truncate font-display text-xl font-bold leading-tight text-ink">
+          {label}
+        </span>
         <span className="flex items-center gap-2">
-          {segment.chord === null ? <span className="badge shrink-0">{t('common.silence')}</span> : null}
+          {segment.chord === null ? (
+            <span className="badge shrink-0">{t('common.silence')}</span>
+          ) : null}
           {segment.chord !== null &&
           segment.confidence !== undefined &&
           segment.confidence < 0.4 ? (
@@ -100,7 +108,9 @@ const ChordRow = memo(function ChordRow({
             </span>
           ) : null}
           {active ? (
-            <span className="badge shrink-0 border-accent/50 text-accent">{t('grid.sounding')}</span>
+            <span className="badge shrink-0 border-accent/50 text-accent">
+              {t('grid.sounding')}
+            </span>
           ) : null}
         </span>
       </button>
@@ -132,6 +142,8 @@ interface ChordGridProps {
   loopB?: number | null;
   markMode?: 'a' | 'b' | null;
   vocalRegions?: Array<{ start: number; end: number }>;
+  practiceHits?: ReadonlySet<number>;
+  practiceHitRanges?: Array<{ start: number; end: number }>;
 }
 
 export function ChordGrid({
@@ -158,6 +170,8 @@ export function ChordGrid({
   loopB = null,
   markMode = null,
   vocalRegions = [],
+  practiceHits,
+  practiceHitRanges = [],
 }: ChordGridProps) {
   const t = useT();
   const active = usePlaybackIndex(clock);
@@ -181,13 +195,7 @@ export function ChordGrid({
           : 'list';
   const barAlignment = useMemo(
     () =>
-      chooseBarAlignment(
-        lyricsSegments ?? segments,
-        beats,
-        beatsPerBar,
-        sheetDuration,
-        barTempo,
-      ),
+      chooseBarAlignment(lyricsSegments ?? segments, beats, beatsPerBar, sheetDuration, barTempo),
     [lyricsSegments, segments, beats, beatsPerBar, sheetDuration, barTempo],
   );
   const listRef = useRef<HTMLOListElement>(null);
@@ -198,17 +206,13 @@ export function ChordGrid({
     if (!follow || effectiveView !== 'list' || active < 0 || Date.now() < manualUntil.current) {
       return;
     }
-    const row = listRef.current?.querySelector<HTMLElement>(
-      `[data-testid="chord-row-${active}"]`,
-    );
-    row?.scrollIntoView({ block: 'nearest' });
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-testid="chord-row-${active}"]`);
+    keepLookaheadVisible(row ?? null);
   }, [active, effectiveView, follow]);
 
   const focusRow = (index: number) => {
     const safe = Math.max(0, Math.min(segments.length - 1, index));
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-testid="chord-row-${safe}"]`)
-      ?.focus();
+    listRef.current?.querySelector<HTMLElement>(`[data-testid="chord-row-${safe}"]`)?.focus();
   };
 
   const markManualScroll = () => {
@@ -216,11 +220,7 @@ export function ChordGrid({
   };
 
   if (segments.length === 0) {
-    return (
-      <div className="note note-info">
-        {t('grid.noChords')}
-      </div>
-    );
+    return <div className="note note-info">{t('grid.noChords')}</div>;
   }
 
   const activeSegment = active >= 0 ? segments[active] : undefined;
@@ -252,18 +252,12 @@ export function ChordGrid({
                 ? t('grid.lyricsWithChords')
                 : effectiveView === 'bars'
                   ? `${barAlignment.bars.length} ${
-                      barAlignment.bars.length === 1
-                        ? t('common.measure')
-                        : t('common.measures')
+                      barAlignment.bars.length === 1 ? t('common.measure') : t('common.measures')
                     } · ${barAlignment.factor === 'half' ? t('grid.halfTempo') : t('grid.normalTempo')}`
                   : t('grid.segments', { count: segments.length })}
           </span>
         </div>
-        <div
-          className="flex items-center gap-1"
-          role="group"
-          aria-label={t('grid.viewAria')}
-        >
+        <div className="flex items-center gap-1" role="group" aria-label={t('grid.viewAria')}>
           <button
             type="button"
             aria-pressed={effectiveView === 'beats'}
@@ -312,11 +306,7 @@ export function ChordGrid({
       {effectiveView === 'bars' ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-b border-line pb-3">
           <span className="eyebrow">{t('grid.frame')}</span>
-          <div
-            className="flex items-center gap-1"
-            role="group"
-            aria-label={t('grid.barTempo')}
-          >
+          <div className="flex items-center gap-1" role="group" aria-label={t('grid.barTempo')}>
             {(
               [
                 ['auto', t('grid.auto')],
@@ -340,9 +330,7 @@ export function ChordGrid({
       ) : null}
 
       {!canUseBeats && effectiveView !== 'lyrics' && effectiveView !== 'bars' ? (
-        <p className="note note-warning mt-3 text-xs leading-relaxed">
-          {t('grid.noBeats')}
-        </p>
+        <p className="note note-warning mt-3 text-xs leading-relaxed">{t('grid.noBeats')}</p>
       ) : null}
 
       {effectiveView === 'bars' ? (
@@ -355,6 +343,7 @@ export function ChordGrid({
           loopA={loopA}
           loopB={loopB}
           markMode={markMode}
+          practiceHits={practiceHitRanges}
         />
       ) : effectiveView === 'lyrics' ? (
         <LyricsChordView
@@ -388,6 +377,7 @@ export function ChordGrid({
             loopA={loopA}
             loopB={loopB}
             markMode={markMode}
+            practiceHits={practiceHitRanges}
           />
         </div>
       ) : (
@@ -405,6 +395,7 @@ export function ChordGrid({
                 notation={notation}
                 accidental={accidental}
                 clock={clock}
+                practiceHit={practiceHits?.has(index) ?? false}
                 onSeek={onSeek}
                 onFocusRow={focusRow}
               />

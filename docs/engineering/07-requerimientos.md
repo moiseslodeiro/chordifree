@@ -26,7 +26,7 @@
 | RF-020 | Ofrecer un endpoint de salud que compruebe el analyzer | Media | Implementado | CU-014 |
 | RF-021 | Eliminar la cuenta y todos los datos online del usuario | Media | Implementado | CU-015 |
 | RF-022 | Gestionar cuotas por usuario en la instancia online | Baja | **Pendiente** | CU-010 |
-| RF-023 | Persistir los jobs para sobrevivir a reinicios | Media | **Pendiente** | CU-001, CU-002 |
+| RF-023 | Persistir los jobs para sobrevivir a reinicios | Media | Implementado (online) | CU-001, CU-002 |
 | RF-024 | Añadir roles de administración en Firestore | Baja | **Pendiente** | CU-009 |
 | RF-025 | Exponer capacidades de nube/YouTube al cliente | Media | Implementado | CU-014 |
 
@@ -36,17 +36,17 @@
 |---|---|---|---|---|
 | RNF-001 | Seguridad | El ID token de Google se verifica siempre en el servidor | `google-auth-library`, audiencia = client ID | Implementado |
 | RNF-002 | Seguridad | Toda petición online pasa por la allowlist salvo auth/config y health | 401 sin token, 403 fuera de lista | Implementado |
-| RNF-003 | Seguridad | El analyzer de Cloud Run no es público | `roles/run.invoker` solo para la SA del servidor | Implementado |
+| RNF-003 | Seguridad | El analyzer de Cloud Run no es público | `roles/run.invoker` solo para las SAs del servidor y del worker | Implementado |
 | RNF-004 | Seguridad | CSP estricta y mismo origen | `script-src 'self' accounts.google.com`; sin `unsafe-eval` | Implementado |
 | RNF-005 | Coste | Caber en el free tier para uso personal | Cloud Run scale-to-zero, Firestore free tier, sin LB/IAP | Implementado |
 | RNF-006 | Rendimiento | Aceptar audio de hasta 25 MB y 15 minutos | `MAX_UPLOAD_BYTES`, `MAX_DURATION_SECONDS` | Implementado |
 | RNF-007 | Rendimiento | Limitar análisis por IP | 60/hora por defecto | Implementado |
 | RNF-008 | Disponibilidad | El fallo del analyzer no debe tumbar `/api/health` | Health devuelve 200 con `analyzer: down` | Implementado |
-| RNF-009 | Disponibilidad | Los jobs no se pierden en un reinicio | Persistencia externa | **Pendiente** |
+| RNF-009 | Disponibilidad | Los jobs no se pierden en un reinicio | Firestore + Cloud Run Jobs | Implementado (online) |
 | RNF-010 | Escalabilidad | Soportar más de una instancia del servidor | Estado compartido | **Pendiente** |
 | RNF-011 | Mantenibilidad | Tipos de API compartidos entre web y servidor | `packages/contracts` | Implementado |
 | RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Parcial** |
-| RNF-013 | Mantenibilidad | Tests de servidor, web, analyzer y E2E | 87 + 359 + 28 + analyzer | Implementado |
+| RNF-013 | Mantenibilidad | Tests de servidor, web, analyzer y E2E | CI de servidor, web, analyzer y E2E | Implementado |
 | RNF-014 | Privacidad | El modo local no envía datos a terceros salvo YouTube/LRCLIB | Sin cuentas ni analytics | Implementado |
 | RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | Implementado |
 | RNF-016 | Observabilidad | Logs operativos y errores estructurados | Cloud Logging + envelope de error | Implementado |
@@ -63,7 +63,7 @@
 | RD-002 | La copia local debe seguir siendo utilizable si falla la nube | Implementado |
 | RD-003 | La nube debe guardar cada usuario bajo su `uid` | Implementado |
 | RD-004 | La allowlist debe ser independiente de la biblioteca | Implementado |
-| RD-005 | Debe existir una política de retención/borrado de Firestore | **Pendiente** |
+| RD-005 | Debe existir una política de retención/borrado de Firestore | **Parcial**: TTL operativo; falta runbook de borrado |
 | RD-006 | Debe existir un backup/export de Firestore | **Pendiente** |
 
 ## Supuestos

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { formatTime } from '@chordifree/chords';
 import { tempoFromBeats } from '../grid/beats';
 import type { PlayerAdapter } from '../player/types';
-import { MAX_BPM, MAX_PITCH, MIN_BPM, MIN_PITCH, PLAYBACK_RATES } from '../storage/practice';
+import { MAX_BPM, MIN_BPM } from '../storage/practice';
 import type { PlaybackClock } from '../sync/clock';
 import { useT } from '../i18n';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -22,24 +22,11 @@ interface PracticeBarProps {
   onLoopEnabledChange: (value: boolean) => void;
   markMode: 'a' | 'b' | null;
   onMarkModeChange: (value: 'a' | 'b' | null) => void;
-  rate: number;
-  onRateChange: (value: number) => void;
   manualBpm: number;
   onManualBpmChange: (value: number) => void;
-  pitch: number;
-  onPitchChange: (value: number) => void;
-  pitchAvailable: boolean;
+  embedded?: boolean;
+  trailing?: ReactNode;
 }
-
-const SPEEDS = PLAYBACK_RATES.map((value) => ({
-  value,
-  label: `${String(value).replace('.', ',')}×`,
-}));
-
-const PITCHES = Array.from(
-  { length: MAX_PITCH - MIN_PITCH + 1 },
-  (_, index) => MIN_PITCH + index,
-);
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -79,13 +66,10 @@ export function PracticeBar({
   onLoopEnabledChange,
   markMode,
   onMarkModeChange,
-  rate,
-  onRateChange,
   manualBpm,
   onManualBpmChange,
-  pitch,
-  onPitchChange,
-  pitchAvailable,
+  embedded = false,
+  trailing,
 }: PracticeBarProps) {
   const t = useT();
   const mobile = useIsMobile();
@@ -114,10 +98,6 @@ export function PracticeBar({
     void context.resume();
     return context;
   }, []);
-
-  useEffect(() => {
-    adapter.setPlaybackRate?.(rate);
-  }, [adapter, rate]);
 
   useEffect(() => {
     if (loopEnabled && (loopA === null || loopB === null || loopB <= loopA)) {
@@ -248,11 +228,14 @@ export function PracticeBar({
       }
     }
     setCountingIn(true);
-    countInTimer.current = window.setTimeout(() => {
-      setCountingIn(false);
-      countInTimer.current = null;
-      adapter.play();
-    }, interval * countBeats * 1000);
+    countInTimer.current = window.setTimeout(
+      () => {
+        setCountingIn(false);
+        countInTimer.current = null;
+        adapter.play();
+      },
+      interval * countBeats * 1000,
+    );
   };
 
   const hasRange = loopA !== null && loopB !== null && loopB > loopA;
@@ -303,11 +286,7 @@ export function PracticeBar({
         className={metronome ? 'tool-chip-active' : 'tool-chip'}
         aria-pressed={metronome}
         disabled={duration <= 0}
-        title={
-          beats.length === 0
-            ? t('practice.metronomeManual')
-            : t('practice.metronomeOn')
-        }
+        title={beats.length === 0 ? t('practice.metronomeManual') : t('practice.metronomeOn')}
         onClick={() => setMetronome((value) => !value)}
       >
         {t('practice.metronome')}
@@ -326,12 +305,20 @@ export function PracticeBar({
 
   return (
     <section
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm"
+      className={
+        embedded
+          ? 'flex flex-wrap items-center gap-x-4 gap-y-2'
+          : 'flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-panel px-4 py-3 shadow-sm'
+      }
       aria-label={t('practice.aria')}
     >
-      <span className="eyebrow"> {t('practice.eyebrow')} </span>
+      {embedded ? null : <span className="eyebrow"> {t('practice.eyebrow')} </span>}
 
-      <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t('practice.loopGroup')}>
+      <div
+        className="flex flex-wrap items-center gap-1"
+        role="group"
+        aria-label={t('practice.loopGroup')}
+      >
         <button
           type="button"
           className={aClassName}
@@ -387,48 +374,11 @@ export function PracticeBar({
       </button>
 
       {mobile ? null : practiceExtras}
-      <div
-        className="flex flex-wrap items-center gap-x-3 gap-y-2 border-line pl-0 sm:border-l sm:pl-3"
-        role="group"
-        aria-label={t('practice.songAudioAria')}
-      >
-        <span className="font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-          {t('practice.songAudio')}
-        </span>
-        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-          {t('practice.rate')}
-          <select
-            className="tool-select font-mono text-xs normal-case tracking-normal"
-            value={rate}
-            onChange={(event) => onRateChange(Number(event.target.value))}
-            aria-label={t('practice.rateLabel')}
-          >
-            {SPEEDS.map((speed) => (
-              <option key={speed.value} value={speed.value}>
-                {speed.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex items-center gap-2 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink3">
-          {t('practice.pitch')}
-          <select
-            className="tool-select font-mono text-xs tabular-nums normal-case tracking-normal"
-            value={pitch}
-            onChange={(event) => onPitchChange(Number(event.target.value))}
-            aria-label={t('practice.pitchLabel')}
-            disabled={!pitchAvailable}
-            title={pitchAvailable ? t('practice.pitchTitle') : t('practice.pitchUnavailable')}
-          >
-            {PITCHES.map((value) => (
-              <option key={value} value={value}>
-                {value > 0 ? `+${value}` : value}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {trailing ? (
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {trailing}
+        </div>
+      ) : null}
 
       {mobile ? (
         <details className="basis-full pt-1">

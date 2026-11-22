@@ -2,7 +2,7 @@ import { formatTime } from '@chordifree/chords';
 import { useT } from '../i18n';
 import type { ReactNode } from 'react';
 
-interface SongDetailsProps {
+export interface SongDetailsProps {
   keyLabel: string | null;
   relativeKeyLabel: string | null;
   capo: number;
@@ -15,6 +15,8 @@ interface SongDetailsProps {
   chords: string[];
   showChords?: boolean;
   onChangeMeter?: (beatsPerBar: number) => void;
+  /** Renders the content without the card chrome (inside SongInfoPanel). */
+  bare?: boolean;
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -44,18 +46,23 @@ export function SongDetails({
   chords,
   showChords = true,
   onChangeMeter,
+  bare = false,
 }: SongDetailsProps) {
   const t = useT();
   return (
     <section
-      className="overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
+      className={
+        bare ? undefined : 'overflow-hidden rounded-xl border border-line bg-panel shadow-sm'
+      }
       aria-label={t('details.aria')}
     >
-      <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
-        {t('details.title')}
-      </h2>
+      {bare ? null : (
+        <h2 className="border-b border-line px-4 py-3 font-mono text-[0.62rem] font-medium uppercase tracking-[0.16em] text-ink3">
+          {t('details.title')}
+        </h2>
+      )}
 
-      <dl className="space-y-2.5 px-4 py-4">
+      <dl className={bare ? 'space-y-2.5' : 'space-y-2.5 px-4 py-4'}>
         <Row label={t('details.key')}>{keyLabel ?? '—'}</Row>
         <Row label={t('details.relative')}>{relativeKeyLabel ?? '—'}</Row>
         {showCapo ? (
@@ -89,7 +96,7 @@ export function SongDetails({
       </dl>
 
       {showChords ? (
-        <div className="border-t border-line px-4 py-4">
+        <div className={bare ? 'border-t border-line pt-4' : 'border-t border-line px-4 py-4'}>
           <h3 className="eyebrow">{t('details.chords')}</h3>
           {chords.length > 0 ? (
             <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label={t('details.chordsAria')}>

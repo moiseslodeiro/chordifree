@@ -8,16 +8,17 @@ import multer from 'multer';
 import { loadConfig, type AppConfig } from './config';
 import { ApiError, errorBody } from './errors';
 import { JobQueue } from './jobs/queue';
-import { JobStore } from './jobs/store';
+import { FirestoreAnalysisJobStore, JobStore, type AnalysisJobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
+import { createAdminAnalysesRouter } from './routes/admin-analyses';
+import { createCollabRouter } from './routes/collab';
+import { createProfileRouter } from './routes/profile';
+import { createStemsRouter } from './routes/stems';
 import { createAccountRouter } from './routes/account';
 import { createConfigRouter } from './routes/config';
-import {
-  FirestoreCloudLibraryStore,
-  type CloudLibraryStore,
-} from './services/cloud-library';
+import { FirestoreCloudLibraryStore, type CloudLibraryStore } from './services/cloud-library';
 import { createYoutubeRouter } from './routes/youtube';
 import { createAnalyzerClient, type AnalyzerClient } from './services/analyzer';
 import {
@@ -29,18 +30,42 @@ import {
   requireAllowed,
   type AuthContext,
 } from './services/auth';
-import {
-  audioCacheDirectory,
-  TemporaryAudioCache,
-} from './services/audio-cache';
+import { audioCacheDirectory, TemporaryAudioCache } from './services/audio-cache';
 import { createLyricsClient, type LyricsClient } from './services/lyrics';
+import {
+  FirestoreAnalysisCache,
+  MemoryAnalysisCache,
+  type AnalysisCacheStore,
+} from './services/analysis-cache';
 import { createMediaTools, type MediaTools } from './services/media';
+import { FirestoreCollabStore, MemoryCollabStore, type CollabStore } from './services/collab';
+import { FirestoreProfileStore, MemoryProfileStore, type ProfileStore } from './services/profiles';
+import {
+  FirestoreAnalysisLogStore,
+  MemoryAnalysisLogStore,
+  type AnalysisLogStore,
+} from './services/analysis-log';
+import { StemJobs } from './services/stem-jobs';
+import { StemCache } from './services/stem-cache';
+import {
+  CloudRunAnalysisJobDispatcher,
+  FirestoreAnalysisInputStore,
+  type AnalysisInputStore,
+  type AnalysisJobDispatcher,
+} from './services/cloud-run-analysis';
+import { StemInstaller, type StemInstallerLike } from './services/stem-installer';
+import {
+  NullStemEngine,
+  PluginStemEngine,
+  RemoteStemEngine,
+  type StemEngine,
+} from './services/stems';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 export interface AppDependencies {
   config: AppConfig;
-  store: JobStore;
+  store: AnalysisJobStore;
   queue: JobQueue;
   tools: MediaTools;
   analyzer: AnalyzerClient;
@@ -48,11 +73,46 @@ export interface AppDependencies {
   audioCache: TemporaryAudioCache;
   auth: AuthContext;
   cloudLibrary: CloudLibraryStore | null;
+  analysisCache: AnalysisCacheStore;
+  profiles: ProfileStore;
+  collab: CollabStore;
+  analysisLog: AnalysisLogStore;
+  stemsEngine: StemEngine;
+  stems: StemJobs;
+  stemsCache: StemCache;
+  stemsSetup?: StemInstallerLike;
+  analysisDispatcher?: AnalysisJobDispatcher;
+  analysisInputs?: AnalysisInputStore;
   webDist: string;
 }
 
 export interface CreateAppOptions extends Partial<AppDependencies> {
   config?: AppConfig;
+}
+
+interface ExtractorHealth {
+  ok: boolean;
+  version?: string;
+}
+
+/** Checks the optional residential extractor without making /api/health fail. */
+async function checkExtractor(url: string): Promise<ExtractorHealth> {
+  try {
+    const response = await fetch(`${url.replace(/\/+$/, '')}/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return { ok: false };
+    const body = (await response.json()) as {
+      status?: string;
+      extractorVersion?: string;
+    };
+    return {
+      ok: body.status === 'ok',
+      ...(body.extractorVersion ? { version: body.extractorVersion } : {}),
+    };
+  } catch {
+    return { ok: false };
+  }
 }
 
 /**
@@ -78,9 +138,9 @@ function sameOriginWriteGuard(config: AppConfig) {
       return;
     }
 
-    const host = req.get('host');
-    const requestOrigin = host ? `${req.protocol}://${host}` : null;
-    if (origin !== config.corsOrigin && origin !== requestOrigin) {
+    // Do not derive an allowed origin from the Host header. A DNS-rebinding
+    // page can make Host and Origin match while both point at this local API.
+    if (origin !== config.corsOrigin) {
       res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
       return;
     }
@@ -90,39 +150,99 @@ function sameOriginWriteGuard(config: AppConfig) {
 
 export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
+  const analysisDispatcher =
+    options.analysisDispatcher ??
+    (config.analysisJobName && config.cloudRunRegion
+      ? new CloudRunAnalysisJobDispatcher(
+          config.googleCloudProject,
+          config.cloudRunRegion,
+          config.analysisJobName,
+        )
+      : undefined);
+  const analysisInputs =
+    options.analysisInputs ??
+    (analysisDispatcher && config.authMode === 'google'
+      ? new FirestoreAnalysisInputStore(createFirestore(config))
+      : undefined);
   const tools = options.tools ?? createMediaTools(config);
   const analyzerTokenProvider =
-    config.analyzerAuth === 'google'
-      ? createGoogleIdTokenProvider(config.analyzerUrl)
-      : undefined;
+    config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
+  const audioCache =
+    options.audioCache ??
+    new TemporaryAudioCache({
+      directory: audioCacheDirectory(config.tempDir),
+      workspaceRoot: config.tempDir,
+      ttlMs: config.audioCacheTtlMinutes * 60_000,
+      tools,
+    });
+  const stemsEngine =
+    options.stemsEngine ??
+    (config.stemsServiceUrl
+      ? new RemoteStemEngine(
+          config.stemsServiceUrl,
+          config.stemsServiceToken,
+          config.stemsServiceTimeoutMs,
+        )
+      : config.stemsPluginDir
+        ? new PluginStemEngine(config.stemsPluginDir)
+        : new NullStemEngine());
+  const stemsCache = options.stemsCache ?? new StemCache(resolve(config.tempDir, 'stems-cache'));
+  const stemsSetup =
+    options.stemsSetup ??
+    (config.local && config.stemsSetupDir && config.stemsPluginSource
+      ? new StemInstaller({
+          pluginDir: config.stemsSetupDir,
+          sourceDir: config.stemsPluginSource,
+        })
+      : undefined);
   const deps: AppDependencies = {
     config,
-    store: options.store ?? new JobStore(),
+    store:
+      options.store ??
+      (analysisDispatcher && config.authMode === 'google'
+        ? new FirestoreAnalysisJobStore(createFirestore(config))
+        : new JobStore()),
     queue: options.queue ?? new JobQueue(2),
     tools,
     analyzer:
       options.analyzer ??
-      createAnalyzerClient(
-        config.analyzerUrl,
-        fetch,
-        config.analyzerToken,
-        analyzerTokenProvider,
-      ),
+      createAnalyzerClient(config.analyzerUrl, fetch, config.analyzerToken, analyzerTokenProvider),
     lyrics: options.lyrics ?? createLyricsClient(fetch),
-    audioCache:
-      options.audioCache ??
-      new TemporaryAudioCache({
-        directory: audioCacheDirectory(config.tempDir),
-        workspaceRoot: config.tempDir,
-        ttlMs: config.audioCacheTtlMinutes * 60_000,
-        tools,
-      }),
+    audioCache,
     auth: options.auth ?? createAuthContext(config),
     cloudLibrary:
       options.cloudLibrary ??
       (config.authMode === 'google'
         ? new FirestoreCloudLibraryStore(createFirestore(config))
         : null),
+    analysisCache:
+      options.analysisCache ??
+      (config.authMode === 'google'
+        ? new FirestoreAnalysisCache(createFirestore(config))
+        : new MemoryAnalysisCache()),
+    profiles:
+      options.profiles ??
+      (config.authMode === 'google'
+        ? new FirestoreProfileStore(createFirestore(config))
+        : new MemoryProfileStore()),
+    collab:
+      options.collab ??
+      (config.authMode === 'google'
+        ? new FirestoreCollabStore(createFirestore(config))
+        : new MemoryCollabStore()),
+    analysisLog:
+      options.analysisLog ??
+      (config.authMode === 'google'
+        ? new FirestoreAnalysisLogStore(createFirestore(config))
+        : new MemoryAnalysisLogStore()),
+    stemsEngine,
+    stems:
+      options.stems ??
+      new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems'), stemsCache),
+    stemsCache,
+    ...(analysisDispatcher ? { analysisDispatcher } : {}),
+    ...(analysisInputs ? { analysisInputs } : {}),
+    ...(stemsSetup ? { stemsSetup } : {}),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
 
@@ -136,16 +256,18 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", 'https://accounts.google.com'],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+            'https://accounts.google.com',
+          ],
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           mediaSrc: ["'self'", 'blob:', 'data:'],
-          frameSrc: [
-            "'self'",
-            'https://accounts.google.com',
-            'https://www.youtube.com',
-            'https://www.youtube-nocookie.com',
-          ],
+          // The embedded YouTube player was replaced by the temporary audio
+          // player; only Google Identity Services needs a frame.
+          frameSrc: ["'self'", 'https://accounts.google.com'],
           connectSrc: ["'self'", 'https://accounts.google.com'],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
@@ -169,24 +291,57 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api', sameOriginWriteGuard(config));
 
   app.get('/api/health', async (_req, res) => {
-    const health = await deps.analyzer.health();
+    const [health, extractor] = await Promise.all([
+      deps.analyzer.health(),
+      deps.config.youtubeExtractorUrl
+        ? checkExtractor(deps.config.youtubeExtractorUrl)
+        : Promise.resolve(null),
+    ]);
     res.json({
       status: 'ok',
       analyzer: health.ok ? 'ok' : 'down',
       analyzerVersion: health.version ?? config.analyzerVersion,
+      ...(extractor
+        ? {
+            extractor: extractor.ok ? 'ok' : 'down',
+            ...(extractor.version ? { extractorVersion: extractor.version } : {}),
+          }
+        : {}),
     });
   });
 
   app.use('/api/config', createConfigRouter(deps.config, deps.cloudLibrary));
   app.use('/api/auth', createAuthRouter(deps.auth));
   app.use('/api/admin', createAdminRouter(deps.auth));
+  app.use('/api/admin/analyses', createAdminAnalysesRouter(deps.auth, deps.analysisLog));
   app.use('/api', requireAllowed(deps.auth));
 
-  app.use('/api/account', createAccountRouter(deps.auth, deps.cloudLibrary));
+  app.use(
+    '/api/account',
+    createAccountRouter(deps.auth, deps.cloudLibrary, {
+      profiles: deps.profiles,
+      collab: deps.collab,
+      analysisLog: deps.analysisLog,
+    }),
+  );
   app.use('/api/cloud', createCloudLibraryRouter(deps.cloudLibrary));
+  app.use('/api/profile', createProfileRouter(deps.auth, deps.profiles));
+  app.use(
+    '/api/stems',
+    createStemsRouter(deps.stemsEngine, deps.stems, deps.stemsCache, deps.stemsSetup),
+  );
+  app.use('/api/collab', createCollabRouter({ collab: deps.collab, profiles: deps.profiles }));
   app.use('/api/analyses', createAnalysesRouter(deps));
   app.use('/api/lyrics', createLyricsRouter(deps.lyrics));
-  app.use('/api/youtube', createYoutubeRouter({ tools: deps.tools, audioCache: deps.audioCache }));
+  app.use(
+    '/api/youtube',
+    createYoutubeRouter({
+      tools: deps.tools,
+      audioCache: deps.audioCache,
+      analysisCache: deps.analysisCache,
+      analyzerVersion: config.analyzerVersion,
+    }),
+  );
 
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));

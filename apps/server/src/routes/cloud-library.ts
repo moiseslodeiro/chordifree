@@ -1,12 +1,25 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { CloudLibraryBodySchema } from '@chordifree/contracts';
-import { ApiError } from '../errors';
+import { ApiError, errorBody } from '../errors';
 import type { CloudLibraryStore } from '../services/cloud-library';
 
 export function createCloudLibraryRouter(store: CloudLibraryStore | null): Router {
   const router = Router();
+  // The library sync is a single-user write; keep Firestore safe from runaway clients.
+  const limiter = rateLimit({
+    windowMs: 60_000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.authUser?.uid ?? req.ip ?? 'unknown',
+    handler: (_req, res) => {
+      res.setHeader('Retry-After', '60');
+      res.status(429).json(errorBody('RATE_LIMITED', 'Too many sync requests.'));
+    },
+  });
 
-  router.get('/library', async (req, res, next) => {
+  router.get('/library', limiter, async (req, res, next) => {
     try {
       if (!store) throw new ApiError('CLOUD_DISABLED', 'The cloud library is not enabled');
       const user = req.authUser;
@@ -18,7 +31,7 @@ export function createCloudLibraryRouter(store: CloudLibraryStore | null): Route
     }
   });
 
-  router.put('/library', async (req, res, next) => {
+  router.put('/library', limiter, async (req, res, next) => {
     try {
       if (!store) throw new ApiError('CLOUD_DISABLED', 'The cloud library is not enabled');
       const user = req.authUser;

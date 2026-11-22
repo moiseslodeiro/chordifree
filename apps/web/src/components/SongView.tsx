@@ -20,7 +20,7 @@ import {
   type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
-import type { Setlist } from '../types';
+import type { CollabRevision, CollabShare, Setlist, SongSection } from '../types';
 import { useT } from '../i18n';
 import { useConfirm } from './ConfirmDialog';
 import { fetchLyrics } from '../lib/api';
@@ -36,13 +36,19 @@ import {
   whatsappShareUrl,
 } from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
+import { buildMidi, downloadMidi, type MidiOverrides } from '../lib/midi';
+import { downloadStem, getStemNotes, prepareStemAudio, uninstallStems } from '../lib/api';
+import { useStems } from '../hooks/useStems';
 import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
+import { detectSections } from '../sections/detect';
 import { barRangeAt } from '../practice/range';
+import { useMicPractice } from '../practice/useMicPractice';
 import { usePracticeSession } from '../practice/usePracticeSession';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
+import { usePlaybackIndex, usePlaybackTime } from '../sync/hooks';
 import {
   supportsCapo,
   type AppNotice,
@@ -55,16 +61,22 @@ import { ActionMenu, type ActionMenuItem } from './ActionMenu';
 import { AddToSetlistDialog } from './AddToSetlistDialog';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
+import { CollabPanel } from './CollabPanel';
 import { DisplayControls } from './DisplayControls';
 import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
-import { HarmonicAnalysis } from './HarmonicAnalysis';
 import { LyricsEditor } from './LyricsEditor';
+import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
+import { AudioControls } from './AudioControls';
+import { SectionsPanel } from './SectionsPanel';
+import { StemsPanel } from './StemsPanel';
+import { StemsInstallPrompt } from './StemsInstallPrompt';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
 import { PracticeBar } from './PracticeBar';
-import { SongDetails } from './SongDetails';
+import { PracticePanel } from './PracticePanel';
+import { SongInfoPanel } from './SongInfoPanel';
 import { Transport } from './Transport';
 
 interface SongViewProps {
@@ -90,7 +102,17 @@ interface SongViewProps {
   reanalyzeProgress: number | null;
   onBack: () => void;
   onOpenLibrary: () => void;
+  onOpenStems: () => void;
   onPreferences: (patch: Partial<Preferences>) => void;
+  language: Preferences['language'];
+  collabShare: CollabShare | null;
+  collabLoading: boolean;
+  collabUid: string | null;
+  canCollaborate: boolean;
+  onShareCollab: (song: Song) => Promise<string | null>;
+  onLoadCollabRevision: (revisionId: string) => Promise<CollabRevision | null>;
+  onApplyCollabRevision: (revision: CollabRevision) => void;
+  onRefreshCollab: () => void;
 }
 
 export function SongView({
@@ -116,7 +138,17 @@ export function SongView({
   reanalyzeProgress,
   onBack,
   onOpenLibrary,
+  onOpenStems,
   onPreferences,
+  language,
+  collabShare,
+  collabLoading,
+  collabUid,
+  canCollaborate,
+  onShareCollab,
+  onLoadCollabRevision,
+  onApplyCollabRevision,
+  onRefreshCollab,
 }: SongViewProps) {
   const t = useT();
   const confirm = useConfirm();
@@ -131,6 +163,19 @@ export function SongView({
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [karaoke, setKaraoke] = useState(false);
+  const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
+  const stems = useStems(videoId, song.title);
+  const [mixActive, setMixActive] = useState(false);
+  const [mixBusy, setMixBusy] = useState(false);
+  const [stemMix, setStemMix] = useState<{
+    stems: Array<{ name: string; url: string }>;
+  } | null>(null);
+  const [stemGains, setStemGains] = useState<Record<string, number>>({});
+  const [stemMidiBusy, setStemMidiBusy] = useState(false);
+  const [stemError, setStemError] = useState<string | null>(null);
+  const [uninstalling, setUninstalling] = useState(false);
+  const stemUrlsRef = useRef<string[]>([]);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     message: string;
@@ -140,12 +185,14 @@ export function SongView({
   const shareDialogRef = useRef<HTMLDivElement>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [performance, setPerformance] = useState(false);
+  const [micEnabled, setMicEnabled] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm, pitch } = practice;
 
   useEffect(() => {
     setEditingLyrics(false);
     setLyricsDraft('');
+    setMicEnabled(false);
   }, [song.id]);
 
   useEffect(() => {
@@ -283,6 +330,38 @@ export function SongView({
     return reduceChordSegments(simplified, beats, reduceChordsMax ? 'max' : 'normal', beatsPerBar);
   }, [shapeSegments, simplifyChords, reduceChords, reduceChordsMax, beats, beatsPerBar]);
 
+  /** Sounding chords for the microphone: the timeline shows capo shapes. */
+  const practiceSegments = useMemo(
+    () =>
+      displaySegments.map((segment) => ({
+        ...segment,
+        chord: segment.chord ? transposeChord(segment.chord, effectiveCapo) : null,
+      })),
+    [displaySegments, effectiveCapo],
+  );
+  const practiceIndex = usePlaybackIndex(clock);
+  const currentTime = usePlaybackTime(clock) ?? 0;
+  const micPractice = useMicPractice({
+    enabled: micEnabled,
+    songId: song.id,
+    segments: practiceSegments,
+    currentIndex: practiceIndex,
+  });
+  const practiceTarget =
+    practiceIndex >= 0 ? (practiceSegments[practiceIndex]?.chord ?? null) : null;
+  const totalPracticeChords = useMemo(
+    () => practiceSegments.filter((segment) => segment.chord !== null).length,
+    [practiceSegments],
+  );
+  const practiceHitRanges = useMemo(() => {
+    const ranges: Array<{ start: number; end: number }> = [];
+    for (const index of micPractice.hits) {
+      const segment = practiceSegments[index];
+      if (segment) ranges.push({ start: segment.start, end: segment.end });
+    }
+    return ranges;
+  }, [micPractice.hits, practiceSegments]);
+
   /** Lyrics keep the real timings: maximum reduction only affects the grid. */
   const lyricsSegments = useMemo(() => {
     const simplified =
@@ -309,6 +388,9 @@ export function SongView({
     },
     [song.notation, song.accidentalPreference],
   );
+
+  /** Sections are auto-detected once, then owned by the user. */
+  const sections = useMemo(() => song.sections ?? detectSections(song), [song]);
 
   const printLyrics = useMemo(
     () =>
@@ -419,10 +501,132 @@ export function SongView({
     clock?.setBeats(beats);
   }, [clock, beats]);
 
+  useEffect(() => {
+    for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+    stemUrlsRef.current = [];
+    setStemMix(null);
+    setMixActive(false);
+    setStemGains({});
+    setStemError(null);
+  }, [song.id]);
+
+  useEffect(
+    () => () => {
+      for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!stems.job || stems.job.status !== 'done') return;
+    setStemGains((current) => {
+      const next = { ...current };
+      for (const stem of stems.job!.stems) {
+        if (next[stem] === undefined) next[stem] = 1;
+      }
+      return next;
+    });
+  }, [stems.job]);
+
+  const toggleMix = async (active: boolean) => {
+    if (!active) {
+      for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+      stemUrlsRef.current = [];
+      setStemMix(null);
+      setMixActive(false);
+      return;
+    }
+    const job = stems.job;
+    if (!job || job.status !== 'done' || mixBusy) return;
+    setMixBusy(true);
+    setStemError(null);
+    try {
+      const urls = await Promise.all(
+        job.stems.map(async (stem) => ({
+          name: stem,
+          url: await prepareStemAudio(job.id, stem),
+        })),
+      );
+      for (const url of stemUrlsRef.current) URL.revokeObjectURL(url);
+      stemUrlsRef.current = urls.map((entry) => entry.url);
+      setStemMix({ stems: urls });
+      setMixActive(true);
+    } catch {
+      setStemError(t('stems.loadFailed'));
+    } finally {
+      setMixBusy(false);
+    }
+  };
+
+  const changeStemGain = (stem: string, value: number) => {
+    setStemGains((current) => ({
+      ...current,
+      [stem]: Math.max(0, Math.min(1, value)),
+    }));
+  };
+
+  const uninstallPlugin = async () => {
+    const accepted = await confirm({
+      title: t('stemsSetup.uninstall'),
+      description: t('stemsSetup.uninstallConfirm'),
+      confirmLabel: t('stemsSetup.uninstall'),
+      tone: 'danger',
+    });
+    if (!accepted) return;
+    setUninstalling(true);
+    setStemError(null);
+    try {
+      if (mixActive) await toggleMix(false);
+      await uninstallStems();
+      await stems.refresh();
+    } catch {
+      setStemError(t('stems.uninstallFailed'));
+    } finally {
+      setUninstalling(false);
+    }
+  };
+
+  const downloadStemByName = (stem: string) => {
+    if (!stems.job) return;
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    void downloadStem(stems.job.id, stem, `${base}-${stem}.wav`).catch(() =>
+      setStemError(t('stems.loadFailed')),
+    );
+  };
+
+  const downloadStemMidi = async () => {
+    if (!stems.job?.midi?.length) return;
+    setStemMidiBusy(true);
+    setStemError(null);
+    try {
+      const overrides: MidiOverrides = {};
+      for (const stem of stems.job.midi) {
+        const notes = await getStemNotes(stems.job.id, stem);
+        if (stem === 'bass') overrides.bass = notes;
+        if (stem === 'drums') overrides.drums = notes;
+      }
+      const base =
+        song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+      downloadMidi(
+        `${base}-stems.mid`,
+        buildMidi({ ...song, segments: practiceSegments, sections }, bpm, overrides),
+      );
+    } catch {
+      setStemError(t('stems.loadFailed'));
+    } finally {
+      setStemMidiBusy(false);
+    }
+  };
+
   const seek = (time: number) => {
     setMarkMode(null);
     adapter?.seekTo(time);
     clock?.tickOnce();
+  };
+
+  const updateSections = (next: SongSection[]) => {
+    onChange({ ...song, sections: next });
   };
 
   /**
@@ -647,6 +851,12 @@ export function SongView({
     downloadMusicXml(`${base}.musicxml`, content);
   };
 
+  const exportMidiFile = () => {
+    const base =
+      song.title.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chordifree';
+    downloadMidi(`${base}.mid`, buildMidi({ ...song, segments: practiceSegments, sections }, bpm));
+  };
+
   const exportChordProFile = () => {
     const content = chordProContent();
     const base =
@@ -757,59 +967,111 @@ export function SongView({
             ) : null}
             <ActionMenu
               label={t('song.moreActions')}
-              items={[
+              sections={[
                 ...(!editing && !editingLyrics
-                  ? ([
-                      { label: t('song.editDetails'), onSelect: openDetails },
-                      ...(saved
-                        ? [
-                            {
-                              label: t('song.addToSetlist'),
-                              onSelect: () => setAddToSetlistOpen(true),
+                  ? [
+                      {
+                        label: t('menu.song'),
+                        items: [
+                          { label: t('song.editDetails'), onSelect: openDetails },
+                          ...(saved
+                            ? [
+                                {
+                                  label: t('song.addToSetlist'),
+                                  onSelect: () => setAddToSetlistOpen(true),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: performance ? t('song.exitPerformance') : t('song.performance'),
+                            onSelect: togglePerformance,
+                          },
+                        ] satisfies ActionMenuItem[],
+                      },
+                      {
+                        label: t('menu.share'),
+                        items: [
+                          {
+                            label: t('song.share'),
+                            onSelect: () => {
+                              setShareNotice(null);
+                              setShareLink(null);
+                              setShareOpen(true);
                             },
-                          ]
-                        : []),
-                      {
-                        label: performance ? t('song.exitPerformance') : t('song.performance'),
-                        onSelect: togglePerformance,
+                          },
+                          ...(canCollaborate && saved
+                            ? ([
+                                {
+                                  label: t('collab.shareAction'),
+                                  onSelect: () => {
+                                    void (async () => {
+                                      const url = await onShareCollab(song);
+                                      if (!url) {
+                                        setShareNotice({
+                                          message: t('collab.createFailed'),
+                                          tone: 'warning',
+                                        });
+                                        return;
+                                      }
+                                      try {
+                                        await navigator.clipboard.writeText(url);
+                                        setShareNotice({
+                                          message: t('collab.linkCopied'),
+                                          tone: 'success',
+                                        });
+                                      } catch {
+                                        setShareNotice({
+                                          message: t('collab.linkReady', { url }),
+                                          tone: 'warning',
+                                        });
+                                      }
+                                    })();
+                                  },
+                                },
+                              ] satisfies ActionMenuItem[])
+                            : []),
+                        ] satisfies ActionMenuItem[],
                       },
-                      {
-                        label: t('song.share'),
-                        onSelect: () => {
-                          setShareNotice(null);
-                          setShareLink(null);
-                          setShareOpen(true);
-                        },
-                      },
-                    ] satisfies ActionMenuItem[])
+                    ]
                   : []),
                 ...(!editing && !editingLyrics && printRows.length > 0
-                  ? ([
-                      { label: t('song.print'), onSelect: () => window.print() },
-                      { label: t('song.score'), onSelect: exportScoreFile },
-                      { label: t('song.chordpro'), onSelect: exportChordProFile },
-                    ] satisfies ActionMenuItem[])
+                  ? [
+                      {
+                        label: t('menu.export'),
+                        items: [
+                          { label: t('song.print'), onSelect: () => window.print() },
+                          { label: t('song.score'), onSelect: exportScoreFile },
+                          { label: t('song.midi'), onSelect: exportMidiFile },
+                          { label: t('song.chordpro'), onSelect: exportChordProFile },
+                        ] satisfies ActionMenuItem[],
+                      },
+                    ]
                   : []),
                 ...(!editing && !editingLyrics && song.source.type === 'youtube'
-                  ? ([
+                  ? [
                       {
-                        label: reanalyzing
-                          ? `${t('song.reanalyzing')}${
-                              reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                            }`
-                          : t('song.reanalyze'),
-                        onSelect: () => {
-                          void confirm({
-                            title: t('song.reanalyze'),
-                            description: t('song.reanalyzeConfirm'),
-                            confirmLabel: t('song.reanalyze'),
-                          }).then((accepted) => {
-                            if (accepted) onReanalyze();
-                          });
-                        },
-                        disabled: reanalyzing,
+                        label: t('menu.analysis'),
+                        items: [
+                          {
+                            label: reanalyzing
+                              ? `${t('song.reanalyzing')}${
+                                  reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
+                                }`
+                              : t('song.reanalyze'),
+                            onSelect: () => {
+                              void confirm({
+                                title: t('song.reanalyze'),
+                                description: t('song.reanalyzeConfirm'),
+                                confirmLabel: t('song.reanalyze'),
+                              }).then((accepted) => {
+                                if (accepted) onReanalyze();
+                              });
+                            },
+                            disabled: reanalyzing,
+                          },
+                        ] satisfies ActionMenuItem[],
                       },
-                    ] satisfies ActionMenuItem[])
+                    ]
                   : []),
               ]}
             />
@@ -870,30 +1132,46 @@ export function SongView({
             loopB={loopB}
             loopEnabled={loopEnabled}
           />
-          <PracticeBar
-            adapter={adapter}
-            clock={clock}
-            beats={beats}
-            beatsPerBar={beatsPerBar}
-            duration={song.duration}
-            loopA={loopA}
-            loopB={loopB}
-            loopEnabled={loopEnabled}
-            onLoopAChange={(value) => updatePractice({ loopA: value })}
-            onLoopBChange={(value) => updatePractice({ loopB: value })}
-            onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
-            markMode={markMode}
-            onMarkModeChange={setMarkMode}
-            rate={rate}
-            onRateChange={(value) => updatePractice({ rate: value })}
-            manualBpm={manualBpm}
-            onManualBpmChange={(value) => updatePractice({ bpm: value })}
-            pitch={pitch}
-            onPitchChange={(value) => updatePractice({ pitch: value })}
-            pitchAvailable={
-              song.source.type === 'youtube' || typeof adapter.setPitch === 'function'
-            }
-          />
+          <PracticePanel
+            onOpenChange={(open) => {
+              if (!open) setMicEnabled(false);
+            }}
+          >
+            <PracticeBar
+              adapter={adapter}
+              clock={clock}
+              beats={beats}
+              beatsPerBar={beatsPerBar}
+              duration={song.duration}
+              loopA={loopA}
+              loopB={loopB}
+              loopEnabled={loopEnabled}
+              onLoopAChange={(value) => updatePractice({ loopA: value })}
+              onLoopBChange={(value) => updatePractice({ loopB: value })}
+              onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
+              markMode={markMode}
+              onMarkModeChange={setMarkMode}
+              manualBpm={manualBpm}
+              onManualBpmChange={(value) => updatePractice({ bpm: value })}
+              embedded
+              trailing={
+                <MicToggle enabled={micEnabled} onToggle={() => setMicEnabled((value) => !value)} />
+              }
+            />
+            {micEnabled ? (
+              <MicPractice
+                status={micPractice.status}
+                target={practiceTarget}
+                detected={micPractice.detected}
+                hit={micPractice.hit}
+                hitCount={micPractice.hits.size}
+                totalChords={totalPracticeChords}
+                notation={song.notation}
+                accidental={accidental}
+                onReset={micPractice.reset}
+              />
+            ) : null}
+          </PracticePanel>
         </div>
       ) : (
         <div className="song-controls rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
@@ -994,8 +1272,36 @@ export function SongView({
               onEditLyrics={openLyricsEditor}
               view={gridView}
               onViewChange={(view) => onPreferences({ gridView: view })}
+              practiceHits={micPractice.hits}
+              practiceHitRanges={practiceHitRanges}
             />
           )}
+
+          <div data-testid="song-info-column" className="mt-5">
+            <SongInfoPanel
+              details={{
+                keyLabel,
+                relativeKeyLabel,
+                capo: effectiveCapo,
+                capoKeyLabel,
+                showCapo: capoAvailable,
+                bpm,
+                beatsPerBar,
+                duration: song.duration,
+                artist,
+                chords: chordList,
+                showChords: false,
+                onChangeMeter: changeMeter,
+              }}
+              harmony={{
+                segments: transposedSegments,
+                harmonyKey: estimatedKey,
+                notation: song.notation,
+                accidental,
+                capo: effectiveCapo,
+              }}
+            />
+          </div>
         </div>
 
         <aside
@@ -1014,13 +1320,59 @@ export function SongView({
                 forceFake={forceFake}
                 variant="compact"
                 pitch={pitch}
+                karaoke={karaoke}
+                overrideUrl={null}
+                mix={mixActive ? stemMix : null}
+                stemGains={stemGains}
                 onAdapter={handleAdapter}
                 onPlaybackError={setPlaybackError}
               />
             </section>
           </div>
 
-          <div data-testid="song-active-chord" className="order-3 lg:order-none">
+          <div data-testid="song-audio" className="order-2 lg:order-none">
+            <AudioControls
+              adapter={adapter}
+              rate={rate}
+              onRateChange={(value) => updatePractice({ rate: value })}
+              pitch={pitch}
+              onPitchChange={(value) => updatePractice({ pitch: value })}
+              pitchAvailable={
+                !mixActive &&
+                (song.source.type === 'youtube' || typeof adapter?.setPitch === 'function')
+              }
+              karaoke={karaoke}
+              onKaraokeChange={setKaraoke}
+              karaokeAvailable={!mixActive && typeof adapter?.setKaraoke === 'function'}
+            >
+              {videoId && stems.status?.available ? (
+                <StemsPanel
+                  status={stems.status}
+                  job={stems.job}
+                  busy={stems.busy}
+                  checking={stems.checking}
+                  error={stems.error ?? stemError}
+                  midiBusy={stemMidiBusy}
+                  mixActive={mixActive}
+                  mixBusy={mixBusy}
+                  gains={stemGains}
+                  canUninstall={Boolean(stems.setup?.managed)}
+                  uninstalling={uninstalling}
+                  onSeparate={() => void stems.separate()}
+                  onCancel={() => void stems.cancel()}
+                  onToggleMix={(active) => void toggleMix(active)}
+                  onGainChange={changeStemGain}
+                  onDownloadStem={downloadStemByName}
+                  onDownloadMidi={() => void downloadStemMidi()}
+                  onRetry={() => void stems.separate()}
+                  onUninstall={() => void uninstallPlugin()}
+                />
+              ) : videoId && stems.setup?.supported ? (
+                <StemsInstallPrompt installed={stems.setup.installed} onOpenSetup={onOpenStems} />
+              ) : null}
+            </AudioControls>
+          </div>
+          <div data-testid="song-active-chord" className="order-2 lg:order-none">
             <ActiveChordDiagram
               segments={displaySegments}
               clock={clock}
@@ -1030,32 +1382,45 @@ export function SongView({
             />
           </div>
 
-          <div className="order-4 lg:order-none">
-            <SongDetails
-              keyLabel={keyLabel}
-              relativeKeyLabel={relativeKeyLabel}
-              capo={effectiveCapo}
-              capoKeyLabel={capoKeyLabel}
-              showCapo={capoAvailable}
-              bpm={bpm}
-              beatsPerBar={beatsPerBar}
-              duration={song.duration}
-              artist={artist}
-              chords={chordList}
-              showChords={false}
-              onChangeMeter={changeMeter}
-            />
-          </div>
+          {song.sections !== undefined || sections.length > 0 ? (
+            <div data-testid="song-sections" className="order-2 lg:order-none">
+              <SectionsPanel
+                sections={song.sections ?? sections}
+                currentTime={currentTime}
+                onSeek={seek}
+                onChange={updateSections}
+              />
+            </div>
+          ) : null}
 
-          <div data-testid="song-harmony-column" className="order-5 lg:order-none">
-            <HarmonicAnalysis
-              segments={transposedSegments}
-              harmonyKey={estimatedKey}
-              notation={song.notation}
-              accidental={accidental}
-              capo={effectiveCapo}
-            />
-          </div>
+          {collabShare ? (
+            <div className="order-2 lg:order-none">
+              <CollabPanel
+                share={collabShare}
+                song={song}
+                currentUid={collabUid}
+                language={language}
+                loading={collabLoading}
+                onCopyLink={() => {
+                  const url = `${window.location.origin}${window.location.pathname}#/collab/${collabShare.id}`;
+                  void navigator.clipboard
+                    .writeText(url)
+                    .then(() =>
+                      setShareNotice({ message: t('collab.linkCopied'), tone: 'success' }),
+                    )
+                    .catch(() =>
+                      setShareNotice({
+                        message: t('collab.linkReady', { url }),
+                        tone: 'warning',
+                      }),
+                    );
+                }}
+                onRefresh={onRefreshCollab}
+                onLoadRevision={onLoadCollabRevision}
+                onApply={onApplyCollabRevision}
+              />
+            </div>
+          ) : null}
         </aside>
       </div>
 

@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { stubAuthConfig } from './support';
+import type { StemSetupStatus } from '../src/lib/api';
+import { stubAuthConfig, stubStems } from './support';
 
 const RESULT = {
   source: { type: 'youtube', videoId: 'dQw4w9WgXcQ', title: 'Demo sincronizada' },
@@ -20,6 +21,7 @@ const JOB = { id: 'job-e2e', status: 'queued', progress: 0 };
 
 async function stubApi(page: Page, result = RESULT): Promise<void> {
   await stubAuthConfig(page);
+  await stubStems(page);
 
   await page.route('**/api/health', (route) =>
     route.fulfill({
@@ -54,11 +56,26 @@ async function stubApi(page: Page, result = RESULT): Promise<void> {
   });
 }
 
+async function openAudio(page: Page): Promise<void> {
+  const toggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') {
+    await toggle.click();
+  }
+}
+
 async function analyze(page: Page): Promise<void> {
   await page.goto('/?fakePlayer=1');
   await page.getByLabel('Enlace del video').fill('https://youtu.be/dQw4w9WgXcQ');
   await page.getByRole('button', { name: 'Detectar acordes' }).click();
   await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
+}
+
+async function openPractice(page: Page): Promise<void> {
+  const panel = page.locator('.practice-panel');
+  if (!(await panel.evaluate((element) => element.hasAttribute('open')))) {
+    await page.getByTestId('practice-summary').click();
+    await expect(panel).toHaveAttribute('open', '');
+  }
 }
 
 test.describe('full flow', () => {
@@ -89,6 +106,20 @@ test.describe('full flow', () => {
     await page.getByRole('button', { name: 'ES' }).click();
     await expect(page.getByRole('heading', { name: 'Analiza una canción' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Detectar acordes' })).toBeVisible();
+  });
+
+  test('keeps the how-it-works guide under the analyzer status', async ({ page }) => {
+    await page.goto('/?fakePlayer=1');
+
+    const status = await page.getByText('Estado del analizador', { exact: true }).boundingBox();
+    const how = await page.getByTestId('home-how').boundingBox();
+    const legal = await page.getByTestId('home-legal').boundingBox();
+    expect(status).not.toBeNull();
+    expect(how).not.toBeNull();
+    expect(legal).not.toBeNull();
+    expect(how!.y).toBeGreaterThan(status!.y);
+    expect(how!.y - status!.y).toBeLessThan(260);
+    expect(legal!.y).toBeGreaterThan(how!.y + how!.height);
   });
 
   test('searches YouTube and analyzes a result with the Analyze button', async ({ page }) => {
@@ -122,6 +153,130 @@ test.describe('full flow', () => {
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
   });
 
+  test('separates and mixes the stems from the local plugin', async ({ page }) => {
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          name: 'fake-stems',
+          version: '1.0.0',
+          stems: ['vocals', 'no_vocals'],
+        }),
+      }),
+    );
+    await page.route('**/api/stems/dQw4w9WgXcQ', (route) =>
+      route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'job-stems',
+          videoId: 'dQw4w9WgXcQ',
+          status: 'done',
+          stems: ['vocals', 'no_vocals'],
+          createdAt: '2026-11-19T10:00:00.000Z',
+          updatedAt: '2026-11-19T10:00:00.000Z',
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs/job-stems/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'audio/wav',
+        body: Buffer.alloc(64),
+      }),
+    );
+    await analyze(page);
+
+    const audioToggle = page.getByTestId('audio-controls').getByRole('button', { name: /Audio/ });
+    if ((await audioToggle.getAttribute('aria-expanded')) === 'false') {
+      await audioToggle.click();
+    }
+    const panel = page.getByTestId('stems-panel');
+    await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: 'Separar pistas' }).click();
+
+    const mix = panel.getByRole('button', { name: 'Mezclar pistas' });
+    await expect(mix).toBeVisible();
+    await expect(panel.getByRole('slider', { name: 'Volumen de Voz' })).toHaveCount(0);
+
+    await mix.click();
+    await expect(mix).toHaveAttribute('aria-pressed', 'true');
+    await expect(panel.getByRole('button', { name: 'Original' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    const vocals = panel.getByRole('slider', { name: 'Volumen de Voz' });
+    await expect(vocals).toHaveValue('100');
+    await vocals.fill('50');
+    await expect(vocals).toHaveValue('50');
+    await expect(panel.getByRole('slider', { name: 'Volumen de Instrumental' })).toHaveValue('100');
+  });
+
+  test('shows the auto-detected song sections and jumps between them', async ({ page }) => {
+    const withVocals = {
+      ...RESULT,
+      duration: 48,
+      beats: Array.from({ length: 25 }, (_, index) => index * 2),
+      vocalRegions: [
+        { start: 0, end: 16 },
+        { start: 20, end: 40 },
+      ],
+    };
+    await stubApi(page, withVocals);
+    await analyze(page);
+
+    const panel = page.getByTestId('sections-panel');
+    await expect(panel).toBeVisible();
+    await panel.getByText('Secciones').click();
+    await expect(panel.getByRole('button', { name: 'Estrofa · 00:00' })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Estrofa · 00:16' })).toBeVisible();
+    const outro = panel.getByRole('button', { name: 'Final · 00:40' });
+    await expect(outro).toBeVisible();
+
+    await outro.click();
+    await expect(outro).toHaveAttribute('aria-current', 'true', { timeout: 5000 });
+  });
+
+  test('keeps the search result action inside a small viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.route('**/api/youtube/search**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            {
+              videoId: 'dQw4w9WgXcQ',
+              title: 'Never Gonna Give You Up',
+              uploader: 'Rick Astley',
+              duration: 213,
+              thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+            },
+          ],
+        }),
+      }),
+    );
+    await page.goto('/?fakePlayer=1');
+
+    await page.getByLabel('Buscar en YouTube').fill('rick astley');
+    await page.getByRole('button', { name: 'Buscar' }).click();
+
+    const analyze = page.getByRole('button', { name: 'Analizar Never Gonna Give You Up' });
+    await expect(analyze).toBeVisible();
+    const box = await analyze.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
   test('analyzes, switches to Spanish notation, transposes, edits, saves and reloads', async ({
     page,
   }) => {
@@ -147,7 +302,7 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-cell-0')).toContainText('La7');
 
     await expect(page.getByText('Canción guardada en la biblioteca.')).toBeVisible();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Abrir' }).click();
@@ -200,12 +355,14 @@ test.describe('full flow', () => {
 
   test('keeps the A-B range but resets speed and pitch on reload', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
     await page.getByTestId('beat-cell-0').click();
     await page.getByRole('button', { name: 'Marcar final B' }).click();
     await page.getByTestId('beat-cell-0').click();
     await page.getByRole('button', { name: 'Bucle', exact: true }).click();
+    await openAudio(page);
     await page.getByLabel('Velocidad de reproducción').selectOption('1.25');
     await page.getByLabel('Tono del audio en semitonos').selectOption('4');
 
@@ -219,11 +376,13 @@ test.describe('full flow', () => {
     await page.reload();
 
     await expect(page.getByRole('heading', { name: 'Demo sincronizada' })).toBeVisible();
+    await openPractice(page);
     await expect(page.getByRole('button', { name: 'Bucle', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     await expect(page.getByText('00:00 – 00:04')).toBeVisible();
+    await openAudio(page);
     await expect(page.getByLabel('Velocidad de reproducción')).toHaveValue('1');
     await expect(page.getByLabel('Tono del audio en semitonos')).toHaveValue('0');
   });
@@ -231,7 +390,7 @@ test.describe('full flow', () => {
   test('exports the library and restores it from a JSON backup', async ({ page }, testInfo) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await expect(page.getByText('Demo sincronizada', { exact: true })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
@@ -399,6 +558,7 @@ test.describe('full flow', () => {
 
   test('without A or B mode, clicking plays from the selected bar', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByTestId('beat-cell-8').click();
 
@@ -412,6 +572,7 @@ test.describe('full flow', () => {
 
   test('sets A or B, previews the bar and marks without playing', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
     await page.getByTestId('beat-cell-8').hover();
@@ -452,6 +613,7 @@ test.describe('full flow', () => {
 
   test('playback starts at A and stops at B when looping is off', async ({ page }) => {
     await analyze(page);
+    await openPractice(page);
 
     await page.getByRole('button', { name: 'Marcar inicio A' }).click();
     await page.getByTestId('beat-cell-0').click();
@@ -600,11 +762,11 @@ test.describe('full flow', () => {
   });
 
   test('moves secondary controls into disclosures on mobile', async ({ page }) => {
-    await analyze(page);
     await page.setViewportSize({ width: 390, height: 844 });
+    await analyze(page);
 
     await expect(page.getByText('Más ajustes')).toBeVisible();
-    await expect(page.getByText('Más práctica')).toBeVisible();
+    await expect(page.getByText('Más práctica')).not.toBeVisible();
     await expect(page.getByText('Alteraciones')).not.toBeVisible();
     await expect(page.getByRole('button', { name: 'Metrónomo' })).not.toBeVisible();
 
@@ -617,6 +779,8 @@ test.describe('full flow', () => {
     await expect(page.getByLabel('Instrumento')).toBeVisible();
     await expect(page.getByLabel('Capo')).toBeVisible();
 
+    await page.getByTestId('practice-summary').click();
+    await expect(page.getByText('Más práctica')).toBeVisible();
     await page.getByText('Más práctica').click();
     await expect(page.getByRole('button', { name: 'Metrónomo' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cuenta atrás' })).toBeVisible();
@@ -649,15 +813,197 @@ test.describe('full flow', () => {
     await expect(page.getByTestId('beat-row-0')).toBeVisible();
   });
 
-  test('keeps the player and the song tools stacked in the right rail', async ({ page }) => {
+  test('opens the stems setup page from the song audio card', async ({ page }) => {
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ available: false }),
+      }),
+    );
+    await page.route('**/api/stems/setup', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          supported: true,
+          installed: false,
+          managed: false,
+          pluginDir: '/tmp/chordifree/stems',
+          python: { command: 'python3.12', version: '3.12.3' },
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ jobs: [] }),
+      }),
+    );
+    await page.route('**/api/stems/cache', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ entries: [] }),
+      }),
+    );
+
+    await analyze(page);
+    await openAudio(page);
+    await expect(page.getByTestId('stems-install-prompt')).toBeVisible();
+    await page.getByRole('button', { name: 'Ir a instalar' }).click();
+    await expect(page.getByTestId('stems-setup')).toBeVisible();
+    expect(new URL(page.url()).hash).toBe('#/stems');
+  });
+
+  test('installs and cancels the stems plugin from the setup screen', async ({ page }) => {
+    const job = {
+      id: 'install-e2e',
+      status: 'running',
+      step: 'pip',
+      progress: 42,
+      message: 'Descargando torch',
+      logs: ['[4/5] pip install', 'Downloading torch'],
+      startedAt: '2026-11-19T10:00:00.000Z',
+      updatedAt: '2026-11-19T10:00:00.000Z',
+    };
+    let setup: StemSetupStatus = {
+      supported: true,
+      installed: false,
+      managed: false,
+      pluginDir: '/home/demo/.config/chordifree/stems',
+      python: { command: 'python3', version: '3.12.3' },
+    };
+
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ available: false }),
+      }),
+    );
+    await page.route('**/api/stems/jobs', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ jobs: [] }),
+      }),
+    );
+    await page.route('**/api/stems/cache', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ entries: [] }),
+      }),
+    );
+    await page.route('**/api/stems/setup/install', (route) => {
+      setup = { ...setup, job };
+      return route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify(job),
+      });
+    });
+    await page.route('**/api/stems/setup/cancel', (route) => {
+      const cancelled = { ...job, status: 'cancelled' };
+      setup = { ...setup, job: cancelled };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(cancelled),
+      });
+    });
+    await page.route('**/api/stems/setup', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(setup),
+      }),
+    );
+
+    await page.goto('/?fakePlayer=1');
+    await page.getByRole('button', { name: 'Pistas', exact: true }).click();
+    await expect(page.getByTestId('stems-setup')).toBeVisible();
+    await expect(page.getByText('Python 3.12.3 detectado', { exact: false })).toBeVisible();
+    await page.getByRole('button', { name: 'Instalar plugin' }).click();
+    await expect(page.getByText('Instalando PyTorch y Demucs')).toBeVisible();
+    await expect(page.getByText('42%').first()).toBeVisible();
+    await expect(page.getByRole('log', { name: 'Consola de instalación' })).toContainText(
+      'Downloading torch',
+    );
+    await page.getByRole('button', { name: 'Cancelar instalación' }).click();
+    await expect(page.getByText('La instalación no terminó', { exact: false })).toBeVisible();
+  });
+
+  test('reattaches to a running separation and hides the start button', async ({ page }) => {
+    const running = {
+      id: 'job-running',
+      videoId: 'dQw4w9WgXcQ',
+      status: 'processing',
+      stems: [],
+      createdAt: '2026-11-21T10:00:00.000Z',
+      updatedAt: '2026-11-21T10:00:00.000Z',
+    };
+    await page.route('**/api/stems', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          name: 'demucs-4stems',
+          version: '4.1.0',
+          stems: ['vocals', 'drums', 'bass', 'other'],
+        }),
+      }),
+    );
+    await page.route('**/api/stems/jobs', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ jobs: [running] }),
+      }),
+    );
+    await page.route('**/api/stems/jobs/job-running', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(running),
+      }),
+    );
+
+    await analyze(page);
+    await openAudio(page);
+    await expect(page.getByText(/Separando/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Separar pistas' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Cancelar separación' })).toBeVisible();
+  });
+
+  test('keeps the player, active chord and tools stacked in the right rail', async ({ page }) => {
     await analyze(page);
 
-    const player = await page.getByTestId('song-player-column').boundingBox();
-    const active = await page.getByTestId('song-active-chord').boundingBox();
+    // Measure in one frame: the sticky rail and the lazy thumbnail move while
+    // the page settles, and sequential boundingBox() calls drift between them.
+    const boxes = await page.evaluate(() => {
+      const box = (id: string) => {
+        const rect = document.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect();
+        return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+      };
+      return {
+        player: box('song-player-column'),
+        audio: box('song-audio'),
+        active: box('song-active-chord'),
+      };
+    });
+    const player = boxes.player;
+    const audio = boxes.audio;
+    const active = boxes.active;
     expect(player).not.toBeNull();
+    expect(audio).not.toBeNull();
     expect(active).not.toBeNull();
-    expect(active!.y).toBeGreaterThan(player!.y);
-    expect(active!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(audio!.y).toBeGreaterThan(player!.y);
+    expect(audio!.y - (player!.y + player!.height)).toBeLessThan(40);
+    expect(active!.y).toBeGreaterThan(audio!.y);
   });
 
   test('keeps the mobile order of player, grid, tools and harmony', async ({ page }) => {
@@ -667,14 +1013,14 @@ test.describe('full flow', () => {
     const top = async (locator: Locator) => (await locator.boundingBox())?.y ?? -1;
     const player = await top(page.getByTestId('song-player-column'));
     const grid = await top(page.getByTestId('song-grid-column'));
-    const active = await top(page.getByTestId('song-active-chord'));
     const details = await top(page.getByRole('region', { name: 'Detalles de la canción' }));
     const harmony = await top(page.getByTestId('song-harmony-column'));
+    const active = await top(page.getByTestId('song-active-chord'));
 
     expect(player).toBeLessThan(grid);
-    expect(grid).toBeLessThan(active);
-    expect(active).toBeLessThan(details);
+    expect(grid).toBeLessThan(details);
     expect(details).toBeLessThan(harmony);
+    expect(harmony).toBeLessThan(active);
   });
 });
 
@@ -715,7 +1061,7 @@ test.describe('accessibility', () => {
   test('the delete confirmation has no critical violations', async ({ page }) => {
     await analyze(page);
     await page.getByRole('button', { name: 'Guardar en biblioteca' }).click();
-    await page.getByRole('button', { name: 'Biblioteca' }).click();
+    await page.getByRole('button', { name: 'Biblioteca' }).first().click();
     await page.getByRole('button', { name: 'Eliminar' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

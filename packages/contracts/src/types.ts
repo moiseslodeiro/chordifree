@@ -1,8 +1,4 @@
-import type {
-  AccidentalPreference,
-  ChordSegment,
-  Notation,
-} from '@chordifree/chords';
+import type { AccidentalPreference, ChordSegment, Notation } from '@chordifree/chords';
 
 export type AnalysisSource =
   | { type: 'youtube'; videoId: string; title?: string }
@@ -10,6 +6,13 @@ export type AnalysisSource =
   | { type: 'sheet'; filename: string };
 
 export interface VocalRegion {
+  start: number;
+  end: number;
+}
+
+/** A named stretch of the timeline: intro, verse, chorus, bridge or custom. */
+export interface SongSection {
+  label: string;
   start: number;
   end: number;
 }
@@ -49,6 +52,8 @@ export interface Song {
   beatsPerBar?: number;
   /** Detected regions with sung vocals, used to align the lyrics. */
   vocalRegions?: VocalRegion[];
+  /** Named song sections, auto-detected and user editable. */
+  sections?: SongSection[];
   /** Virtual capo: chords are shown transposed -capo semitones. */
   capo?: number;
   /** Optional plain-text lyrics, with significant line breaks. */
@@ -63,6 +68,53 @@ export interface Song {
   accidentalPreference: AccidentalPreference;
   createdAt: string;
   updatedAt: string;
+  /** Set when the song is shared for collaborative editing. */
+  collabId?: string;
+}
+
+export interface UserProfile {
+  nickname: string;
+  /** False when the nickname still comes from the Google account. */
+  custom: boolean;
+}
+
+export interface CollabRevisionSummary {
+  id: string;
+  authorUid: string;
+  authorNickname: string;
+  createdAt: string;
+}
+
+export interface CollabShare {
+  id: string;
+  songId: string;
+  ownerUid: string;
+  ownerNickname: string;
+  currentRevisionId: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Newest first. */
+  revisions: CollabRevisionSummary[];
+}
+
+export interface CollabRevision extends CollabRevisionSummary {
+  song: Song;
+}
+
+/** One completed analysis, used by the administrator activity viewer. */
+export interface AnalysisLogEntry {
+  id: string;
+  uid: string;
+  email: string;
+  nickname: string;
+  kind: 'youtube' | 'upload' | 'sheet';
+  videoId?: string;
+  filename?: string;
+  title?: string;
+  duration: number;
+  chords: number;
+  analyzerVersion: string;
+  createdAt: string;
 }
 
 export interface Setlist {
@@ -87,6 +139,7 @@ export interface YoutubeSearchResult {
   uploader?: string;
   duration?: number;
   thumbnail: string;
+  analyzed?: boolean;
 }
 
 export interface LyricsResult {

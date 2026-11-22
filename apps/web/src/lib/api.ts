@@ -8,22 +8,30 @@ import type {
   RuntimeConfig,
 } from '@chordifree/contracts';
 import type {
+  AnalysisLogEntry,
   AnalysisResult,
   AnalysisView,
+  CollabRevision,
+  CollabShare,
   LyricsResult,
   Setlist,
   Song,
+  UserProfile,
   YoutubeSearchResult,
 } from '../types';
 
 export type {
   AccessEntry,
+  AnalysisLogEntry,
   AuthConfig,
   AuthMe,
   AuthUser,
   CloudLibrarySnapshot,
+  CollabRevision,
+  CollabShare,
   DeleteAccountResult,
   RuntimeConfig,
+  UserProfile,
 } from '@chordifree/contracts';
 import { normalizeLyricsText } from '../lyrics/normalize';
 
@@ -58,9 +66,9 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 401 && typeof window !== 'undefined') {
     window.dispatchEvent(new Event('chordifree:unauthorized'));
   }
-  const body = (await response.json().catch(() => null)) as
-    | { error?: { code?: string; message?: string } }
-    | null;
+  const body = (await response.json().catch(() => null)) as {
+    error?: { code?: string; message?: string };
+  } | null;
   if (!response.ok) {
     throw new ApiClientError(
       body?.error?.code ?? 'ANALYSIS_FAILED',
@@ -74,13 +82,24 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export async function getHealth(signal?: AbortSignal): Promise<{
   analyzer: 'ok' | 'down';
   analyzerVersion: string;
+  extractor?: 'ok' | 'down';
+  extractorVersion?: string;
 }> {
   try {
     const response = await fetch('/api/health', { signal, headers: authHeaders() });
-    const body = await parseResponse<{ analyzer?: string; analyzerVersion?: string }>(response);
+    const body = await parseResponse<{
+      analyzer?: string;
+      analyzerVersion?: string;
+      extractor?: string;
+      extractorVersion?: string;
+    }>(response);
     return {
       analyzer: body.analyzer === 'ok' ? 'ok' : 'down',
       analyzerVersion: body.analyzerVersion ?? 'unknown',
+      ...(body.extractor === 'ok' || body.extractor === 'down'
+        ? { extractor: body.extractor }
+        : {}),
+      ...(body.extractorVersion ? { extractorVersion: body.extractorVersion } : {}),
     };
   } catch {
     return { analyzer: 'down', analyzerVersion: 'unknown' };
@@ -90,11 +109,12 @@ export async function getHealth(signal?: AbortSignal): Promise<{
 export async function createYoutubeAnalysis(
   youtubeUrl: string,
   signal?: AbortSignal,
+  force = false,
 ): Promise<AnalysisView> {
   const response = await fetch('/api/analyses', {
     method: 'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ youtubeUrl }),
+    body: JSON.stringify({ youtubeUrl, ...(force ? { force: true } : {}) }),
     signal,
   });
   return parseResponse(response);
@@ -170,6 +190,15 @@ export async function listAccessEntries(signal?: AbortSignal): Promise<AccessEnt
   return Array.isArray(body.entries) ? body.entries : [];
 }
 
+/** Newest first. Only administrators can read the activity feed. */
+export async function listAnalysisRuns(limit = 100): Promise<AnalysisLogEntry[]> {
+  const response = await fetch(`/api/admin/analyses?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ entries?: AnalysisLogEntry[] }>(response);
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
 export async function addAccessEntry(email: string): Promise<AccessEntry> {
   const response = await fetch('/api/admin/access', {
     method: 'POST',
@@ -222,6 +251,59 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   return parseResponse<DeleteAccountResult>(response);
 }
 
+export async function getProfile(): Promise<UserProfile> {
+  const response = await fetch('/api/profile', { headers: authHeaders() });
+  return parseResponse<UserProfile>(response);
+}
+
+export async function saveProfile(nickname: string): Promise<UserProfile> {
+  const response = await fetch('/api/profile', {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ nickname }),
+  });
+  return parseResponse<UserProfile>(response);
+}
+
+/** Shares a song for collaborative editing and returns its revision history. */
+export async function createCollabShare(song: Song): Promise<CollabShare> {
+  const response = await fetch('/api/collab', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ song }),
+  });
+  return parseResponse<CollabShare>(response);
+}
+
+export async function getCollabShare(id: string): Promise<CollabShare> {
+  const response = await fetch(`/api/collab/${encodeURIComponent(id)}`, {
+    headers: authHeaders(),
+  });
+  return parseResponse<CollabShare>(response);
+}
+
+export async function getCollabRevision(id: string, revisionId: string): Promise<CollabRevision> {
+  const response = await fetch(
+    `/api/collab/${encodeURIComponent(id)}/revisions/${encodeURIComponent(revisionId)}`,
+    { headers: authHeaders() },
+  );
+  return parseResponse<CollabRevision>(response);
+}
+
+/** Publishes a revision based on the last version the client saw. */
+export async function saveCollabRevision(
+  id: string,
+  baseRevisionId: string,
+  song: Song,
+): Promise<CollabRevision> {
+  const response = await fetch(`/api/collab/${encodeURIComponent(id)}/revisions`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ baseRevisionId, song }),
+  });
+  return parseResponse<CollabRevision>(response);
+}
+
 const audioPreparations = new Map<string, Promise<{ url: string; expiresAt?: string }>>();
 
 /** Rejects with AbortError when the caller aborts, without cancelling the shared request. */
@@ -266,13 +348,243 @@ export function prepareYoutubeAudio(
     if (!body.url) {
       throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), response.status);
     }
-    return { url: body.url, ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}) };
+
+    // An <audio> element cannot send the Bearer token. Fetch the temporary
+    // audio with the normal headers and hand the player a same-origin blob.
+    const audio = await fetch(body.url, { headers: authHeaders() });
+    if (!audio.ok) {
+      throw new ApiClientError('AUDIO_NOT_READY', t('error.audioUnavailable'), audio.status);
+    }
+    const blob = await audio.blob();
+    return {
+      url: URL.createObjectURL(blob),
+      ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}),
+    };
   })();
   audioPreparations.set(videoId, request);
-  void request.finally(() => {
-    if (audioPreparations.get(videoId) === request) audioPreparations.delete(videoId);
-  }).catch(() => undefined);
+  void request
+    .finally(() => {
+      if (audioPreparations.get(videoId) === request) audioPreparations.delete(videoId);
+    })
+    .catch(() => undefined);
   return withAbort(request, signal);
+}
+
+export interface StemsStatus {
+  available: boolean;
+  name?: string;
+  version?: string;
+  stems?: string[];
+  error?: string;
+}
+
+export interface StemNote {
+  start: number;
+  end: number;
+  pitch: number;
+  velocity?: number;
+}
+
+export interface StemJobView {
+  id: string;
+  videoId: string;
+  title?: string;
+  status: 'queued' | 'processing' | 'done' | 'cancelled' | 'error';
+  stems: string[];
+  /** Stems with transcribed notes, for example bass and drums. */
+  midi?: string[];
+  error?: { code: string; message: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getStemsStatus(signal?: AbortSignal): Promise<StemsStatus> {
+  const response = await fetch('/api/stems', { signal, headers: authHeaders() });
+  return parseResponse<StemsStatus>(response);
+}
+
+export async function startStems(videoId: string, title?: string): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/${encodeURIComponent(videoId)}`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(title ? { title } : {}),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+export interface StemCacheEntry {
+  key: string;
+  videoId: string;
+  title?: string;
+  plugin: string;
+  stems: string[];
+  midi: string[];
+  createdAt: string;
+  bytes: number;
+}
+
+export async function listStemCache(signal?: AbortSignal): Promise<StemCacheEntry[]> {
+  const response = await fetch('/api/stems/cache', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ entries?: StemCacheEntry[] }>(response);
+  return Array.isArray(body.entries) ? body.entries : [];
+}
+
+/** Returns null when the video has not been separated yet. */
+export async function getStemCache(
+  videoId: string,
+  signal?: AbortSignal,
+): Promise<StemCacheEntry | null> {
+  const response = await fetch(`/api/stems/cache/${encodeURIComponent(videoId)}`, {
+    signal,
+    headers: authHeaders(),
+  });
+  if (response.status === 404) return null;
+  return parseResponse<StemCacheEntry>(response);
+}
+
+export async function clearStemCache(): Promise<number> {
+  const response = await fetch('/api/stems/cache', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ removed?: number }>(response);
+  return body.removed ?? 0;
+}
+
+export async function removeStemCache(videoId: string): Promise<number> {
+  const response = await fetch(`/api/stems/cache/${encodeURIComponent(videoId)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const body = await parseResponse<{ removed?: number }>(response);
+  return body.removed ?? 0;
+}
+
+export async function listStemJobs(signal?: AbortSignal): Promise<StemJobView[]> {
+  const response = await fetch('/api/stems/jobs', { signal, headers: authHeaders() });
+  const body = await parseResponse<{ jobs?: StemJobView[] }>(response);
+  return Array.isArray(body.jobs) ? body.jobs : [];
+}
+
+export async function cancelStemJob(id: string): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/jobs/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+export type StemInstallStatus = 'running' | 'done' | 'error' | 'cancelled';
+export type StemInstallStep = 'python' | 'files' | 'venv' | 'pip' | 'verify' | 'done';
+
+export interface StemInstallJobView {
+  id: string;
+  status: StemInstallStatus;
+  step: StemInstallStep;
+  progress: number;
+  message: string;
+  detail?: string;
+  /** Bounded installer output for the in-app console. */
+  logs?: string[];
+  error?: { code: string; message: string };
+  startedAt: string;
+  updatedAt: string;
+}
+
+export interface StemSetupStatus {
+  supported: boolean;
+  installed: boolean;
+  managed: boolean;
+  pluginDir?: string;
+  python?: { command: string; version: string };
+  job?: StemInstallJobView;
+  error?: string;
+}
+
+export async function getStemsSetup(signal?: AbortSignal): Promise<StemSetupStatus> {
+  const response = await fetch('/api/stems/setup', { signal, headers: authHeaders() });
+  return parseResponse<StemSetupStatus>(response);
+}
+
+export async function installStems(): Promise<StemInstallJobView> {
+  const response = await fetch('/api/stems/setup/install', {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemInstallJobView>(response);
+}
+
+export async function cancelStemsInstall(): Promise<StemInstallJobView> {
+  const response = await fetch('/api/stems/setup/cancel', {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  return parseResponse<StemInstallJobView>(response);
+}
+
+export async function uninstallStems(): Promise<void> {
+  const response = await fetch('/api/stems/setup', {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  await parseResponse<{ removed?: boolean }>(response);
+}
+
+export async function getStemNotes(
+  id: string,
+  stem: string,
+  signal?: AbortSignal,
+): Promise<StemNote[]> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(id)}/notes/${encodeURIComponent(stem)}`,
+    { signal, headers: authHeaders() },
+  );
+  const body = await parseResponse<{ notes?: StemNote[] }>(response);
+  return Array.isArray(body.notes) ? body.notes : [];
+}
+
+export async function getStemsJob(id: string, signal?: AbortSignal): Promise<StemJobView> {
+  const response = await fetch(`/api/stems/jobs/${encodeURIComponent(id)}`, {
+    signal,
+    headers: authHeaders(),
+  });
+  return parseResponse<StemJobView>(response);
+}
+
+/** An <audio> element cannot send the Bearer token, so the stem is fetched as a blob. */
+export async function prepareStemAudio(
+  jobId: string,
+  stem: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(jobId)}/${encodeURIComponent(stem)}`,
+    { signal, headers: authHeaders() },
+  );
+  if (!response.ok) {
+    throw new ApiClientError('STEMS_NOT_READY', t('stems.loadFailed'), response.status);
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+export async function downloadStem(jobId: string, stem: string, filename: string): Promise<void> {
+  const response = await fetch(
+    `/api/stems/jobs/${encodeURIComponent(jobId)}/${encodeURIComponent(stem)}`,
+    { headers: authHeaders() },
+  );
+  if (!response.ok) {
+    throw new ApiClientError('STEMS_NOT_READY', t('stems.loadFailed'), response.status);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 export async function fetchLyrics(
@@ -346,10 +658,7 @@ export interface PollOptions {
   onUpdate?: (view: AnalysisView) => void;
 }
 
-export async function pollAnalysis(
-  id: string,
-  options: PollOptions = {},
-): Promise<AnalysisResult> {
+export async function pollAnalysis(id: string, options: PollOptions = {}): Promise<AnalysisResult> {
   const interval = options.intervalMs ?? 1000;
   for (;;) {
     if (options.signal?.aborted) throw new DOMException('Aborted', 'AbortError');

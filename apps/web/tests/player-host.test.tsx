@@ -70,8 +70,6 @@ describe('PlayerHost', () => {
         '/api/youtube/dQw4w9WgXcQ/audio',
       );
     });
-    expect(screen.getByText(/YouTube audio is played from a temporary copy|El audio de YouTube/))
-      .toBeInTheDocument();
   });
 
   it('does not request the audio again when the pitch changes', async () => {

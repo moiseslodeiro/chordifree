@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { deleteAccount } from './lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { createYoutubeAnalysis, deleteAccount, getStemsSetup, getStemsStatus } from './lib/api';
 import { isDesktopApp } from './lib/platform';
 import { useAnalysisRunner } from './lib/useAnalysis';
 import { useT } from './i18n';
@@ -22,9 +22,13 @@ import { useAudioCache } from './hooks/useAudioCache';
 import { useSetlistActions } from './hooks/useSetlistActions';
 import { useLibraryActions } from './hooks/useLibraryActions';
 import { useSharedSongImport } from './hooks/useSharedSongImport';
+import { useProfile } from './hooks/useProfile';
 import { useSongNavigation } from './hooks/useSongNavigation';
+import { useCollab } from './collab/useCollab';
+import { NicknameDialog } from './components/NicknameDialog';
+import { audioUrlForSong } from './lib/songState';
 import { hashFor, type Route } from './routing';
-import type { AppNotice, Song } from './types';
+import { songFromResult, type AppNotice, type CollabRevision, type Song } from './types';
 
 export default function App() {
   const t = useT();
@@ -108,6 +112,42 @@ export default function App() {
 
   const cloudEnabled = auth.mode === 'google' && auth.status === 'authenticated';
 
+  const openCollabSong = useCallback(
+    (next: Song) => {
+      library.save(next);
+      refreshLibrary();
+      openSong(next, audioUrlForSong(next));
+    },
+    [library, openSong, refreshLibrary],
+  );
+
+  const collab = useCollab({
+    enabled: cloudEnabled,
+    song,
+    onNotice: setNotice,
+    onOpenSong: openCollabSong,
+  });
+
+  const nickname = useProfile(cloudEnabled);
+  const [nicknameEditing, setNicknameEditing] = useState(false);
+  const [stemsAvailable, setStemsAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      getStemsStatus().catch(() => ({ available: false })),
+      getStemsSetup().catch(() => ({ supported: false })),
+    ])
+      .then(([status, setup]) => {
+        if (!cancelled) setStemsAvailable(status.available || setup.supported);
+      })
+      .catch(() => {
+        if (!cancelled) setStemsAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const applyCloudSnapshot = useCallback(
     (snapshot: { songs: Song[]; setlists: typeof setlists }) => {
       library.importSnapshot({ songs: snapshot.songs });
@@ -154,7 +194,79 @@ export default function App() {
     replaceAudioUrl,
     refreshLibrary,
     onNotice: setNotice,
+    onSongSaved: (saved) => void collab.publish(saved),
   });
+
+  const handleShareCollab = useCallback(
+    async (target: Song) => {
+      if (!cloudEnabled) return null;
+      const share = await collab.createShare(target);
+      if (!share) return null;
+      if (!target.collabId) {
+        const updated: Song = { ...target, collabId: share.id };
+        library.save(updated);
+        songRef.current = updated;
+        setSong(updated);
+        setSavedSong(updated);
+        refreshLibrary();
+      }
+      return `${window.location.origin}${window.location.pathname}${hashFor({
+        name: 'collab',
+        id: share.id,
+      })}`;
+    },
+    [cloudEnabled, collab, library, refreshLibrary, setSong, setSavedSong, songRef],
+  );
+
+  const handleApplyCollab = useCallback(
+    (revision: CollabRevision) => {
+      const updated: Song = {
+        ...revision.song,
+        ...(collab.share ? { collabId: collab.share.id } : {}),
+        updatedAt: new Date().toISOString(),
+      };
+      songRef.current = updated;
+      setSong(updated);
+      saveSong(updated);
+    },
+    [collab.share, saveSong, setSong, songRef],
+  );
+
+  const openAnalyzedVideo = useCallback(
+    async (videoId: string) => {
+      const existing = library
+        .exportSongs()
+        .find((item) => item.source.type === 'youtube' && item.source.videoId === videoId);
+      if (existing) {
+        openSong(existing, audioUrlForSong(existing));
+        return true;
+      }
+      const result = await analysisRunner.run((signal) =>
+        createYoutubeAnalysis(`https://youtu.be/${videoId}`, signal),
+      );
+      if (!result) return false;
+      openSong(songFromResult(result, preferences), null);
+      return true;
+    },
+    [analysisRunner, library, openSong, preferences],
+  );
+
+  const [openedCollabId, setOpenedCollabId] = useState<string | null>(null);
+  const openCollabLink = collab.openFromLink;
+  useEffect(() => {
+    if (route.name !== 'collab') {
+      if (openedCollabId !== null) setOpenedCollabId(null);
+      return;
+    }
+    if (!cloudEnabled) {
+      setNotice({ message: t('collab.requiresSignIn'), tone: 'info' });
+      navigate({ name: 'home' });
+      return;
+    }
+    if (openedCollabId === route.id) return;
+    setOpenedCollabId(route.id);
+    void openCollabLink(route.id);
+  }, [cloudEnabled, navigate, openCollabLink, openedCollabId, route, t]);
 
   const deleteCloudData = async () => {
     const accepted = await confirm({
@@ -224,6 +336,9 @@ export default function App() {
         auth={auth}
         desktop={desktop}
         preferences={preferences}
+        nickname={nickname.profile?.nickname ?? null}
+        stemsAvailable={stemsAvailable}
+        onEditNickname={() => setNicknameEditing(true)}
         onNavigate={navigate}
         onPreferences={updatePreferences}
         onDeleteCloudData={() => void deleteCloudData()}
@@ -284,8 +399,27 @@ export default function App() {
           onCreateSetlistWithSong={createSetlistWithSong}
           onReanalyze={(target) => void reanalyzeSong(target)}
           onPreferences={updatePreferences}
+          collabShare={collab.share}
+          collabLoading={collab.loading}
+          collabUid={auth.user?.uid ?? null}
+          canCollaborate={cloudEnabled}
+          onShareCollab={handleShareCollab}
+          onLoadCollabRevision={collab.loadRevision}
+          onApplyCollabRevision={handleApplyCollab}
+          onRefreshCollab={() => void collab.refresh()}
+          onOpenAnalysis={openAnalyzedVideo}
         />
       </main>
+
+      <NicknameDialog
+        open={nickname.needsNickname || nicknameEditing}
+        required={nickname.needsNickname}
+        initial={nickname.profile?.nickname ?? ''}
+        onSave={async (value) => {
+          await nickname.save(value);
+        }}
+        onClose={() => setNicknameEditing(false)}
+      />
 
       <AppFooter desktop={desktop} onCheckUpdates={() => void checkForUpdatesNow()} />
     </div>

@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  formatChord,
-  formatTime,
-  type Accidental,
-  type Notation,
-} from '@chordifree/chords';
+import { formatChord, formatTime, type Accidental, type Notation } from '@chordifree/chords';
 import { useT } from '../i18n';
 import type { BarCell } from '../grid/barAlignment';
 import type { PlaybackClock } from '../sync/clock';
@@ -19,6 +14,7 @@ interface BarGridProps {
   loopA?: number | null;
   loopB?: number | null;
   markMode?: 'a' | 'b' | null;
+  practiceHits?: Array<{ start: number; end: number }>;
 }
 
 function useCompactBars(): boolean {
@@ -45,6 +41,7 @@ export function BarGrid({
   loopA = null,
   loopB = null,
   markMode = null,
+  practiceHits = [],
 }: BarGridProps) {
   const t = useT();
   const compact = useCompactBars();
@@ -65,10 +62,7 @@ export function BarGrid({
       : bars.findIndex((bar) => activeTime >= bar.start && activeTime < bar.end);
   const hasLoop = loopA !== null && loopB !== null && loopB > loopA;
 
-  const aBar =
-    loopA === null
-      ? -1
-      : bars.findIndex((bar) => Math.abs(bar.start - loopA) < 0.08);
+  const aBar = loopA === null ? -1 : bars.findIndex((bar) => Math.abs(bar.start - loopA) < 0.08);
   let bBar = -1;
   if (loopB !== null) {
     for (const bar of bars) {
@@ -91,11 +85,7 @@ export function BarGrid({
   }, [markMode]);
 
   if (bars.length === 0) {
-    return (
-      <p className="note note-info mt-3 text-xs leading-relaxed">
-        {t('grid.notEnoughBars')}
-      </p>
-    );
+    return <p className="note note-info mt-3 text-xs leading-relaxed">{t('grid.notEnoughBars')}</p>;
   }
 
   return (
@@ -121,9 +111,11 @@ export function BarGrid({
               const label = bar.chord ? formatChord(bar.chord, notation, accidental) : '—';
               const role = loopRoleFor(bar.index);
               const inLoop = hasLoop && role !== null;
-              const preview =
-                markMode !== null && previewBar === bar.index ? markMode : null;
+              const preview = markMode !== null && previewBar === bar.index ? markMode : null;
               const active = bar.index === activeIndex;
+              const practiceHit = practiceHits.some(
+                (range) => bar.start < range.end && bar.end > range.start,
+              );
               return (
                 <button
                   key={bar.index}
@@ -131,6 +123,7 @@ export function BarGrid({
                   data-testid={`bar-cell-${bar.index}`}
                   data-loop={role ?? undefined}
                   data-mark-preview={preview ?? undefined}
+                  data-practice-hit={practiceHit ? 'true' : undefined}
                   aria-current={active ? 'true' : undefined}
                   aria-label={
                     t('grid.barLabel', {

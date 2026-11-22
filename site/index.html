@@ -6,7 +6,7 @@
     <title>Chordifree — synchronized chords from YouTube or your audio</title>
     <meta
       name="description"
-      content="Search YouTube by name or upload your own audio. Chordifree turns it into a synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, open source, with an optional private online instance."
+      content="Search YouTube by name or upload your own audio. Chordifree turns it into a synchronized chord sheet with beats, bars, lyrics, karaoke, A–B practice, MIDI export and desktop stem separation. Local-first, open source, with an optional private online instance."
     />
     <link rel="canonical" href="https://moiseslodeiro.github.io/chordifree/" />
     <meta name="theme-color" content="#f7f6f2" />
@@ -16,7 +16,7 @@
     <meta property="og:title" content="Chordifree — chords that follow the song" />
     <meta
       property="og:description"
-      content="Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics and A–B practice. Local-first, or your own private cloud."
+      content="Search YouTube by name or upload your own audio. A synchronized chord sheet with beats, bars, lyrics, karaoke, A–B practice, MIDI export and desktop stem separation. Local-first, or your own private cloud."
     />
     <meta property="og:url" content="https://moiseslodeiro.github.io/chordifree/" />
     <meta property="og:image" content="https://moiseslodeiro.github.io/chordifree/assets/og-image.png" />
@@ -26,7 +26,7 @@
     <meta name="twitter:title" content="Chordifree — chords that follow the song" />
     <meta
       name="twitter:description"
-      content="Search YouTube by name or upload your own audio into a synchronized chord sheet. Local first, or your own private cloud."
+      content="Search YouTube by name or upload your own audio into a synchronized chord sheet with karaoke, MIDI and desktop stem separation. Local first, or your own private cloud."
     />
     <meta name="twitter:image" content="https://moiseslodeiro.github.io/chordifree/assets/og-image.png" />
 
@@ -53,7 +53,7 @@
         "name": "Chordifree",
         "applicationCategory": "MusicApplication",
         "operatingSystem": "Windows, Linux, macOS, Web",
-        "description": "Search YouTube by name or use your own audio to get synchronized chord sheets with beats, bars, lyrics and A–B practice. Local-first, with an optional private online instance on Google Cloud.",
+        "description": "Search YouTube by name or use your own audio to get synchronized chord sheets with beats, bars, lyrics, karaoke, A–B practice, MIDI export and desktop stem separation. Local-first, with an optional private online instance on Google Cloud.",
         "url": "https://moiseslodeiro.github.io/chordifree/",
         "author": { "@type": "Person", "name": "Moisés Lodeiro" },
         "codeRepository": "https://github.com/moiseslodeiro/chordifree",
@@ -72,15 +72,16 @@
           <img src="assets/brand-light.png" alt="Chordifree" width="656" height="108" />
         </a>
 
-        <nav class="desktop-nav" aria-label="Primary">
+        <nav class="desktop-nav" aria-label="Primary" data-i18n-aria="nav.primaryAria">
           <a href="#features" data-i18n="nav.features">Features</a>
           <a href="#product" data-i18n="nav.timeline">Timeline</a>
+          <a href="#compare" data-i18n="nav.compare">Compare</a>
           <a href="#run" data-i18n="nav.run">Run it</a>
           <a href="#faq" data-i18n="nav.faq">FAQ</a>
         </nav>
 
         <div class="header-actions">
-          <div class="lang-switch" role="group" aria-label="Language">
+          <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="nav.languageAria">
             <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
               EN
             </button>
@@ -110,9 +111,10 @@
     </header>
 
     <div class="mobile-menu" id="mobile-menu" hidden>
-      <nav aria-label="Mobile">
+      <nav aria-label="Mobile" data-i18n-aria="nav.mobileAria">
         <a href="#features" data-i18n="nav.features">Features</a>
         <a href="#product" data-i18n="nav.timeline">Timeline</a>
+        <a href="#compare" data-i18n="nav.compare">Compare</a>
         <a href="#run" data-i18n="nav.run">Run it</a>
         <a href="#faq" data-i18n="nav.faq">FAQ</a>
         <a
@@ -132,9 +134,9 @@
           <h1 data-i18n="hero.title">Chords that follow the song.</h1>
           <p class="lead" data-i18n="hero.lead">
             Search YouTube by name or bring your own audio, and get a synchronized chord sheet
-            with beats, bars, lyrics and A–B practice. Slow down or transpose the song without
-            changing the chords. Run it locally, or host a private instance for approved
-            accounts.
+            with beats, bars, lyrics and A–B practice. Slow it down, transpose it, sing over a
+            karaoke mix or split the song into stems on the desktop build. Run it locally, or
+            host a private instance for approved accounts.
           </p>
           <div class="actions">
             <a class="btn btn-primary" href="#run" data-i18n="hero.primary">Get the app</a>
@@ -159,8 +161,11 @@
               <span class="window-tag" data-i18n="hero.windowTag">Bar view</span>
             </div>
             <img
-              src="assets/app-bars.webp"
+              src="assets/app-bars-en.webp"
+              data-src-en="assets/app-bars-en.webp"
+              data-src-es="assets/app-bars-es.webp"
               alt="Chordifree song view with a single playback bar, the chord toolbar and the bar grid for the demo song, showing C, G, Am and F chords and a guitar chord diagram."
+              data-i18n-alt="hero.alt"
               width="1800"
               height="1250"
               fetchpriority="high"
@@ -208,7 +213,7 @@
         <div class="section-head" data-reveal>
           <div>
             <p class="eyebrow"><span class="eyebrow-rule" aria-hidden="true"></span><span data-i18n="features.eyebrow">What it does</span></p>
-            <h2 data-i18n="features.title">A chord sheet, not a guess.</h2>
+            <h2 data-i18n="features.title">Every chord comes from the audio.</h2>
           </div>
           <p class="section-lead" data-i18n="features.lead">
             Every view comes from the same analysis: key, beat grid, bars, chords and the parts
@@ -256,7 +261,9 @@
               <h3 data-i18n="feature.3.title">Practice</h3>
               <p data-i18n="feature.3.body">
                 Arm A and B in the grid, preview a bar on hover, then play the range or loop it.
-                Slow the tempo down, transpose the song, and count in before you start.
+                Slow the tempo down, transpose the song, and count in before you start. The
+                sheet follows playback, and the desktop build can mark the chord from your
+                microphone.
               </p>
             </div>
             <span class="track-tag" data-i18n="feature.3.tag">A–B loop</span>
@@ -278,11 +285,25 @@
               <h3 data-i18n="feature.5.title">Keep</h3>
               <p data-i18n="feature.5.body">
                 Save songs and setlists in your browser, on your computer, or in a private
-                online instance tied to your Google account. Export ChordPro or MusicXML,
-                print a PDF, back everything up as JSON or share the sheet.
+                online instance tied to your Google account. Export ChordPro, MusicXML or a
+                multi-track MIDI with the transcribed bass and drums, print a PDF, back
+                everything up as JSON or share the sheet.
               </p>
             </div>
             <span class="track-tag" data-i18n="feature.5.tag">Local or private cloud</span>
+          </li>
+          <li>
+            <span class="track-num">07</span>
+            <div class="track-copy">
+              <h3 data-i18n="feature.6.title">Separate</h3>
+              <p data-i18n="feature.6.body">
+                On desktop, a local plugin splits the song into vocals, drums, bass and other.
+                Play the four tracks synchronized, each with its own volume, listen to one stem
+                at a time, or export the result. Separations stay in a local cache you can
+                clear.
+              </p>
+            </div>
+            <span class="track-tag" data-i18n="feature.6.tag">Desktop · on device</span>
           </li>
         </ol>
 
@@ -294,8 +315,11 @@
               <span class="window-tag" data-i18n="features.searchTag">YouTube search</span>
             </div>
             <img
-              src="assets/app-search.webp"
+              src="assets/app-search-en.webp"
+              data-src-en="assets/app-search-en.webp"
+              data-src-es="assets/app-search-es.webp"
               alt="Chordifree search for Radiohead Creep with video thumbnails, channel names, durations and an Analyze button next to each result."
+              data-i18n-alt="features.searchAlt"
               width="1800"
               height="1250"
               loading="lazy"
@@ -328,8 +352,11 @@
                 <span class="window-tag" data-i18n="product.windowTag">Beat grid</span>
               </div>
               <img
-                src="assets/app-beats.webp"
+                src="assets/app-beats-en.webp"
+                data-src-en="assets/app-beats-en.webp"
+                data-src-es="assets/app-beats-es.webp"
                 alt="Chordifree beat grid for the demo song, with two bars per row, four beat cells per bar and the chords C, G, Am and F."
+                data-i18n-alt="product.alt"
                 width="1800"
                 height="1250"
                 loading="lazy"
@@ -344,6 +371,109 @@
             <p><span class="caption-num">04</span><span data-i18n="product.caption4">Chord shape for the current bar</span></p>
           </div>
         </div>
+      </section>
+
+
+      <section class="section shell" id="compare">
+        <div class="section-head" data-reveal>
+          <div>
+            <p class="eyebrow">
+              <span class="eyebrow-rule" aria-hidden="true"></span>
+              <span data-i18n="compare.eyebrow">Comparison</span>
+            </p>
+            <h2 data-i18n="compare.title">How it compares.</h2>
+          </div>
+          <p class="section-lead" data-i18n="compare.lead">
+            Chordifree handles the practice workflow with your own audio and your own
+            library. Symbols: ✓ yes, ~ limited or paid, — no.
+          </p>
+        </div>
+
+        <div class="compare-wrap" data-reveal>
+          <table class="compare-table">
+            <caption class="sr-only" data-i18n="compare.caption">
+              Feature comparison between Chordifree, Chordify, Moises and Ultimate Guitar.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" data-i18n="compare.feature">Feature</th>
+                <th scope="col" class="is-own">Chordifree</th>
+                <th scope="col">Chordify</th>
+                <th scope="col">Moises</th>
+                <th scope="col">Ultimate Guitar</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <th scope="row" data-i18n="compare.sync">Synchronized chords</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.edit">Editable chord sheet</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.export">ChordPro · MusicXML · MIDI</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.karaoke">Karaoke / vocal removal</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.stems">Four-stem mixer</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes, with the desktop plugin" data-i18n-aria="compare.desktop">✓*</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.offline">Works offline</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.open">Open source / self-host</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+              <td><span class="compare-mark compare-no" role="img" aria-label="No" data-i18n-aria="compare.no">—</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.free">Free without an account</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+              <td><span class="compare-mark compare-limited" role="img" aria-label="Limited or paid" data-i18n-aria="compare.limited">~</span></td>
+          </tr>
+            <tr>
+              <th scope="row" data-i18n="compare.web">Runs in the browser</th>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+              <td><span class="compare-mark compare-yes" role="img" aria-label="Yes" data-i18n-aria="compare.yes">✓</span></td>
+          </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="compare-note" data-i18n="compare.note">
+          ✓ yes · ~ limited or paid · — no. * The four-stem mixer needs the optional desktop
+          plugin. Features vary by plan and can change.
+        </p>
       </section>
 
       <section class="section shell" id="how">
@@ -778,6 +908,16 @@ docker compose up --build -d</code></pre>
             </p>
           </details>
           <details>
+            <summary data-i18n="faq.17.q">Can I remove the vocals or export MIDI?</summary>
+            <p data-i18n="faq.17.a">
+              On the desktop build, an optional local plugin (Demucs) separates the song into
+              vocals, drums, bass and other. Mix the four tracks with independent volume,
+              listen to one at a time and export a multi-track MIDI with the transcribed bass
+              and drums. It runs on your device and keeps a cache you can clear; the hosted
+              instance does not separate audio.
+            </p>
+          </details>
+          <details>
             <summary data-i18n="faq.8.q">Which instruments and languages?</summary>
             <p data-i18n="faq.8.a">
               Guitar, piano and ukelele; English and Spanish; sharps, flats, solfège, capo,
@@ -828,11 +968,11 @@ docker compose up --build -d</code></pre>
       <div class="shell footer-grid">
         <div class="footer-brand">
           <img src="assets/brand-light.png" alt="Chordifree" width="656" height="108" />
-          <p data-i18n="footer.tagline" title="Music, companion of joy, medicine for sorrow.">
+          <p data-i18n="footer.tagline" title="Music, companion of joy, medicine for sorrow." data-i18n-title="footer.taglineTitle">
             Musica laetitiae comes, medicina dolorum.
           </p>
         </div>
-        <nav class="footer-links" aria-label="Footer">
+        <nav class="footer-links" aria-label="Footer" data-i18n-aria="footer.linksAria">
           <a
             href="https://github.com/moiseslodeiro/chordifree"
             target="_blank"

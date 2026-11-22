@@ -108,10 +108,7 @@ describe('ChordGrid in grid view', () => {
 
     fireEvent.mouseEnter(screen.getByTestId('beat-cell-5'));
     for (const index of [4, 5, 6, 7]) {
-      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute(
-        'data-mark-preview',
-        'a',
-      );
+      expect(screen.getByTestId(`beat-cell-${index}`)).toHaveAttribute('data-mark-preview', 'a');
     }
     expect(screen.getByTestId('beat-cell-3')).not.toHaveAttribute('data-mark-preview');
     expect(screen.getByTestId('beat-cell-8')).not.toHaveAttribute('data-mark-preview');
@@ -221,24 +218,42 @@ describe('ChordGrid in grid view', () => {
   });
 
   it('scrolls the active row when crossing the eight-beat boundary', () => {
-    const scrollIntoView = vi.fn();
-    const original = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollBy = vi.fn();
+    const originalScroll = window.scrollBy;
+    const originalRect = Element.prototype.getBoundingClientRect;
+    window.scrollBy = scrollBy;
+    Element.prototype.getBoundingClientRect = function rect() {
+      const row = this.getAttribute('data-testid')?.startsWith('beat-row-') ?? false;
+      const top = row ? 700 : 0;
+      return {
+        top,
+        bottom: top + (row ? 40 : 0),
+        height: row ? 40 : 0,
+        left: 0,
+        right: 0,
+        width: 0,
+        x: 0,
+        y: top,
+        toJSON: () => ({}),
+      } as DOMRect;
+    };
     try {
       const { adapter, clock } = setup({ beats: twentyFourBeats });
-      scrollIntoView.mockClear();
+      scrollBy.mockClear();
 
       act(() => {
         adapter.seekTo(8);
         clock.tickOnce();
       });
 
-      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
-      const target = scrollIntoView.mock.instances.at(-1) as HTMLElement | undefined;
-      expect(target?.getAttribute('data-testid')).toBe('beat-row-1');
+      expect(scrollBy).toHaveBeenCalledWith({
+        top: expect.any(Number),
+        behavior: 'smooth',
+      });
       clock.destroy();
     } finally {
-      Element.prototype.scrollIntoView = original;
+      window.scrollBy = originalScroll;
+      Element.prototype.getBoundingClientRect = originalRect;
     }
   });
 
@@ -249,25 +264,19 @@ describe('ChordGrid in grid view', () => {
 
   it('announces row, bar, beat, and chord in the aria-live region', () => {
     const { adapter, clock } = setup({ beats: twentyFourBeats });
-    expect(
-      screen.getByText('Fila 1, compás 1, tiempo 1, acorde C'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Fila 1, compás 1, tiempo 1, acorde C')).toBeInTheDocument();
 
     act(() => {
       adapter.seekTo(4);
       clock.tickOnce();
     });
-    expect(
-      screen.getByText('Fila 1, compás 2, tiempo 1, acorde G'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Fila 1, compás 2, tiempo 1, acorde G')).toBeInTheDocument();
 
     act(() => {
       adapter.seekTo(12);
       clock.tickOnce();
     });
-    expect(
-      screen.getByText('Fila 2, compás 4, tiempo 1, acorde —'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Fila 2, compás 4, tiempo 1, acorde —')).toBeInTheDocument();
     clock.destroy();
   });
 
@@ -316,9 +325,6 @@ describe('ChordGrid in grid view', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('chord-row-0')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Parrilla' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-pressed', 'true');
   });
 });

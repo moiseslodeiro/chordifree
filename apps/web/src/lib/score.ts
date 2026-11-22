@@ -40,7 +40,7 @@ export function keySignatureFifths(key: EstimatedKey | null): number {
   return raw > 6 ? raw - 12 : raw;
 }
 
-const CHORD_INTERVALS: Record<Quality, number[]> = {
+export const CHORD_INTERVALS: Record<Quality, number[]> = {
   major: [0, 4, 7],
   minor: [0, 3, 7],
   dim: [0, 3, 6],
@@ -212,10 +212,9 @@ function tieXml(start: boolean, stop: boolean): string {
 }
 
 function tiedNotationsXml(start: boolean, stop: boolean): string {
-  const notations = [
-    start ? '<tied type="start"/>' : '',
-    stop ? '<tied type="stop"/>' : '',
-  ].join('');
+  const notations = [start ? '<tied type="start"/>' : '', stop ? '<tied type="stop"/>' : ''].join(
+    '',
+  );
   return notations ? `<notations>${notations}</notations>` : '';
 }
 
@@ -252,7 +251,12 @@ function renderRest(beats: number, staff: number): string {
     .join('');
 }
 
-function harmonyXml(chord: Chord, notation: Notation, accidental: Accidental, useFlats: boolean): string {
+function harmonyXml(
+  chord: Chord,
+  notation: Notation,
+  accidental: Accidental,
+  useFlats: boolean,
+): string {
   const label = formatChord(chord, notation, accidental);
   const root = midiToPitch(60 + chord.root, useFlats);
   const rootXml = `<root><root-step>${root.step}</root-step>${
@@ -301,9 +305,8 @@ function clefXml(clef: ScoreClef, number?: number): string {
 }
 
 export function buildMusicXml(input: ScoreInput): string {
-  const size = Number.isFinite(input.beatsPerBar) && input.beatsPerBar > 0
-    ? Math.floor(input.beatsPerBar)
-    : 4;
+  const size =
+    Number.isFinite(input.beatsPerBar) && input.beatsPerBar > 0 ? Math.floor(input.beatsPerBar) : 4;
   const clef = clefFor(input.instrument);
   const fifths = keySignatureFifths(input.key);
   const useFlats = input.accidental === 'flat' || fifths < 0;
@@ -365,12 +368,15 @@ export function buildMusicXml(input: ScoreInput): string {
       content.push(staffOne);
     }
 
-    const implicit = events.reduce((sum, event) => sum + event.beats, 0) < size ? ' implicit="yes"' : '';
+    const implicit =
+      events.reduce((sum, event) => sum + event.beats, 0) < size ? ' implicit="yes"' : '';
     parts.push(`<measure number="${index + 1}"${implicit}>${content.join('')}</measure>`);
   });
 
   const title = escapeXml(input.title || 'Untitled');
-  const artist = input.artist ? `<creator type="composer">${escapeXml(input.artist)}</creator>` : '';
+  const artist = input.artist
+    ? `<creator type="composer">${escapeXml(input.artist)}</creator>`
+    : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
@@ -384,7 +390,9 @@ export function buildMusicXml(input: ScoreInput): string {
 }
 
 export function downloadMusicXml(filename: string, content: string): void {
-  const blob = new Blob([content], { type: 'application/vnd.recordare.musicxml+xml;charset=utf-8' });
+  const blob = new Blob([content], {
+    type: 'application/vnd.recordare.musicxml+xml;charset=utf-8',
+  });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

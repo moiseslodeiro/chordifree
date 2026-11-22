@@ -78,8 +78,8 @@ runuser -u "$SERVICE_USER" -- "$INSTALL_DIR/.venv/bin/pip" install --quiet \
 
 case "$(uname -m)" in
   armv7l) asset="yt-dlp_linux_armv7l.zip" ;;
-  aarch64|arm64) asset="yt-dlp_linux_aarch64.zip" ;;
-  x86_64|amd64) asset="yt-dlp_linux.zip" ;;
+  aarch64|arm64) asset="yt-dlp_linux_aarch64" ;;
+  x86_64|amd64) asset="yt-dlp_linux" ;;
   *)
     echo "Unsupported CPU architecture: $(uname -m). Pi 2 needs a 32-bit armv7 OS." >&2
     exit 1
@@ -95,9 +95,15 @@ fi
 echo "Installing yt-dlp ($asset)..."
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
-curl -fsSL "$ytdlp_url" -o "$tmpdir/yt-dlp.zip"
-unzip -o "$tmpdir/yt-dlp.zip" -d /usr/local/bin >/dev/null
-chmod 0755 /usr/local/bin/yt-dlp
+curl -fsSL "$ytdlp_url" -o "$tmpdir/yt-dlp"
+if [[ "$asset" == *.zip ]]; then
+  unzip -o "$tmpdir/yt-dlp" -d "$tmpdir/yt-dlp-unpacked" >/dev/null
+  binary="$(find "$tmpdir/yt-dlp-unpacked" -maxdepth 1 -type f -name 'yt-dlp*' | head -n 1)"
+  [[ -n "$binary" ]] || { echo "yt-dlp archive did not contain a binary" >&2; exit 1; }
+  install -m 0755 "$binary" /usr/local/bin/yt-dlp
+else
+  install -m 0755 "$tmpdir/yt-dlp" /usr/local/bin/yt-dlp
+fi
 /usr/local/bin/yt-dlp --version >/dev/null
 
 if [[ ! -f "$ENV_FILE" ]]; then
