@@ -38,16 +38,19 @@ Las fechas son las de la documentación (`2026-11-16`) salvo que el código indi
   que la validación recae en Zod. El snapshot completo simplifica la API pero limita el merge
   fino.
 
-## ADR-004 — Cloud Run scale-to-zero y servidor de 1 instancia
+## ADR-004 — Cloud Run scale-to-zero y análisis bajo demanda
 
 - **Estado:** Aceptada
-- **Contexto:** El coste debe ser mínimo y los jobs/audio viven en memoria.
-- **Decisión:** Cloud Run para servidor y analyzer, `min_instance_count=0`,
-  `max_instance_count=1`. El servidor usa `cpu_idle=false`; el analyzer `cpu_idle=true`.
-- **Alternativas:** VM siempre encendida; Kubernetes; Cloud Functions; más instancias con
-  estado compartido.
-- **Consecuencias:** Coste casi nulo en reposo y cold starts. Un reinicio pierde jobs. No hay
-  escalado horizontal. Es una decisión explícita, no un accidente.
+- **Contexto:** El coste debe ser mínimo y los análisis no deben mantener CPU asignada en el API
+  tras responder a la petición.
+- **Decisión:** El API y el analyzer usan Cloud Run con `min_instance_count=0`; el API usa
+  facturación por solicitud. Cada análisis se ejecuta como Cloud Run Job y su estado/upload
+  temporal se guarda en Firestore. Se limita cada ejecución a una tarea y el API a una instancia.
+- **Alternativas:** VM siempre encendida; Kubernetes; Cloud Functions; mantener la cola en el
+  proceso del API.
+- **Consecuencias:** El API escala a cero y los Jobs solo consumen recursos al analizar. Un fallo
+  del worker ya no pierde el estado del job, aunque cada análisis sigue consumiendo cuota y puede
+  generar cargos.
 
 ## ADR-005 — Biblioteca online como snapshot completo
 

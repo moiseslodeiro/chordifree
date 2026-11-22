@@ -1,3 +1,27 @@
+# Chordifree 0.5.2
+
+Move hosted chord analysis out of the API process into on-demand Cloud Run Jobs.
+
+## Highlights
+
+- **On-demand GCP analysis**: the API stores upload chunks and job state in Firestore, starts a
+  Cloud Run Job, and returns to request-based billing. The worker persists progress and results,
+  invokes the private analyzer, and removes temporary upload chunks when finished. Local and
+  desktop analysis continue to run in-process.
+- **Cloud Run IAM and lifecycle**: Terraform creates a dedicated worker service account and Job,
+  grants only the permissions needed to run the Job and call the analyzer, and configures TTL for
+  temporary upload data and job records.
+
+## Upgrade notes
+
+- Run `deploy/gcp/deploy.sh` to build the updated server image and apply the Job, IAM and Firestore
+  TTL changes. No database migration is needed for existing songs or analysis cache entries.
+- Cloud Run Jobs consume CPU and memory while an analysis runs; the API no longer keeps CPU
+  allocated after responding. A budget spend cap can still pause Cloud Run if the monthly limit is
+  reached.
+- The analysis worker uses the same server image and analyzer as before. Local and Electron
+  deployments need no Cloud Run configuration.
+
 # Chordifree 0.5.1
 
 Install local stem separation from the app, reattach running jobs and harden the server.

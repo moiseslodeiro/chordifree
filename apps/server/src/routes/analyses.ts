@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { AppConfig } from '../config';
 import { ApiError, errorBody, toApiError } from '../errors';
 import type { JobQueue } from '../jobs/queue';
-import type { Job, JobRequester, JobStore } from '../jobs/store';
+import type { AnalysisJobStore, Job, JobRequester } from '../jobs/store';
 import { analyzeUpload, analyzeYoutube } from '../services/analysis';
 import type { AnalyzerClient } from '../services/analyzer';
 import type { TemporaryAudioCache } from '../services/audio-cache';
@@ -17,6 +17,7 @@ import { isAllowedAudioExtension, looksLikeAudio } from '../services/audio-signa
 import type { MediaTools } from '../services/media';
 import type { AnalysisResult } from '../types';
 import { extractVideoId } from '../youtube';
+import type { AnalysisInputStore, AnalysisJobDispatcher } from '../services/cloud-run-analysis';
 
 const YoutubeSchema = z
   .object({
@@ -25,9 +26,16 @@ const YoutubeSchema = z
   })
   .strict();
 
+const JOB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function jobIdFromParams(value: string): string {
+  if (!JOB_ID_PATTERN.test(value)) throw new ApiError('NOT_FOUND', 'Analysis not found');
+  return value;
+}
+
 export interface AnalysesRouterDeps {
   config: AppConfig;
-  store: JobStore;
+  store: AnalysisJobStore;
   queue: JobQueue;
   tools: MediaTools;
   analyzer: AnalyzerClient;
@@ -35,6 +43,8 @@ export interface AnalysesRouterDeps {
   analysisCache: AnalysisCacheStore;
   analysisLog: AnalysisLogStore;
   profiles: ProfileStore;
+  analysisDispatcher?: AnalysisJobDispatcher;
+  analysisInputs?: AnalysisInputStore;
 }
 
 async function requesterFor(
@@ -49,7 +59,7 @@ async function requesterFor(
   };
 }
 
-function startJob(
+function startInProcessJob(
   job: Job,
   task: (report: (progress: number) => void) => Promise<AnalysisResult>,
   deps: AnalysesRouterDeps,
@@ -57,8 +67,10 @@ function startJob(
   void Promise.resolve()
     .then(() =>
       deps.queue.add(async () => {
-        deps.store.update(job.id, { status: 'processing', progress: 1 });
-        const report = (progress: number) => deps.store.update(job.id, { progress });
+        await deps.store.update(job.id, { status: 'processing', progress: 1 });
+        const report = (progress: number) => {
+          void deps.store.update(job.id, { progress });
+        };
         const startedAt = Date.now();
         const source =
           job.source.type === 'youtube'
@@ -67,7 +79,7 @@ function startJob(
         console.info(`[analysis] ${job.id} started (${source})`);
         try {
           const result = await task(report);
-          if (!deps.store.get(job.id)) return;
+          if (!(await deps.store.get(job.id))) return;
           if (job.source.type === 'youtube') {
             await deps.analysisCache
               .set(job.source.videoId, result.analyzerVersion, result)
@@ -91,14 +103,14 @@ function startJob(
               })
               .catch(() => undefined);
           }
-          deps.store.update(job.id, { status: 'done', progress: 100, result });
+          await deps.store.update(job.id, { status: 'done', progress: 100, result });
           if (job.source.type === 'youtube') {
-            deps.store.indexVideo(job.source.videoId, job.id, result.analyzerVersion);
+            await deps.store.indexVideo(job.source.videoId, job.id, result.analyzerVersion);
           }
           console.info(`[analysis] ${job.id} done in ${Date.now() - startedAt}ms`);
         } catch (error) {
           const apiError = toApiError(error);
-          deps.store.update(job.id, {
+          await deps.store.update(job.id, {
             status: 'error',
             error: { code: apiError.code, message: apiError.message },
           });
@@ -110,6 +122,30 @@ function startJob(
       }),
     )
     .catch(() => undefined);
+}
+
+async function dispatchCloudJob(
+  job: Job,
+  deps: AnalysesRouterDeps,
+  upload?: Buffer,
+): Promise<void> {
+  let chunkCount: number | undefined;
+  try {
+    if (!deps.analysisDispatcher) throw new Error('Cloud analysis jobs are not configured');
+    if (upload) {
+      if (!deps.analysisInputs) throw new Error('Cloud analysis input storage is not configured');
+      chunkCount = await deps.analysisInputs.put(job.id, upload);
+      await deps.store.update(job.id, { inputChunkCount: chunkCount });
+    }
+    await deps.analysisDispatcher.dispatch(job.id);
+  } catch (error) {
+    if (chunkCount) await deps.analysisInputs?.delete(job.id, chunkCount).catch(() => undefined);
+    const apiError = toApiError(error);
+    await deps.store.update(job.id, {
+      status: 'error',
+      error: { code: apiError.code, message: apiError.message },
+    });
+  }
 }
 
 export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
@@ -147,9 +183,20 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
 
         await mkdir(deps.config.tempDir, { recursive: true });
         const source = { type: 'upload' as const, filename: originalname };
-        const job = deps.store.create(source, await requesterFor(req.authUser, deps));
-        startJob(job, (report) => analyzeUpload(originalname, buffer, deps, report), deps);
-        res.status(202).json(deps.store.toView(job));
+        const job = await deps.store.create(source, await requesterFor(req.authUser, deps));
+        let view = deps.store.toView(job);
+        if (deps.analysisDispatcher) {
+          await dispatchCloudJob(job, deps, buffer);
+          // The dispatch step can mark the job as failed.
+          view = deps.store.toView((await deps.store.get(job.id)) ?? job);
+        } else {
+          startInProcessJob(
+            job,
+            (report) => analyzeUpload(originalname, buffer, deps, report),
+            deps,
+          );
+        }
+        res.status(202).json(view);
         return;
       }
 
@@ -165,37 +212,44 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
       const videoId = extractVideoId(parsed.data.youtubeUrl);
       const source = { type: 'youtube' as const, videoId };
       if (!parsed.data.force) {
-        const cached = deps.store.findByVideo(videoId, deps.config.analyzerVersion);
+        const cached = await deps.store.findByVideo(videoId, deps.config.analyzerVersion);
         if (cached) {
           res.status(202).json(deps.store.toView(cached));
           return;
         }
         const persistent = await deps.analysisCache.get(videoId, deps.config.analyzerVersion);
         if (persistent) {
-          const job = deps.store.create(source);
-          deps.store.update(job.id, {
+          const job = await deps.store.create(source);
+          await deps.store.update(job.id, {
             status: 'done',
             progress: 100,
             result: persistent,
           });
-          deps.store.indexVideo(videoId, job.id, persistent.analyzerVersion);
-          res.status(202).json(deps.store.toView(job));
+          await deps.store.indexVideo(videoId, job.id, persistent.analyzerVersion);
+          res.status(202).json(deps.store.toView((await deps.store.get(job.id)) ?? job));
           return;
         }
       }
 
       await mkdir(deps.config.tempDir, { recursive: true });
-      const job = deps.store.create(source, await requesterFor(req.authUser, deps));
-      startJob(job, (report) => analyzeYoutube(videoId, deps, report), deps);
-      res.status(202).json(deps.store.toView(job));
+      const job = await deps.store.create(source, await requesterFor(req.authUser, deps));
+      let view = deps.store.toView(job);
+      if (deps.analysisDispatcher) {
+        await dispatchCloudJob(job, deps);
+        // The dispatch step can mark the job as failed.
+        view = deps.store.toView((await deps.store.get(job.id)) ?? job);
+      } else {
+        startInProcessJob(job, (report) => analyzeYoutube(videoId, deps, report), deps);
+      }
+      res.status(202).json(view);
     } catch (error) {
       next(error);
     }
   });
 
-  router.delete('/:id', (req, res, next) => {
+  router.delete('/:id', async (req, res, next) => {
     try {
-      if (!deps.store.remove(req.params.id)) {
+      if (!(await deps.store.remove(jobIdFromParams(req.params.id)))) {
         throw new ApiError('NOT_FOUND', 'Analysis not found');
       }
       res.status(204).end();
@@ -204,9 +258,9 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
     }
   });
 
-  router.get('/:id', (req, res, next) => {
+  router.get('/:id', async (req, res, next) => {
     try {
-      const job = deps.store.get(req.params.id);
+      const job = await deps.store.get(jobIdFromParams(req.params.id));
       if (!job) {
         throw new ApiError('NOT_FOUND', 'Analysis not found');
       }

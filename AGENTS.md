@@ -6,7 +6,7 @@ the optional online mode uses Google sign-in + Firestore.
 ## Layout
 
 - `apps/web` — React 19 + Vite 5 + Tailwind 4 SPA. No router library: hash routing in `src/routing.ts`. Library in `localStorage`.
-- `apps/server` — Express 4 API (TypeScript, run with `tsx`; no build step). Analyser jobs run in-process.
+- `apps/server` — Express 4 API (TypeScript, run with `tsx`; no build step). Analysis jobs run in-process locally and in Cloud Run Jobs on GCP.
 - `packages/contracts` — shared types + Zod schemas; **start API/model changes here**.
 - `packages/chords` — pure chord/segment utilities shared by web and server.
 - `packaging/electron` — Electron shell + installer build.
