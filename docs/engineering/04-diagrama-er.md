@@ -79,6 +79,11 @@ Cada valor se envuelve en un sobre versionado (`storage/envelope.ts`) con `schem
 | `JobQueue.pending` | tareas FIFO | No |
 | `TemporaryAudioCache` | archivos en `TEMP_DIR` | Disco local del contenedor |
 
+En la instancia online, `FirestoreAnalysisJobStore` y `FirestoreAnalysisInputStore` sustituyen
+ese estado: los jobs, sus resultados y los chunks de las subidas viven en Firestore con TTL de
+24 h, así que sobreviven a reinicios y despliegues. La caché de audio temporal y los stems siguen
+siendo locales a la instancia; en local y escritorio se mantiene la cola en memoria.
+
 ## Relaciones lógicas
 
 ```mermaid
