@@ -97,6 +97,7 @@ stateDiagram-v2
 
 Notas:
 
-- El servidor usa `cpu_idle=false` para que los jobs sigan tras la respuesta HTTP.
-- El analizador usa `cpu_idle=true`; solo consume CPU durante la petición.
-- `max_instance_count=1` en ambos servicios.
+- El API usa facturación por solicitud; los análisis se ejecutan como Cloud Run Jobs.
+- El estado de cada análisis y los fragmentos temporales de uploads viven en Firestore.
+- API, analyzer y Job tienen límites de escalado por instancia/tarea; los Jobs no quedan activos
+  después de completar el análisis.

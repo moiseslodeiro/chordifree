@@ -46,19 +46,20 @@ describe('JobQueue', () => {
 });
 
 describe('JobStore', () => {
-  it('creates and updates jobs', () => {
+  it('creates and updates jobs', async () => {
     const store = new JobStore();
-    const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
+    const job = await store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
     expect(job.status).toBe('queued');
-    store.update(job.id, { status: 'processing', progress: 40 });
-    expect(store.get(job.id)).toMatchObject({ status: 'processing', progress: 40 });
-    expect(store.toView(store.get(job.id)!)).not.toHaveProperty('result');
+    await store.update(job.id, { status: 'processing', progress: 40 });
+    const updated = await store.get(job.id);
+    expect(updated).toMatchObject({ status: 'processing', progress: 40 });
+    expect(store.toView(updated!)).not.toHaveProperty('result');
   });
 
-  it('removes a job and its video index', () => {
+  it('removes a job and its video index', async () => {
     const store = new JobStore();
-    const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
-    store.update(job.id, {
+    const job = await store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
+    await store.update(job.id, {
       status: 'done',
       result: {
         source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
@@ -68,20 +69,20 @@ describe('JobStore', () => {
         createdAt: new Date().toISOString(),
       },
     });
-    store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
-    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeDefined();
+    await store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
+    expect(await store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeDefined();
 
-    expect(store.remove(job.id)).toBe(true);
-    expect(store.get(job.id)).toBeUndefined();
-    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
-    expect(store.remove('missing')).toBe(false);
+    expect(await store.remove(job.id)).toBe(true);
+    expect(await store.get(job.id)).toBeUndefined();
+    expect(await store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
+    expect(await store.remove('missing')).toBe(false);
   });
 
-  it('caches the result per video and respects the TTL', () => {
+  it('caches the result per video and respects the TTL', async () => {
     let now = 1_000;
     const store = new JobStore(1_000, () => now);
-    const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
-    store.update(job.id, {
+    const job = await store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
+    await store.update(job.id, {
       status: 'done',
       result: {
         source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
@@ -91,24 +92,24 @@ describe('JobStore', () => {
         createdAt: new Date(now).toISOString(),
       },
     });
-    store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
-    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')?.id).toBe(job.id);
+    await store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
+    expect((await store.findByVideo('dQw4w9WgXcQ', 'v1'))?.id).toBe(job.id);
 
     now += 1_500;
-    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
+    expect(await store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
   });
 
-  it('does not return jobs that have not finished yet', () => {
+  it('does not return jobs that have not finished yet', async () => {
     const store = new JobStore();
-    const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
-    store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
-    expect(store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
+    const job = await store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
+    await store.indexVideo('dQw4w9WgXcQ', job.id, 'v1');
+    expect(await store.findByVideo('dQw4w9WgXcQ', 'v1')).toBeUndefined();
   });
 
-  it('invalidates the cache when the analyzer version changes', () => {
+  it('invalidates the cache when the analyzer version changes', async () => {
     const store = new JobStore();
-    const job = store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
-    store.update(job.id, {
+    const job = await store.create({ type: 'youtube', videoId: 'dQw4w9WgXcQ' });
+    await store.update(job.id, {
       status: 'done',
       result: {
         source: { type: 'youtube', videoId: 'dQw4w9WgXcQ' },
@@ -118,18 +119,18 @@ describe('JobStore', () => {
         createdAt: new Date().toISOString(),
       },
     });
-    store.indexVideo('dQw4w9WgXcQ', job.id, 'essentia-1.0');
+    await store.indexVideo('dQw4w9WgXcQ', job.id, 'essentia-1.0');
 
-    expect(store.findByVideo('dQw4w9WgXcQ', 'essentia-1.0')?.id).toBe(job.id);
-    expect(store.findByVideo('dQw4w9WgXcQ', 'essentia-1.2')).toBeUndefined();
+    expect((await store.findByVideo('dQw4w9WgXcQ', 'essentia-1.0'))?.id).toBe(job.id);
+    expect(await store.findByVideo('dQw4w9WgXcQ', 'essentia-1.2')).toBeUndefined();
   });
 
-  it('sweeps old jobs', () => {
+  it('sweeps old jobs', async () => {
     let now = 0;
     const store = new JobStore(100, () => now);
-    const job = store.create({ type: 'upload', filename: 'a.wav' });
+    const job = await store.create({ type: 'upload', filename: 'a.wav' });
     now = 200;
-    expect(store.sweep()).toBe(1);
-    expect(store.get(job.id)).toBeUndefined();
+    expect(await store.sweep()).toBe(1);
+    expect(await store.get(job.id)).toBeUndefined();
   });
 });

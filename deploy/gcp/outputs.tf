@@ -9,7 +9,7 @@ output "service_url" {
 }
 
 output "analyzer_url" {
-  description = "Private URL of the analyzer. Only the server service account can call it."
+  description = "Private URL of the analyzer. Only the server and worker service accounts can call it."
   value       = google_cloud_run_v2_service.analyzer.uri
 }
 
@@ -31,4 +31,9 @@ output "server_service_account" {
 output "analyzer_service_account" {
   description = "Runtime service account of the analyzer."
   value       = google_service_account.analyzer.email
+}
+
+output "analysis_worker_service_account" {
+  description = "Runtime service account of the on-demand analysis Job."
+  value       = google_service_account.analysis_worker.email
 }

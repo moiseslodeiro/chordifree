@@ -325,6 +325,25 @@ describe('POST /api/analyses', () => {
     expect(response.status).toBe(400);
   });
 
+  it('stores uploaded audio and dispatches analysis to the configured worker', async () => {
+    const store = new JobStore();
+    const put = vi.fn(async () => 1);
+    const dispatch = vi.fn(async () => undefined);
+    const app = await buildApp({
+      store,
+      analysisInputs: { put, get: vi.fn(), delete: vi.fn() },
+      analysisDispatcher: { dispatch },
+    });
+    const response = await request(app)
+      .post('/api/analyses')
+      .attach('file', wavBuffer(), { filename: 'cancion.wav', contentType: 'audio/wav' });
+
+    expect(response.status).toBe(202);
+    expect(put).toHaveBeenCalledWith(response.body.id, expect.any(Buffer));
+    expect(dispatch).toHaveBeenCalledWith(response.body.id);
+    expect((await store.get(response.body.id))?.status).toBe('queued');
+  });
+
   it('rejects a file that is not audio', async () => {
     const app = await buildApp();
     const response = await request(app)

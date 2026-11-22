@@ -30,6 +30,8 @@ const EnvSchema = z.object({
   ADMIN_EMAILS: z.string().default(''),
   GOOGLE_CLOUD_PROJECT: z.string().default(''),
   FIRESTORE_DATABASE: z.string().default('(default)'),
+  CLOUD_RUN_REGION: z.string().default(''),
+  ANALYSIS_JOB_NAME: z.string().default(''),
   ANALYZER_AUTH: z.enum(['token', 'google']).default('token'),
   YOUTUBE_EXTRACTOR_URL: z.union([z.literal(''), z.string().url()]).default(''),
   YOUTUBE_EXTRACTOR_TOKEN: z.string().default(''),
@@ -69,6 +71,8 @@ export interface AppConfig {
   adminEmails: string[];
   googleCloudProject: string;
   firestoreDatabase: string;
+  cloudRunRegion?: string;
+  analysisJobName?: string;
   analyzerAuth: 'token' | 'google';
   youtubeExtractorUrl?: string;
   youtubeExtractorToken: string;
@@ -106,6 +110,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.parse(env);
   const local = isLocalHost(parsed.HOST) || isLocalHost(parsed.CORS_ORIGIN);
   const youtubeExtractorUrl = parsed.YOUTUBE_EXTRACTOR_URL.trim();
+  const analysisJobName = parsed.ANALYSIS_JOB_NAME.trim();
+  const cloudRunRegion = parsed.CLOUD_RUN_REGION.trim();
+  if (analysisJobName && (!cloudRunRegion || !parsed.GOOGLE_CLOUD_PROJECT.trim())) {
+    throw new Error('CLOUD_RUN_REGION and GOOGLE_CLOUD_PROJECT are required for analysis jobs');
+  }
+  if (analysisJobName && parsed.AUTH_MODE !== 'google') {
+    throw new Error('AUTH_MODE=google is required for Cloud Run analysis jobs');
+  }
   if (youtubeExtractorUrl && !parsed.YOUTUBE_EXTRACTOR_TOKEN.trim()) {
     throw new Error('YOUTUBE_EXTRACTOR_TOKEN is required when YOUTUBE_EXTRACTOR_URL is set');
   }
@@ -135,6 +147,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       .filter(Boolean),
     googleCloudProject: parsed.GOOGLE_CLOUD_PROJECT,
     firestoreDatabase: parsed.FIRESTORE_DATABASE,
+    ...(cloudRunRegion ? { cloudRunRegion } : {}),
+    ...(analysisJobName ? { analysisJobName } : {}),
     analyzerAuth: parsed.ANALYZER_AUTH,
     ...(youtubeExtractorUrl ? { youtubeExtractorUrl } : {}),
     youtubeExtractorToken: parsed.YOUTUBE_EXTRACTOR_TOKEN,

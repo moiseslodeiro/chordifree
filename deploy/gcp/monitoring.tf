@@ -14,7 +14,7 @@ resource "google_monitoring_notification_channel" "email" {
 resource "google_logging_metric" "analysis_failures" {
   project = var.project_id
   name    = "${replace(var.name_prefix, "-", "_")}_analysis_failures"
-  filter  = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${local.server_service_name}\" AND textPayload:\"[analysis]\" AND textPayload:\"failed\""
+  filter  = "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${local.analysis_job_name}\" AND textPayload:\"[analysis-worker]\" AND textPayload:\"failed\""
 
   metric_descriptor {
     metric_kind = "DELTA"
@@ -32,7 +32,7 @@ resource "google_monitoring_alert_policy" "analysis_failures" {
   conditions {
     display_name = "Failed analysis jobs"
     condition_threshold {
-      filter          = "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${local.server_service_name}\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.analysis_failures.name}\""
+      filter          = "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${local.analysis_job_name}\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.analysis_failures.name}\""
       comparison      = "COMPARISON_GT"
       threshold_value = 0
       duration        = "300s"
@@ -52,7 +52,7 @@ resource "google_monitoring_alert_policy" "analysis_failures" {
 
   documentation {
     mime_type = "text/markdown"
-    content   = "At least one analysis job failed in the last 5 minutes. Check the server logs for the `[analysis]` line and the error code (for example `VIDEO_UNAVAILABLE`, `YOUTUBE_BLOCKED`, `EXTRACTOR_UNAVAILABLE` or `ANALYSIS_FAILED`)."
+    content   = "At least one analysis job failed in the last 5 minutes. Check the Cloud Run Job worker logs for `[analysis-worker]` and the error code (for example `VIDEO_UNAVAILABLE`, `YOUTUBE_BLOCKED`, `EXTRACTOR_UNAVAILABLE` or `ANALYSIS_FAILED`)."
   }
 }
 

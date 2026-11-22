@@ -15,6 +15,10 @@ cd deploy/gcp
 terraform destroy \
   -target=google_cloud_run_v2_service_iam_member.server_public \
   -target=google_cloud_run_v2_service_iam_member.analyzer_invoker \
+  -target=google_cloud_run_v2_service_iam_member.analyzer_worker_invoker \
+  -target=google_cloud_run_v2_job_iam_member.analysis_executor \
+  -target=google_service_account_iam_member.server_can_run_analysis_worker \
+  -target=google_cloud_run_v2_job.analysis \
   -target=google_cloud_run_v2_service.server \
   -target=google_cloud_run_v2_service.analyzer
 ```
@@ -35,11 +39,11 @@ YouTube extractor are enabled.
 
 ## Logs
 
-Job failures are logged with the source and error code:
+Worker failures are logged with the job ID and error code:
 
 ```bash
 gcloud logging read \
-  'resource.type="cloud_run_revision" AND resource.labels.service_name="chordifree-server" AND textPayload:"[analysis]"' \
+  'resource.type="cloud_run_job" AND resource.labels.job_name="chordifree-analysis" AND textPayload:"[analysis-worker]"' \
   --limit=50 --format='value(timestamp,textPayload)'
 ```
 
@@ -205,14 +209,15 @@ cache and mixer are documented in [`STEMS_PLUGIN.md`](STEMS_PLUGIN.md).
 ## Cost and budget
 
 - Check **Billing → Budgets & alerts** and the Cloud Run metrics.
-- Cloud Run scales to zero, but the server uses `cpu_idle = false` while an instance is alive.
+- The API uses request-based billing; analysis workers run as on-demand Cloud Run Jobs.
+- Job CPU and memory still count toward the Cloud Run free tier while analyses are running.
 - Artifact Registry keeps the last three images. Lower `keep_count` in `main.tf` if needed.
-- Stop Cloud Run when the instance will not be used for a while.
+- Use a Cloud Run spend cap if you want Cloud Run to pause after a monthly cost threshold.
 
 ## Incident checklist
 
 1. Check `/api/health` and `/api/config`.
-2. Check the server and analyzer logs with the filters above.
+2. Check the API, analyzer and Cloud Run Job worker logs with the filters above.
 3. If only YouTube fails, inspect the extractor or use audio upload.
 4. If authentication fails, verify the OAuth origin, client ID and allowlist.
 5. If Firestore fails, check quotas, IAM and the database name.

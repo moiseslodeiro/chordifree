@@ -4,31 +4,36 @@ This stack runs a private online instance of Chordifree on Google Cloud:
 
 - **Cloud Run** serves the web app and API from a single container (same origin).
 - **Cloud Run** runs the Essentia analyzer as a separate, private service.
-- **Firestore** stores the Google account allowlist and each user's songs and setlists.
+- **Cloud Run Jobs** run analyses on demand; Firestore persists their status and temporarily
+  stores uploaded audio in bounded chunks.
+- **Firestore** stores the Google account allowlist, each user's songs and setlists, and analysis jobs.
 - **Artifact Registry** stores both container images.
 - **Google Identity Services** issues an ID token in the browser; the API verifies it with
   `google-auth-library` and checks the email against the allowlist.
 
-There is no load balancer, no IAP and no always-on VM. Both Cloud Run services scale to zero,
-so an idle instance costs nothing.
+There is no load balancer, no IAP and no always-on VM. The API and analyzer scale to zero;
+analysis Jobs run only when requested.
 
 ## Why this shape
 
 | Piece | Reason |
 | --- | --- |
-| Cloud Run (request-driven) | Free tier and scale to zero. No VM to patch. |
+| Cloud Run API (request-driven) | Scales to zero and does not keep CPU allocated between requests. |
+| Cloud Run Jobs | Run analyses only when requested, then stop. |
 | Server serves the SPA | One origin, no CORS/CSP complexity, no extra hosting bill. |
 | Google ID token, verified server-side | No IAP (which needs a load balancer and costs money). |
 | Firestore native mode | Generous free tier, no SQL instance to keep awake. |
-| Analyzer with Cloud Run IAM | Container stays private; only the server service account can call it. |
-| One server instance | Jobs and temporary audio live in memory, so a queue must not be split. |
+| Analyzer with Cloud Run IAM | Container stays private; only the API and worker service accounts can call it. |
+| Firestore job state | Job status survives scale-to-zero and is visible to every API instance. |
 
 ## Cost
 
 The stack is designed to fit the free tier for personal use:
 
-- **Cloud Run** free tier per billing account and month: 180,000 vCPU-seconds,
-  360,000 GiB-seconds and 2 million requests. Scaling to zero means idle time is free.
+- **Cloud Run** free tier is aggregated per billing account and month. Services using
+  request-based billing include 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million
+  requests; Jobs use instance-based free-tier rates. Capacity is shared with other Cloud Run
+  usage on the billing account.
 - **Firestore** free tier per project and day: 50,000 reads, 20,000 writes, 20,000 deletes
   and 1 GiB stored.
 - **Cloud Build** free tier: 120 build-minutes per day on the default pool.
@@ -38,20 +43,21 @@ The stack is designed to fit the free tier for personal use:
 - **Cloud Logging** free tier: 50 GiB per month.
 - **No** load balancer, NAT, Kubernetes or IAP.
 
-Set a billing budget alert anyway (for example 1 EUR) in **Billing → Budgets & alerts**.
-A 4 GiB analyzer instance burns memory-seconds faster than the API; an analysis-heavy month
-can leave the free tier even if the bill stays small.
+Set a billing budget or spend cap in **Billing → Budgets & alerts**. Jobs still consume CPU and
+memory while processing, so heavy analysis usage can exceed the free tier. A spend cap can pause
+Cloud Run; an alert alone does not stop charges.
 
-The API sets `cpu_idle = false` so background analysis keeps running after the HTTP response
-that created the job. Instances still scale to zero after the configured idle period.
+The API uses request-based billing. It writes upload chunks and job state to Firestore, then
+starts a Cloud Run Job. The worker reads the job, performs the analysis, writes the result and
+cleans up temporary upload chunks. Firestore TTL policies remove abandoned job/input records.
 
 ## Prerequisites
 
 - A GCP project with billing enabled.
 - [`gcloud`](https://cloud.google.com/sdk/docs/install) and
   [`terraform`](https://developer.hashicorp.com/terraform/install) (>= 1.7).
-- Permission to create Cloud Run services, Firestore databases, Artifact Registry
-  repositories and service accounts in the project.
+- Permission to create Cloud Run services and Jobs, Firestore databases, Artifact Registry
+  repositories, IAM bindings and service accounts in the project.
 - A Google account that will be the first administrator.
 
 Authenticate locally:
@@ -118,7 +124,7 @@ It looks like `https://chordifree-server-xxxxxxxx-ew.a.run.app`. Wait a couple o
 the change to propagate, then open the URL and sign in.
 
 To deploy a new commit, run `./deploy.sh` again. Each run pushes a new image tag and updates
-both Cloud Run services. You can also run Terraform directly:
+the two services and the analysis Job. You can also run Terraform directly:
 
 ```bash
 terraform plan
@@ -145,6 +151,8 @@ If you run `terraform apply` without the image variables, Terraform falls back t
 | Allowlist | Firestore `chordifree_access/{email}` |
 | Songs | Firestore `chordifree_users/{uid}/songs/{songId}` |
 | Setlists | Firestore `chordifree_users/{uid}/setlists/{setlistId}` |
+| Analysis jobs | Firestore `chordifree_analysis_jobs/{jobId}` (24-hour TTL) |
+| Temporary upload chunks | Firestore `chordifree_analysis_inputs/{jobId}_{chunk}` (24-hour TTL) |
 
 The browser keeps a local copy and merges it with the cloud snapshot by song source and
 `updatedAt` when you sign in. The API uses the Firestore Admin SDK, so Firestore security
@@ -163,6 +171,8 @@ if you really want to start over.
 | `ADMIN_EMAILS` | `var.admin_emails` |
 | `GOOGLE_CLOUD_PROJECT` | `var.project_id` |
 | `FIRESTORE_DATABASE` | `var.firestore_database` |
+| `CLOUD_RUN_REGION` | `var.region` |
+| `ANALYSIS_JOB_NAME` | Cloud Run analysis Job created by Terraform |
 | `ANALYZER_URL` | URL of the analyzer Cloud Run service |
 | `ANALYZER_AUTH` | `google` (Cloud Run verifies the ID token) |
 | `YOUTUBE_EXTRACTOR_URL` | Optional residential extractor URL |
@@ -250,7 +260,7 @@ with `gcloud firestore import` from the same prefix.
 Terraform creates:
 
 - an email notification channel for `alert_email` (defaults to the first administrator);
-- a log-based metric and alert for failed analysis jobs (`[analysis] ... failed`);
+- a log-based metric and alert for failed analysis jobs (`[analysis-worker] ... failed`);
 - an alert when the Cloud Run server returns 5xx responses;
 - an uptime check and alert for `/api/health`.
 
@@ -268,22 +278,25 @@ OTEL_ENABLED=true GOOGLE_CLOUD_PROJECT=your-project pnpm --filter @chordifree/se
 Traces are visible in **Trace Explorer**. OTLP traces through the Telemetry API have a free
 tier; check the current Cloud Trace pricing before sending high volume.
 
-## Stopping Cloud Run to save cost
+## Stopping Cloud Run
 
-The two Cloud Run services are the only part that can keep billing while idle (`cpu_idle =
-false` on the server). To delete just those services and their IAM bindings, while keeping
-Firestore, Artifact Registry and the service accounts:
+The API and analyzer scale to zero; the analysis Job only runs when requested. To remove the
+Cloud Run resources while keeping Firestore, Artifact Registry and the service accounts:
 
 ```bash
 terraform destroy \
   -target=google_cloud_run_v2_service_iam_member.server_public \
   -target=google_cloud_run_v2_service_iam_member.analyzer_invoker \
+  -target=google_cloud_run_v2_service_iam_member.analyzer_worker_invoker \
+  -target=google_cloud_run_v2_job_iam_member.analysis_executor \
+  -target=google_service_account_iam_member.server_can_run_analysis_worker \
+  -target=google_cloud_run_v2_job.analysis \
   -target=google_cloud_run_v2_service.server \
   -target=google_cloud_run_v2_service.analyzer
 ```
 
-To bring them back, run `./deploy.sh` again. It rebuilds the images and recreates both
-services. The Firestore database and the user libraries are untouched.
+To bring them back, run `./deploy.sh` again. It rebuilds the images and recreates the services
+and Job. The Firestore database and the user libraries are untouched.
 
 ## Troubleshooting
 
@@ -292,8 +305,8 @@ services. The Firestore database and the user libraries are untouched.
 | `Access not enabled` after signing in | The email is not an administrator and not in `chordifree_access`. Add it from `#/admin` with an administrator account. |
 | `401` on every API call | `GOOGLE_CLIENT_ID` does not match the OAuth client that issued the token. Redeploy with the right ID. |
 | Google button does not appear | The Cloud Run URL is missing from **Authorized JavaScript origins**, or the browser blocked `accounts.google.com` (check the CSP). |
-| `Permission denied` calling the analyzer | The server service account is missing `roles/run.invoker` on the analyzer. Re-apply Terraform. |
-| Analysis starts but never finishes | The server must keep CPU allocated. Keep `cpu_idle = false` and `max_instance_count = 1`. |
+| `Permission denied` calling the analyzer | The API or worker service account is missing `roles/run.invoker` on the analyzer. Re-apply Terraform. |
+| Analysis starts but never finishes | Check the Cloud Run Job execution and worker logs, then confirm the worker can invoke the private analyzer. |
 | `YOUTUBE_BLOCKED`, or yt-dlp says “Sign in to confirm you're not a bot” | YouTube blocks many datacenter/Cloud Run IP ranges. Use the audio-upload option; cookies or a proxy can work but are fragile and may violate YouTube's terms. |
 | Firestore `RESOURCE_EXHAUSTED` | Daily free-tier quota reached, or a very large import. Wait or raise the quota/billing. |
 | Cloud Run revision fails to start | Check logs. Firestore may not be ready yet; re-run `terraform apply`. |

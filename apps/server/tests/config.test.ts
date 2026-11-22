@@ -18,15 +18,13 @@ describe('config defaults', () => {
   it('keeps the temporary audio indefinitely on local installs', () => {
     expect(loadConfig({}).audioCacheTtlMinutes).toBe(0);
     expect(
-      loadConfig({ HOST: '0.0.0.0', CORS_ORIGIN: 'http://localhost:3000' })
-        .audioCacheTtlMinutes,
+      loadConfig({ HOST: '0.0.0.0', CORS_ORIGIN: 'http://localhost:3000' }).audioCacheTtlMinutes,
     ).toBe(0);
   });
 
   it('expires the cache on remote installs unless a TTL is set', () => {
     expect(
-      loadConfig({ HOST: '0.0.0.0', CORS_ORIGIN: 'https://app.example.com' })
-        .audioCacheTtlMinutes,
+      loadConfig({ HOST: '0.0.0.0', CORS_ORIGIN: 'https://app.example.com' }).audioCacheTtlMinutes,
     ).toBe(60);
     expect(loadConfig({ AUDIO_CACHE_TTL_MINUTES: '15' }).audioCacheTtlMinutes).toBe(15);
     expect(
@@ -48,8 +46,30 @@ describe('config defaults', () => {
   });
 
   it('requires a token when the extractor URL is set', () => {
+    expect(() => loadConfig({ YOUTUBE_EXTRACTOR_URL: 'https://extractor.example.com' })).toThrow(
+      'YOUTUBE_EXTRACTOR_TOKEN',
+    );
+  });
+
+  it('requires Google auth and Cloud Run details for the analysis worker', () => {
+    expect(() => loadConfig({ ANALYSIS_JOB_NAME: 'chordifree-analysis' })).toThrow(
+      'CLOUD_RUN_REGION and GOOGLE_CLOUD_PROJECT',
+    );
     expect(() =>
-      loadConfig({ YOUTUBE_EXTRACTOR_URL: 'https://extractor.example.com' }),
-    ).toThrow('YOUTUBE_EXTRACTOR_TOKEN');
+      loadConfig({
+        ANALYSIS_JOB_NAME: 'chordifree-analysis',
+        CLOUD_RUN_REGION: 'europe-west1',
+        GOOGLE_CLOUD_PROJECT: 'chordifree',
+      }),
+    ).toThrow('AUTH_MODE=google');
+
+    const config = loadConfig({
+      AUTH_MODE: 'google',
+      ANALYSIS_JOB_NAME: 'chordifree-analysis',
+      CLOUD_RUN_REGION: 'europe-west1',
+      GOOGLE_CLOUD_PROJECT: 'chordifree',
+    });
+    expect(config.analysisJobName).toBe('chordifree-analysis');
+    expect(config.cloudRunRegion).toBe('europe-west1');
   });
 });

@@ -8,7 +8,7 @@ import multer from 'multer';
 import { loadConfig, type AppConfig } from './config';
 import { ApiError, errorBody } from './errors';
 import { JobQueue } from './jobs/queue';
-import { JobStore } from './jobs/store';
+import { FirestoreAnalysisJobStore, JobStore, type AnalysisJobStore } from './jobs/store';
 import { createAnalysesRouter } from './routes/analyses';
 import { createLyricsRouter } from './routes/lyrics';
 import { createCloudLibraryRouter } from './routes/cloud-library';
@@ -47,6 +47,12 @@ import {
 } from './services/analysis-log';
 import { StemJobs } from './services/stem-jobs';
 import { StemCache } from './services/stem-cache';
+import {
+  CloudRunAnalysisJobDispatcher,
+  FirestoreAnalysisInputStore,
+  type AnalysisInputStore,
+  type AnalysisJobDispatcher,
+} from './services/cloud-run-analysis';
 import { StemInstaller, type StemInstallerLike } from './services/stem-installer';
 import {
   NullStemEngine,
@@ -59,7 +65,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export interface AppDependencies {
   config: AppConfig;
-  store: JobStore;
+  store: AnalysisJobStore;
   queue: JobQueue;
   tools: MediaTools;
   analyzer: AnalyzerClient;
@@ -75,6 +81,8 @@ export interface AppDependencies {
   stems: StemJobs;
   stemsCache: StemCache;
   stemsSetup?: StemInstallerLike;
+  analysisDispatcher?: AnalysisJobDispatcher;
+  analysisInputs?: AnalysisInputStore;
   webDist: string;
 }
 
@@ -142,6 +150,20 @@ function sameOriginWriteGuard(config: AppConfig) {
 
 export function createApp(options: CreateAppOptions = {}): express.Express {
   const config = options.config ?? loadConfig();
+  const analysisDispatcher =
+    options.analysisDispatcher ??
+    (config.analysisJobName && config.cloudRunRegion
+      ? new CloudRunAnalysisJobDispatcher(
+          config.googleCloudProject,
+          config.cloudRunRegion,
+          config.analysisJobName,
+        )
+      : undefined);
+  const analysisInputs =
+    options.analysisInputs ??
+    (analysisDispatcher && config.authMode === 'google'
+      ? new FirestoreAnalysisInputStore(createFirestore(config))
+      : undefined);
   const tools = options.tools ?? createMediaTools(config);
   const analyzerTokenProvider =
     config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
@@ -175,7 +197,11 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       : undefined);
   const deps: AppDependencies = {
     config,
-    store: options.store ?? new JobStore(),
+    store:
+      options.store ??
+      (analysisDispatcher && config.authMode === 'google'
+        ? new FirestoreAnalysisJobStore(createFirestore(config))
+        : new JobStore()),
     queue: options.queue ?? new JobQueue(2),
     tools,
     analyzer:
@@ -214,6 +240,8 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       options.stems ??
       new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems'), stemsCache),
     stemsCache,
+    ...(analysisDispatcher ? { analysisDispatcher } : {}),
+    ...(analysisInputs ? { analysisInputs } : {}),
     ...(stemsSetup ? { stemsSetup } : {}),
     webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
   };
