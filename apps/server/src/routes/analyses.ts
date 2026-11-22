@@ -184,8 +184,11 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
         await mkdir(deps.config.tempDir, { recursive: true });
         const source = { type: 'upload' as const, filename: originalname };
         const job = await deps.store.create(source, await requesterFor(req.authUser, deps));
+        let view = deps.store.toView(job);
         if (deps.analysisDispatcher) {
           await dispatchCloudJob(job, deps, buffer);
+          // The dispatch step can mark the job as failed.
+          view = deps.store.toView((await deps.store.get(job.id)) ?? job);
         } else {
           startInProcessJob(
             job,
@@ -193,7 +196,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
             deps,
           );
         }
-        res.status(202).json(deps.store.toView((await deps.store.get(job.id)) ?? job));
+        res.status(202).json(view);
         return;
       }
 
@@ -230,12 +233,15 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
 
       await mkdir(deps.config.tempDir, { recursive: true });
       const job = await deps.store.create(source, await requesterFor(req.authUser, deps));
+      let view = deps.store.toView(job);
       if (deps.analysisDispatcher) {
         await dispatchCloudJob(job, deps);
+        // The dispatch step can mark the job as failed.
+        view = deps.store.toView((await deps.store.get(job.id)) ?? job);
       } else {
         startInProcessJob(job, (report) => analyzeYoutube(videoId, deps, report), deps);
       }
-      res.status(202).json(deps.store.toView((await deps.store.get(job.id)) ?? job));
+      res.status(202).json(view);
     } catch (error) {
       next(error);
     }
