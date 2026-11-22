@@ -11,17 +11,6 @@ resource "google_monitoring_notification_channel" "email" {
   }
 }
 
-resource "google_logging_metric" "analysis_failures" {
-  project = var.project_id
-  name    = "${replace(var.name_prefix, "-", "_")}_analysis_failures"
-  filter  = "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${local.analysis_job_name}\" AND textPayload:\"[analysis-worker]\" AND textPayload:\"failed\""
-
-  metric_descriptor {
-    metric_kind = "DELTA"
-    value_type  = "INT64"
-  }
-}
-
 resource "google_monitoring_alert_policy" "analysis_failures" {
   project      = var.project_id
   display_name = "${var.name_prefix}: analysis failures"
@@ -31,20 +20,8 @@ resource "google_monitoring_alert_policy" "analysis_failures" {
 
   conditions {
     display_name = "Failed analysis jobs"
-    condition_threshold {
-      filter          = "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${local.analysis_job_name}\" AND metric.type=\"logging.googleapis.com/user/${google_logging_metric.analysis_failures.name}\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = 0
-      duration        = "300s"
-
-      trigger {
-        count = 1
-      }
-
-      aggregations {
-        alignment_period   = "300s"
-        per_series_aligner = "ALIGN_SUM"
-      }
+    condition_matched_log {
+      filter = "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"${local.analysis_job_name}\" AND textPayload:\"[analysis-worker]\" AND textPayload:\"failed\""
     }
   }
 

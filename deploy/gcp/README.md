@@ -260,7 +260,7 @@ with `gcloud firestore import` from the same prefix.
 Terraform creates:
 
 - an email notification channel for `alert_email` (defaults to the first administrator);
-- a log-based metric and alert for failed analysis jobs (`[analysis-worker] ... failed`);
+- a log-based alert for failed analysis jobs (`[analysis-worker] ... failed`);
 - an alert when the Cloud Run server returns 5xx responses;
 - an uptime check and alert for `/api/health`.
 
