@@ -91,10 +91,14 @@ The [`deploy/gcp`](deploy/gcp/README.md) stack adds an optional online mode:
   account.
 - **Account deletion:** from the account menu, a user can delete their cloud library. A
   non-admin also loses allowlist access; the local copy stays on the device.
-- **Private analyzer** on Cloud Run. Only the server service account can invoke it, using a
-  Cloud Run ID token.
+- **Private analyzer** on Cloud Run. Only the server and worker service accounts can invoke
+  it, using a Cloud Run ID token.
+- **On-demand analysis Jobs**. The API stores the job and the upload chunks in Firestore,
+  starts a Cloud Run Job and responds; a dedicated worker invokes the analyzer, records
+  progress and the result, and removes the temporary chunks when it finishes.
 - **Scale to zero** and a free-tier-friendly shape: no load balancer, no IAP, no always-on
-  VM. Cloud Run, Firestore and Artifact Registry are provisioned by Terraform.
+  VM. The Cloud Run services and Job, Firestore and Artifact Registry are provisioned by
+  Terraform.
 
 Quick start (the full guide covers OAuth, origins, cost and troubleshooting):
 
@@ -257,13 +261,15 @@ Local / Docker
 Private online (GCP, optional)
   Browser
     -> Cloud Run: Express API + SPA
-         -> Cloud Run: private analyzer (ID-token auth)
-         -> Firestore: allowlist + per-user libraries
+         -> Cloud Run Job: analysis worker (on demand)
+              -> Cloud Run: private analyzer (ID-token auth)
+         -> Firestore: allowlist, per-user libraries, job state and upload chunks
 ```
 
 - `apps/web`: React SPA, local library, lyrics alignment, practice tools.
-- `apps/server`: Express API, upload handling, YouTube download, temporary audio cache,
-  job queue.
+- `apps/server`: Express API, upload handling, YouTube download, temporary audio cache and
+  an in-process job queue for local and desktop. On GCP, analyses run in Cloud Run Jobs and
+  their state lives in Firestore.
 - `services/analyzer`: FastAPI + Essentia + NNLSChroma + YAMNet/voice ONNX models.
 - `packages/chords`: chord model, notation, transposition and reduction.
 
@@ -316,10 +322,13 @@ To publish a GitHub release, dispatch the same workflow on a version tag; the
 release job only runs for `refs/tags/v*`:
 
 ```bash
-git tag v0.5.0
-git push origin v0.5.0
-gh workflow run desktop-builds.yml --ref v0.5.0
+git tag v0.5.2
+git push origin v0.5.2
+gh workflow run desktop-builds.yml --ref v0.5.2
 ```
+
+Use the version you are releasing. The notes for each version live in
+[`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md).
 
 The executable is unsigned, so SmartScreen warns on first launch. See
 [`docs/WINDOWS_INSTALL.md`](docs/WINDOWS_INSTALL.md) for checksum verification, the

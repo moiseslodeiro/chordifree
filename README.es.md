@@ -162,7 +162,7 @@ incluye en el instalador; consulta [`docs/STEMS_PLUGIN.md`](docs/STEMS_PLUGIN.md
 
 ```
 apps/web/            SPA React + Vite + Tailwind
-apps/server/         API Express + cola de análisis
+apps/server/         API Express y cola local de análisis (Cloud Run Jobs en online)
 packages/chords/     Modelo canónico, notación, trasposición y segmentos
 services/analyzer/   Microservicio FastAPI + Essentia
 ```
@@ -275,10 +275,13 @@ La carpeta [`deploy/gcp`](deploy/gcp/README.md) añade un modo online opcional:
   siempre tienen acceso; al resto se les añade desde la web (`#/admin`).
 - **Biblioteca por usuario** bajo `chordifree_users/{uid}`. Las canciones y repertorios se
   fusionan con la copia local por fuente de canción y `updatedAt`.
-- **Analizador privado** en Cloud Run. Solo lo puede invocar la service account del servidor,
-  mediante un ID token de Cloud Run.
-- **Escala a cero** y sin balanceador, IAP ni VM siempre encendida. Terraform crea Cloud Run,
-  Firestore y Artifact Registry.
+- **Analizador privado** en Cloud Run. Solo lo pueden invocar las service accounts del
+  servidor y del worker, mediante un ID token de Cloud Run.
+- **Análisis bajo demanda**. La API guarda el trabajo y los fragmentos de la subida en
+  Firestore, lanza un Cloud Run Job y responde; un worker dedicado invoca el analizador,
+  guarda el progreso y el resultado, y elimina los fragmentos temporales al terminar.
+- **Escala a cero** y sin balanceador, IAP ni VM siempre encendida. Terraform crea los
+  servicios y el Job de Cloud Run, Firestore y Artifact Registry.
 
 Inicio rápido (la guía completa cubre OAuth, orígenes, coste y problemas):
 
@@ -335,7 +338,8 @@ Al superar el límite por IP la API responde `429 RATE_LIMITED` con `Retry-After
 
 `yt-dlp` se rompe cuando YouTube cambia; actualiza `YTDLP_VERSION` a una versión reciente,
 reconstruye la imagen y vuelve a desplegar. La vía de subida de audio sigue disponible como
-alternativa.
+alternativa. Los cambios de cada versión están en
+[`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md).
 
 ## Compatibilidad de navegadores
 
