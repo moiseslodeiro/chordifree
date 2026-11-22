@@ -29,6 +29,12 @@ resource "google_monitoring_alert_policy" "analysis_failures" {
   severity     = "ERROR"
   enabled      = true
 
+  alert_strategy {
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
   conditions {
     display_name = "Failed analysis jobs"
     condition_matched_log {
