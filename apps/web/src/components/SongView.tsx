@@ -25,28 +25,17 @@ import { useT } from '../i18n';
 import { useConfirm } from './ConfirmDialog';
 import { fetchLyrics } from '../lib/api';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
-import {
-  MAX_SHARE_URL,
-  buildShareMessage,
-  buildShareUrl,
-  canShareLinks,
-  emailShareUrl,
-  encodeSongForShare,
-  telegramShareUrl,
-  whatsappShareUrl,
-} from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { buildMidi, downloadMidi, type MidiOverrides } from '../lib/midi';
 import { downloadStem, getStemNotes, prepareStemAudio, uninstallStems } from '../lib/api';
 import { useStems } from '../hooks/useStems';
-import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { detectSections } from '../sections/detect';
 import { barRangeAt } from '../practice/range';
 import { useMicPractice } from '../practice/useMicPractice';
 import { usePracticeSession } from '../practice/usePracticeSession';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
+import { buildLyricLines } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
 import { usePlaybackIndex, usePlaybackTime } from '../sync/hooks';
 import {
@@ -57,27 +46,17 @@ import {
   type Preferences,
   type Song,
 } from '../types';
-import { ActionMenu, type ActionMenuItem } from './ActionMenu';
 import { AddToSetlistDialog } from './AddToSetlistDialog';
-import { ActiveChordDiagram } from './ActiveChordDiagram';
-import { ChordGrid } from './ChordGrid';
-import { CollabPanel } from './CollabPanel';
 import { DisplayControls } from './DisplayControls';
-import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
-import { LyricsEditor } from './LyricsEditor';
-import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
-import { AudioControls } from './AudioControls';
-import { SectionsPanel } from './SectionsPanel';
-import { StemsPanel } from './StemsPanel';
-import { StemsInstallPrompt } from './StemsInstallPrompt';
+import { SongGridColumn } from './SongGridColumn';
+import { SongHeader } from './SongHeader';
+import { SongPracticeControls } from './SongPracticeControls';
+import { SongToolsColumn } from './SongToolsColumn';
+import { SongPrintSheet } from './SongPrintSheet';
+import { SongShareDialog, type ShareNotice } from './SongShareDialog';
 import { NotationControls } from './NotationControls';
-import { PlayerHost } from './PlayerHost';
-import { PracticeBar } from './PracticeBar';
-import { PracticePanel } from './PracticePanel';
-import { SongInfoPanel } from './SongInfoPanel';
-import { Transport } from './Transport';
 
 interface SongViewProps {
   song: Song;
@@ -163,6 +142,7 @@ export function SongView({
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareNotice, setShareNotice] = useState<ShareNotice | null>(null);
   const [karaoke, setKaraoke] = useState(false);
   const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
   const stems = useStems(videoId, song.title);
@@ -177,13 +157,6 @@ export function SongView({
   const [uninstalling, setUninstalling] = useState(false);
   const stemUrlsRef = useRef<string[]>([]);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
-  const [shareNotice, setShareNotice] = useState<{
-    message: string;
-    tone: 'success' | 'warning';
-  } | null>(null);
-  const shareCloseRef = useRef<HTMLButtonElement>(null);
-  const shareDialogRef = useRef<HTMLDivElement>(null);
-  const [shareLink, setShareLink] = useState<string | null>(null);
   const [performance, setPerformance] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
@@ -194,62 +167,6 @@ export function SongView({
     setLyricsDraft('');
     setMicEnabled(false);
   }, [song.id]);
-
-  useEffect(() => {
-    if (!shareOpen) return;
-    shareCloseRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShareOpen(false);
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const dialog = shareDialogRef.current;
-      if (!dialog) return;
-      const focusables = [
-        ...dialog.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      ].filter((element) => element.offsetParent !== null);
-      if (focusables.length === 0) return;
-      const first = focusables[0]!;
-      const last = focusables[focusables.length - 1]!;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [shareOpen]);
-
-  useEffect(() => {
-    if (!shareOpen || !canShareLinks()) {
-      setShareLink(null);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const token = await encodeSongForShare(song);
-        const url = buildShareUrl(token);
-        if (!cancelled) setShareLink(url.length <= MAX_SHARE_URL ? url : null);
-      } catch {
-        if (!cancelled) setShareLink(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [shareOpen, song]);
 
   useEffect(() => {
     document.body.classList.toggle('performance-mode', performance);
@@ -864,54 +781,6 @@ export function SongView({
     downloadChordPro(`${base}.cho`, content);
   };
 
-  const copyChordSheet = async () => {
-    try {
-      await navigator.clipboard.writeText(chordProContent());
-      setShareNotice({ message: t('share.copySheetDone'), tone: 'success' });
-    } catch {
-      setShareNotice({ message: t('share.failed'), tone: 'warning' });
-    }
-  };
-
-  const downloadShareFile = () => {
-    downloadSong(song);
-    setShareNotice({ message: t('share.fileDone'), tone: 'success' });
-  };
-
-  const copyShareLink = async () => {
-    if (!shareLink) {
-      setShareNotice({ message: t('share.tooLong'), tone: 'warning' });
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setShareNotice({ message: t('share.linkDone'), tone: 'success' });
-    } catch {
-      setShareNotice({ message: t('share.failed'), tone: 'warning' });
-    }
-  };
-
-  const shareTo = (target: 'whatsapp' | 'telegram' | 'email') => {
-    const message = buildShareMessage(song.title, chordProContent(), shareLink);
-    if (target === 'email') {
-      window.location.href = emailShareUrl(song.title, message);
-      return;
-    }
-    const url =
-      target === 'whatsapp' ? whatsappShareUrl(message) : telegramShareUrl(message, shareLink);
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const nativeShare = async () => {
-    if (typeof navigator.share !== 'function') return;
-    try {
-      await navigator.share({ title: song.title, text: chordProContent() });
-    } catch (error) {
-      if ((error as DOMException)?.name === 'AbortError') return;
-      setShareNotice({ message: t('share.failed'), tone: 'warning' });
-    }
-  };
-
   const sourceLabel =
     song.source.type === 'youtube'
       ? t('song.sourceYoutube', { id: song.source.videoId })
@@ -926,163 +795,36 @@ export function SongView({
         <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
       ) : null}
 
-      <header className="song-header border-b border-line pb-5">
-        <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
-          <button
-            type="button"
-            className="song-crumb font-mono text-[0.7rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
-            onClick={onBack}
-          >
-            {t('song.back')}
-          </button>
-          <button
-            type="button"
-            className="song-crumb font-mono text-[0.7rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
-            onClick={onOpenLibrary}
-          >
-            {t('song.library')}
-          </button>
-        </nav>
-
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-          <div className="min-w-0">
-            <p className="eyebrow">{t('song.eyebrow')}</p>
-            <h1 className="display mt-2 truncate text-2xl sm:text-3xl">{song.title}</h1>
-            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
-              <span className="badge">{sourceLabel}</span>
-              <span className="tabular-nums">{formatTime(song.duration)}</span>
-              <span aria-hidden="true">·</span>
-              <span>{t('song.analyzer', { version: song.analyzerVersion })}</span>
-              {saved ? null : (
-                <span className="badge border-accent/50 text-accent">{t('song.unsaved')}</span>
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {!editingLyrics ? (
-              <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
-                {editing ? t('song.exitEdit') : t('song.editChords')}
-              </button>
-            ) : null}
-            <ActionMenu
-              label={t('song.moreActions')}
-              sections={[
-                ...(!editing && !editingLyrics
-                  ? [
-                      {
-                        label: t('menu.song'),
-                        items: [
-                          { label: t('song.editDetails'), onSelect: openDetails },
-                          ...(saved
-                            ? [
-                                {
-                                  label: t('song.addToSetlist'),
-                                  onSelect: () => setAddToSetlistOpen(true),
-                                },
-                              ]
-                            : []),
-                          {
-                            label: performance ? t('song.exitPerformance') : t('song.performance'),
-                            onSelect: togglePerformance,
-                          },
-                        ] satisfies ActionMenuItem[],
-                      },
-                      {
-                        label: t('menu.share'),
-                        items: [
-                          {
-                            label: t('song.share'),
-                            onSelect: () => {
-                              setShareNotice(null);
-                              setShareLink(null);
-                              setShareOpen(true);
-                            },
-                          },
-                          ...(canCollaborate && saved
-                            ? ([
-                                {
-                                  label: t('collab.shareAction'),
-                                  onSelect: () => {
-                                    void (async () => {
-                                      const url = await onShareCollab(song);
-                                      if (!url) {
-                                        setShareNotice({
-                                          message: t('collab.createFailed'),
-                                          tone: 'warning',
-                                        });
-                                        return;
-                                      }
-                                      try {
-                                        await navigator.clipboard.writeText(url);
-                                        setShareNotice({
-                                          message: t('collab.linkCopied'),
-                                          tone: 'success',
-                                        });
-                                      } catch {
-                                        setShareNotice({
-                                          message: t('collab.linkReady', { url }),
-                                          tone: 'warning',
-                                        });
-                                      }
-                                    })();
-                                  },
-                                },
-                              ] satisfies ActionMenuItem[])
-                            : []),
-                        ] satisfies ActionMenuItem[],
-                      },
-                    ]
-                  : []),
-                ...(!editing && !editingLyrics && printRows.length > 0
-                  ? [
-                      {
-                        label: t('menu.export'),
-                        items: [
-                          { label: t('song.print'), onSelect: () => window.print() },
-                          { label: t('song.score'), onSelect: exportScoreFile },
-                          { label: t('song.midi'), onSelect: exportMidiFile },
-                          { label: t('song.chordpro'), onSelect: exportChordProFile },
-                        ] satisfies ActionMenuItem[],
-                      },
-                    ]
-                  : []),
-                ...(!editing && !editingLyrics && song.source.type === 'youtube'
-                  ? [
-                      {
-                        label: t('menu.analysis'),
-                        items: [
-                          {
-                            label: reanalyzing
-                              ? `${t('song.reanalyzing')}${
-                                  reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                                }`
-                              : t('song.reanalyze'),
-                            onSelect: () => {
-                              void confirm({
-                                title: t('song.reanalyze'),
-                                description: t('song.reanalyzeConfirm'),
-                                confirmLabel: t('song.reanalyze'),
-                              }).then((accepted) => {
-                                if (accepted) onReanalyze();
-                              });
-                            },
-                            disabled: reanalyzing,
-                          },
-                        ] satisfies ActionMenuItem[],
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-            {!editingLyrics && (!saved || dirty) ? (
-              <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
-                {saved ? t('song.save') : t('song.saveToLibrary')}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
+      <SongHeader
+        song={song}
+        sourceLabel={sourceLabel}
+        saved={saved}
+        dirty={dirty}
+        editing={editing}
+        editingLyrics={editingLyrics}
+        performance={performance}
+        reanalyzing={reanalyzing}
+        reanalyzeProgress={reanalyzeProgress}
+        canCollaborate={canCollaborate}
+        hasPrintRows={printRows.length > 0}
+        onBack={onBack}
+        onOpenLibrary={onOpenLibrary}
+        onToggleEditing={() => setEditing((value) => !value)}
+        onOpenDetails={openDetails}
+        onOpenSetlist={() => setAddToSetlistOpen(true)}
+        onTogglePerformance={togglePerformance}
+        onOpenShare={() => {
+          setShareNotice(null);
+          setShareOpen(true);
+        }}
+        onShareNotice={setShareNotice}
+        onShareCollab={onShareCollab}
+        onExportScore={exportScoreFile}
+        onExportMidi={exportMidiFile}
+        onExportChordPro={exportChordProFile}
+        onReanalyze={onReanalyze}
+        onSave={onSave}
+      />
 
       {editingDetails ? (
         <form
@@ -1122,62 +864,34 @@ export function SongView({
         </form>
       ) : null}
 
-      {adapter && clock ? (
-        <div className="song-controls space-y-2">
-          <Transport
-            adapter={adapter}
-            clock={clock}
-            duration={song.duration}
-            loopA={loopA}
-            loopB={loopB}
-            loopEnabled={loopEnabled}
-          />
-          <PracticePanel
-            onOpenChange={(open) => {
-              if (!open) setMicEnabled(false);
-            }}
-          >
-            <PracticeBar
-              adapter={adapter}
-              clock={clock}
-              beats={beats}
-              beatsPerBar={beatsPerBar}
-              duration={song.duration}
-              loopA={loopA}
-              loopB={loopB}
-              loopEnabled={loopEnabled}
-              onLoopAChange={(value) => updatePractice({ loopA: value })}
-              onLoopBChange={(value) => updatePractice({ loopB: value })}
-              onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
-              markMode={markMode}
-              onMarkModeChange={setMarkMode}
-              manualBpm={manualBpm}
-              onManualBpmChange={(value) => updatePractice({ bpm: value })}
-              embedded
-              trailing={
-                <MicToggle enabled={micEnabled} onToggle={() => setMicEnabled((value) => !value)} />
-              }
-            />
-            {micEnabled ? (
-              <MicPractice
-                status={micPractice.status}
-                target={practiceTarget}
-                detected={micPractice.detected}
-                hit={micPractice.hit}
-                hitCount={micPractice.hits.size}
-                totalChords={totalPracticeChords}
-                notation={song.notation}
-                accidental={accidental}
-                onReset={micPractice.reset}
-              />
-            ) : null}
-          </PracticePanel>
-        </div>
-      ) : (
-        <div className="song-controls rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
-          {t('song.controlsUnavailable')}
-        </div>
-      )}
+      <SongPracticeControls
+        adapter={adapter}
+        clock={clock}
+        duration={song.duration}
+        beats={beats}
+        beatsPerBar={beatsPerBar}
+        loopA={loopA}
+        loopB={loopB}
+        loopEnabled={loopEnabled}
+        markMode={markMode}
+        onMarkModeChange={setMarkMode}
+        manualBpm={manualBpm}
+        onLoopAChange={(value) => updatePractice({ loopA: value })}
+        onLoopBChange={(value) => updatePractice({ loopB: value })}
+        onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
+        onBpmChange={(value) => updatePractice({ bpm: value })}
+        micEnabled={micEnabled}
+        onMicEnabledChange={setMicEnabled}
+        micStatus={micPractice.status}
+        micTarget={practiceTarget}
+        micDetected={micPractice.detected}
+        micHit={micPractice.hit}
+        micHitCount={micPractice.hits.size}
+        totalChords={totalPracticeChords}
+        notation={song.notation}
+        accidental={accidental}
+        onMicReset={micPractice.reset}
+      />
 
       <section
         className="song-toolbar flex flex-wrap items-stretch overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
@@ -1222,274 +936,108 @@ export function SongView({
         data-testid="song-layout"
         className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
       >
-        <div
-          data-testid="song-grid-column"
-          className="order-2 min-w-0 lg:col-start-1 lg:row-start-1"
-        >
-          {editingLyrics ? (
-            <LyricsEditor
-              value={lyricsDraft}
-              initialValue={song.lyrics ?? ''}
-              canDelete={Boolean(song.lyrics)}
-              canAnchor={Boolean(adapter)}
-              getCurrentTime={() => adapter?.getCurrentTime() ?? null}
-              onChange={setLyricsDraft}
-              onSave={saveLyrics}
-              onCancel={closeLyricsEditor}
-              onDelete={deleteLyrics}
-              onFindLyrics={findLyrics}
-            />
-          ) : editing ? (
-            <EditorPanel
-              song={song}
-              notation={song.notation}
-              accidental={accidental}
-              onSave={saveEdited}
-              onDiscard={() => setEditing(false)}
-            />
-          ) : (
-            <ChordGrid
-              segments={displaySegments}
-              lyricsSegments={lyricsSegments}
-              lyricChordOffsets={song.lyricChordOffsets}
-              lyricChordLines={song.lyricChordLines}
-              onLyricChordOffsetChange={updateLyricChordOffset}
-              onLyricChordLineChange={updateLyricChordLine}
-              onResetLyricChordOffsets={resetLyricChordOffsets}
-              notation={song.notation}
-              accidental={accidental}
-              clock={clock}
-              onSeek={seek}
-              onSelectBar={selectBar}
-              markMode={markMode}
-              beats={beats}
-              beatsPerBar={beatsPerBar}
-              duration={song.duration}
-              loopA={loopA}
-              loopB={loopB}
-              vocalRegions={song.vocalRegions}
-              lyrics={song.lyrics}
-              onEditLyrics={openLyricsEditor}
-              view={gridView}
-              onViewChange={(view) => onPreferences({ gridView: view })}
-              practiceHits={micPractice.hits}
-              practiceHitRanges={practiceHitRanges}
-            />
-          )}
+        <SongGridColumn
+          song={song}
+          adapter={adapter}
+          clock={clock}
+          editing={editing}
+          editingLyrics={editingLyrics}
+          lyricsDraft={lyricsDraft}
+          accidental={accidental}
+          displaySegments={displaySegments}
+          lyricsSegments={lyricsSegments}
+          transposedSegments={transposedSegments}
+          estimatedKey={estimatedKey}
+          gridView={gridView}
+          beats={beats}
+          beatsPerBar={beatsPerBar}
+          loopA={loopA}
+          loopB={loopB}
+          markMode={markMode}
+          practiceHits={micPractice.hits}
+          practiceHitRanges={practiceHitRanges}
+          keyLabel={keyLabel}
+          relativeKeyLabel={relativeKeyLabel}
+          effectiveCapo={effectiveCapo}
+          capoKeyLabel={capoKeyLabel}
+          capoAvailable={capoAvailable}
+          bpm={bpm}
+          artist={artist}
+          chordList={chordList}
+          onLyricsDraftChange={setLyricsDraft}
+          onSaveLyrics={saveLyrics}
+          onCancelLyrics={closeLyricsEditor}
+          onDeleteLyrics={deleteLyrics}
+          onFindLyrics={findLyrics}
+          onSaveEdits={saveEdited}
+          onDiscardEdits={() => setEditing(false)}
+          onSeek={seek}
+          onSelectBar={selectBar}
+          onOpenLyricsEditor={openLyricsEditor}
+          onGridChange={(view) => onPreferences({ gridView: view })}
+          onLyricChordOffsetChange={updateLyricChordOffset}
+          onLyricChordLineChange={updateLyricChordLine}
+          onResetLyricChordOffsets={resetLyricChordOffsets}
+          onMeterChange={changeMeter}
+        />
 
-          <div data-testid="song-info-column" className="mt-5">
-            <SongInfoPanel
-              details={{
-                keyLabel,
-                relativeKeyLabel,
-                capo: effectiveCapo,
-                capoKeyLabel,
-                showCapo: capoAvailable,
-                bpm,
-                beatsPerBar,
-                duration: song.duration,
-                artist,
-                chords: chordList,
-                showChords: false,
-                onChangeMeter: changeMeter,
-              }}
-              harmony={{
-                segments: transposedSegments,
-                harmonyKey: estimatedKey,
-                notation: song.notation,
-                accidental,
-                capo: effectiveCapo,
-              }}
-            />
-          </div>
-        </div>
-
-        <aside
-          data-testid="song-tools-column"
-          className="song-tools contents lg:sticky lg:top-5 lg:col-start-2 lg:row-start-1 lg:flex lg:min-w-0 lg:flex-col lg:gap-5"
-          aria-label={t('song.toolsColumnAria')}
-        >
-          <div data-testid="song-player-column" className="order-1 lg:order-none">
-            <section
-              className="rounded-xl border border-line bg-panel p-3 shadow-sm"
-              aria-label={t('song.playerAria')}
-            >
-              <PlayerHost
-                song={song}
-                audioUrl={audioUrl}
-                forceFake={forceFake}
-                variant="compact"
-                pitch={pitch}
-                karaoke={karaoke}
-                overrideUrl={null}
-                mix={mixActive ? stemMix : null}
-                stemGains={stemGains}
-                onAdapter={handleAdapter}
-                onPlaybackError={setPlaybackError}
-              />
-            </section>
-          </div>
-
-          <div data-testid="song-audio" className="order-2 lg:order-none">
-            <AudioControls
-              adapter={adapter}
-              rate={rate}
-              onRateChange={(value) => updatePractice({ rate: value })}
-              pitch={pitch}
-              onPitchChange={(value) => updatePractice({ pitch: value })}
-              pitchAvailable={
-                !mixActive &&
-                (song.source.type === 'youtube' || typeof adapter?.setPitch === 'function')
-              }
-              karaoke={karaoke}
-              onKaraokeChange={setKaraoke}
-              karaokeAvailable={!mixActive && typeof adapter?.setKaraoke === 'function'}
-            >
-              {videoId && stems.status?.available ? (
-                <StemsPanel
-                  status={stems.status}
-                  job={stems.job}
-                  busy={stems.busy}
-                  checking={stems.checking}
-                  error={stems.error ?? stemError}
-                  midiBusy={stemMidiBusy}
-                  mixActive={mixActive}
-                  mixBusy={mixBusy}
-                  gains={stemGains}
-                  canUninstall={Boolean(stems.setup?.managed)}
-                  uninstalling={uninstalling}
-                  onSeparate={() => void stems.separate()}
-                  onCancel={() => void stems.cancel()}
-                  onToggleMix={(active) => void toggleMix(active)}
-                  onGainChange={changeStemGain}
-                  onDownloadStem={downloadStemByName}
-                  onDownloadMidi={() => void downloadStemMidi()}
-                  onRetry={() => void stems.separate()}
-                  onUninstall={() => void uninstallPlugin()}
-                />
-              ) : videoId && stems.setup?.supported ? (
-                <StemsInstallPrompt installed={stems.setup.installed} onOpenSetup={onOpenStems} />
-              ) : null}
-            </AudioControls>
-          </div>
-          <div data-testid="song-active-chord" className="order-2 lg:order-none">
-            <ActiveChordDiagram
-              segments={displaySegments}
-              clock={clock}
-              instrument={instrument}
-              notation={song.notation}
-              accidental={accidental}
-            />
-          </div>
-
-          {song.sections !== undefined || sections.length > 0 ? (
-            <div data-testid="song-sections" className="order-2 lg:order-none">
-              <SectionsPanel
-                sections={song.sections ?? sections}
-                currentTime={currentTime}
-                onSeek={seek}
-                onChange={updateSections}
-              />
-            </div>
-          ) : null}
-
-          {collabShare ? (
-            <div className="order-2 lg:order-none">
-              <CollabPanel
-                share={collabShare}
-                song={song}
-                currentUid={collabUid}
-                language={language}
-                loading={collabLoading}
-                onCopyLink={() => {
-                  const url = `${window.location.origin}${window.location.pathname}#/collab/${collabShare.id}`;
-                  void navigator.clipboard
-                    .writeText(url)
-                    .then(() =>
-                      setShareNotice({ message: t('collab.linkCopied'), tone: 'success' }),
-                    )
-                    .catch(() =>
-                      setShareNotice({
-                        message: t('collab.linkReady', { url }),
-                        tone: 'warning',
-                      }),
-                    );
-                }}
-                onRefresh={onRefreshCollab}
-                onLoadRevision={onLoadCollabRevision}
-                onApply={onApplyCollabRevision}
-              />
-            </div>
-          ) : null}
-        </aside>
+        <SongToolsColumn
+          song={song}
+          audioUrl={audioUrl}
+          forceFake={forceFake}
+          pitch={pitch}
+          karaoke={karaoke}
+          onKaraokeChange={setKaraoke}
+          mixActive={mixActive}
+          stemMix={stemMix}
+          stemGains={stemGains}
+          adapter={adapter}
+          rate={rate}
+          onRateChange={(value) => updatePractice({ rate: value })}
+          onPitchChange={(value) => updatePractice({ pitch: value })}
+          videoId={videoId}
+          stems={stems}
+          stemError={stemError}
+          stemMidiBusy={stemMidiBusy}
+          mixBusy={mixBusy}
+          uninstalling={uninstalling}
+          onToggleMix={(active) => void toggleMix(active)}
+          onStemGainChange={changeStemGain}
+          onDownloadStem={downloadStemByName}
+          onDownloadStemMidi={() => void downloadStemMidi()}
+          onUninstallStems={() => void uninstallPlugin()}
+          onOpenStems={onOpenStems}
+          segments={displaySegments}
+          clock={clock}
+          instrument={instrument}
+          notation={song.notation}
+          accidental={accidental}
+          sections={sections}
+          currentTime={currentTime}
+          onSeek={seek}
+          onSectionsChange={updateSections}
+          collabShare={collabShare}
+          collabUid={collabUid}
+          language={language}
+          collabLoading={collabLoading}
+          onShareNotice={setShareNotice}
+          onRefreshCollab={onRefreshCollab}
+          onLoadCollabRevision={onLoadCollabRevision}
+          onApplyCollabRevision={onApplyCollabRevision}
+          onAdapter={handleAdapter}
+          onPlaybackError={setPlaybackError}
+        />
       </div>
 
-      <section className="print-sheet" data-testid="print-sheet" aria-hidden="true">
-        <header className="print-sheet-header">
-          <img className="print-brand-logo" src="/brand-print.png" alt="chordifree" />
-          <h1>{song.title}</h1>
-          <p className="print-meta">
-            {[
-              keyLabel ?? t('song.unknownKey'),
-              capoAvailable && capo > 0 ? t('song.capoValue', { value: capo }) : null,
-              bpm ? `${bpm} BPM` : null,
-              formatTime(song.duration),
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        </header>
-
-        {song.lyrics?.trim() ? (
-          <section className="print-lyrics">
-            <h2 className="print-section-title">{t('song.printLyrics')}</h2>
-            <div className="print-lyric-lines">
-              {printLyrics.map((line) => (
-                <div className="print-lyric-line" key={line.index}>
-                  {line.chords.length > 0 ? (
-                    <div
-                      className="print-lyric-chords"
-                      style={{ paddingLeft: chordRowMargin(line.chords) }}
-                    >
-                      {line.chords.map((chord) => {
-                        const offset = song.lyricChordOffsets?.[String(chord.segmentIndex)] ?? 0;
-                        return (
-                          <span
-                            key={`${chord.segmentIndex}-${chord.time}`}
-                            style={{ transform: `translateX(${offset}em)` }}
-                          >
-                            {chord.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  <p className="print-lyric-text">{line.text}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <ol className="print-chords" aria-label={t('song.printChordsAria')}>
-          {printRows.map((row, index) => (
-            <li key={`${row.time}-${row.chord}-${index}`}>
-              <span className="print-time">{row.time}</span>
-              <span className="print-chord">{row.chord}</span>
-              {row.degree ? <span className="print-degree">{row.degree}</span> : null}
-            </li>
-          ))}
-        </ol>
-
-        <footer className="print-footer">
-          {song.source.type === 'youtube'
-            ? t('song.printYoutube', { id: song.source.videoId })
-            : song.source.type === 'sheet'
-              ? t('song.printSheet', { name: song.source.filename })
-              : t('song.printAudio', { name: song.source.filename })}{' '}
-          · {t('song.generatedOn', { date: new Date().toLocaleDateString() })} · v{__APP_VERSION__}
-        </footer>
-      </section>
+      <SongPrintSheet
+        song={song}
+        keyLabel={keyLabel}
+        capo={capo}
+        capoAvailable={capoAvailable}
+        bpm={bpm}
+        printLyrics={printLyrics}
+        printRows={printRows}
+      />
 
       {performance ? (
         <button
@@ -1513,103 +1061,13 @@ export function SongView({
       ) : null}
 
       {shareOpen ? (
-        <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 px-4 pb-10 pt-[10vh]"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setShareOpen(false);
-          }}
-        >
-          <div
-            ref={shareDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="share-title"
-            className="mx-auto w-full max-w-lg rounded-2xl border border-line bg-panel p-6 shadow-2xl sm:p-8"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">{t('share.eyebrow')}</p>
-                <h2 id="share-title" className="display mt-2 text-2xl">
-                  {t('share.title')}
-                </h2>
-              </div>
-              <button
-                ref={shareCloseRef}
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShareOpen(false)}
-              >
-                {t('common.close')}
-              </button>
-            </div>
-
-            {shareNotice ? (
-              <NoticeBanner
-                message={shareNotice.message}
-                tone={shareNotice.tone}
-                onDismiss={() => setShareNotice(null)}
-              />
-            ) : null}
-
-            <div className="mt-6 space-y-5">
-              <div>
-                <h3 className="text-sm font-semibold text-ink">{t('share.quickTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.quickBody')}</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  <button type="button" className="btn" onClick={() => shareTo('whatsapp')}>
-                    {t('share.whatsapp')}
-                  </button>
-                  <button type="button" className="btn" onClick={() => shareTo('telegram')}>
-                    {t('share.telegram')}
-                  </button>
-                  <button type="button" className="btn" onClick={() => shareTo('email')}>
-                    {t('share.email')}
-                  </button>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-ink3">{t('share.quickNote')}</p>
-              </div>
-
-              <div className="border-t border-line pt-5">
-                <h3 className="text-sm font-semibold text-ink">{t('share.copySheetTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.copySheetBody')}</p>
-                <button type="button" className="btn mt-3" onClick={() => void copyChordSheet()}>
-                  {t('share.copySheetAction')}
-                </button>
-              </div>
-
-              <div className="border-t border-line pt-5">
-                <h3 className="text-sm font-semibold text-ink">{t('share.fileTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.fileBody')}</p>
-                <button type="button" className="btn mt-3" onClick={downloadShareFile}>
-                  {t('share.fileAction')}
-                </button>
-              </div>
-
-              {canShareLinks() ? (
-                <div className="border-t border-line pt-5">
-                  <h3 className="text-sm font-semibold text-ink">{t('share.linkTitle')}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.linkBody')}</p>
-                  <button type="button" className="btn mt-3" onClick={() => void copyShareLink()}>
-                    {t('share.linkAction')}
-                  </button>
-                </div>
-              ) : (
-                <p className="border-t border-line pt-5 text-xs leading-relaxed text-ink3">
-                  {t('share.linkUnavailable')}
-                </p>
-              )}
-
-              {typeof navigator.share === 'function' ? (
-                <div className="border-t border-line pt-5">
-                  <button type="button" className="btn" onClick={() => void nativeShare()}>
-                    {t('share.native')}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <SongShareDialog
+          song={song}
+          getChordPro={chordProContent}
+          notice={shareNotice}
+          onNotice={setShareNotice}
+          onClose={() => setShareOpen(false)}
+        />
       ) : null}
     </div>
   );
