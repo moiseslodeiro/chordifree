@@ -54,21 +54,18 @@ import { DisplayControls } from './DisplayControls';
 import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
 import { LyricsEditor } from './LyricsEditor';
-import { MicPractice, MicToggle } from './MicPractice';
 import { MoreSettings } from './MoreSettings';
 import { AudioControls } from './AudioControls';
 import { SectionsPanel } from './SectionsPanel';
 import { StemsPanel } from './StemsPanel';
 import { SongHeader } from './SongHeader';
+import { SongPracticeControls } from './SongPracticeControls';
 import { SongPrintSheet } from './SongPrintSheet';
 import { SongShareDialog, type ShareNotice } from './SongShareDialog';
 import { StemsInstallPrompt } from './StemsInstallPrompt';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
-import { PracticeBar } from './PracticeBar';
-import { PracticePanel } from './PracticePanel';
 import { SongInfoPanel } from './SongInfoPanel';
-import { Transport } from './Transport';
 
 interface SongViewProps {
   song: Song;
@@ -876,62 +873,34 @@ export function SongView({
         </form>
       ) : null}
 
-      {adapter && clock ? (
-        <div className="song-controls space-y-2">
-          <Transport
-            adapter={adapter}
-            clock={clock}
-            duration={song.duration}
-            loopA={loopA}
-            loopB={loopB}
-            loopEnabled={loopEnabled}
-          />
-          <PracticePanel
-            onOpenChange={(open) => {
-              if (!open) setMicEnabled(false);
-            }}
-          >
-            <PracticeBar
-              adapter={adapter}
-              clock={clock}
-              beats={beats}
-              beatsPerBar={beatsPerBar}
-              duration={song.duration}
-              loopA={loopA}
-              loopB={loopB}
-              loopEnabled={loopEnabled}
-              onLoopAChange={(value) => updatePractice({ loopA: value })}
-              onLoopBChange={(value) => updatePractice({ loopB: value })}
-              onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
-              markMode={markMode}
-              onMarkModeChange={setMarkMode}
-              manualBpm={manualBpm}
-              onManualBpmChange={(value) => updatePractice({ bpm: value })}
-              embedded
-              trailing={
-                <MicToggle enabled={micEnabled} onToggle={() => setMicEnabled((value) => !value)} />
-              }
-            />
-            {micEnabled ? (
-              <MicPractice
-                status={micPractice.status}
-                target={practiceTarget}
-                detected={micPractice.detected}
-                hit={micPractice.hit}
-                hitCount={micPractice.hits.size}
-                totalChords={totalPracticeChords}
-                notation={song.notation}
-                accidental={accidental}
-                onReset={micPractice.reset}
-              />
-            ) : null}
-          </PracticePanel>
-        </div>
-      ) : (
-        <div className="song-controls rounded-xl border border-line px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
-          {t('song.controlsUnavailable')}
-        </div>
-      )}
+      <SongPracticeControls
+        adapter={adapter}
+        clock={clock}
+        duration={song.duration}
+        beats={beats}
+        beatsPerBar={beatsPerBar}
+        loopA={loopA}
+        loopB={loopB}
+        loopEnabled={loopEnabled}
+        markMode={markMode}
+        onMarkModeChange={setMarkMode}
+        manualBpm={manualBpm}
+        onLoopAChange={(value) => updatePractice({ loopA: value })}
+        onLoopBChange={(value) => updatePractice({ loopB: value })}
+        onLoopEnabledChange={(value) => updatePractice({ loopEnabled: value })}
+        onBpmChange={(value) => updatePractice({ bpm: value })}
+        micEnabled={micEnabled}
+        onMicEnabledChange={setMicEnabled}
+        micStatus={micPractice.status}
+        micTarget={practiceTarget}
+        micDetected={micPractice.detected}
+        micHit={micPractice.hit}
+        micHitCount={micPractice.hits.size}
+        totalChords={totalPracticeChords}
+        notation={song.notation}
+        accidental={accidental}
+        onMicReset={micPractice.reset}
+      />
 
       <section
         className="song-toolbar flex flex-wrap items-stretch overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
