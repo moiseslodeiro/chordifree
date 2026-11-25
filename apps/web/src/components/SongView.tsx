@@ -46,7 +46,6 @@ import {
   type Preferences,
   type Song,
 } from '../types';
-import { ActionMenu, type ActionMenuItem } from './ActionMenu';
 import { AddToSetlistDialog } from './AddToSetlistDialog';
 import { ActiveChordDiagram } from './ActiveChordDiagram';
 import { ChordGrid } from './ChordGrid';
@@ -60,6 +59,7 @@ import { MoreSettings } from './MoreSettings';
 import { AudioControls } from './AudioControls';
 import { SectionsPanel } from './SectionsPanel';
 import { StemsPanel } from './StemsPanel';
+import { SongHeader } from './SongHeader';
 import { SongPrintSheet } from './SongPrintSheet';
 import { SongShareDialog, type ShareNotice } from './SongShareDialog';
 import { StemsInstallPrompt } from './StemsInstallPrompt';
@@ -807,162 +807,36 @@ export function SongView({
         <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
       ) : null}
 
-      <header className="song-header border-b border-line pb-5">
-        <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
-          <button
-            type="button"
-            className="song-crumb font-mono text-[0.7rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
-            onClick={onBack}
-          >
-            {t('song.back')}
-          </button>
-          <button
-            type="button"
-            className="song-crumb font-mono text-[0.7rem] uppercase tracking-[0.14em] text-ink3 transition hover:text-accent"
-            onClick={onOpenLibrary}
-          >
-            {t('song.library')}
-          </button>
-        </nav>
-
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-          <div className="min-w-0">
-            <p className="eyebrow">{t('song.eyebrow')}</p>
-            <h1 className="display mt-2 truncate text-2xl sm:text-3xl">{song.title}</h1>
-            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-ink3">
-              <span className="badge">{sourceLabel}</span>
-              <span className="tabular-nums">{formatTime(song.duration)}</span>
-              <span aria-hidden="true">·</span>
-              <span>{t('song.analyzer', { version: song.analyzerVersion })}</span>
-              {saved ? null : (
-                <span className="badge border-accent/50 text-accent">{t('song.unsaved')}</span>
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {!editingLyrics ? (
-              <button type="button" className="btn" onClick={() => setEditing((value) => !value)}>
-                {editing ? t('song.exitEdit') : t('song.editChords')}
-              </button>
-            ) : null}
-            <ActionMenu
-              label={t('song.moreActions')}
-              sections={[
-                ...(!editing && !editingLyrics
-                  ? [
-                      {
-                        label: t('menu.song'),
-                        items: [
-                          { label: t('song.editDetails'), onSelect: openDetails },
-                          ...(saved
-                            ? [
-                                {
-                                  label: t('song.addToSetlist'),
-                                  onSelect: () => setAddToSetlistOpen(true),
-                                },
-                              ]
-                            : []),
-                          {
-                            label: performance ? t('song.exitPerformance') : t('song.performance'),
-                            onSelect: togglePerformance,
-                          },
-                        ] satisfies ActionMenuItem[],
-                      },
-                      {
-                        label: t('menu.share'),
-                        items: [
-                          {
-                            label: t('song.share'),
-                            onSelect: () => {
-                              setShareNotice(null);
-                              setShareOpen(true);
-                            },
-                          },
-                          ...(canCollaborate && saved
-                            ? ([
-                                {
-                                  label: t('collab.shareAction'),
-                                  onSelect: () => {
-                                    void (async () => {
-                                      const url = await onShareCollab(song);
-                                      if (!url) {
-                                        setShareNotice({
-                                          message: t('collab.createFailed'),
-                                          tone: 'warning',
-                                        });
-                                        return;
-                                      }
-                                      try {
-                                        await navigator.clipboard.writeText(url);
-                                        setShareNotice({
-                                          message: t('collab.linkCopied'),
-                                          tone: 'success',
-                                        });
-                                      } catch {
-                                        setShareNotice({
-                                          message: t('collab.linkReady', { url }),
-                                          tone: 'warning',
-                                        });
-                                      }
-                                    })();
-                                  },
-                                },
-                              ] satisfies ActionMenuItem[])
-                            : []),
-                        ] satisfies ActionMenuItem[],
-                      },
-                    ]
-                  : []),
-                ...(!editing && !editingLyrics && printRows.length > 0
-                  ? [
-                      {
-                        label: t('menu.export'),
-                        items: [
-                          { label: t('song.print'), onSelect: () => window.print() },
-                          { label: t('song.score'), onSelect: exportScoreFile },
-                          { label: t('song.midi'), onSelect: exportMidiFile },
-                          { label: t('song.chordpro'), onSelect: exportChordProFile },
-                        ] satisfies ActionMenuItem[],
-                      },
-                    ]
-                  : []),
-                ...(!editing && !editingLyrics && song.source.type === 'youtube'
-                  ? [
-                      {
-                        label: t('menu.analysis'),
-                        items: [
-                          {
-                            label: reanalyzing
-                              ? `${t('song.reanalyzing')}${
-                                  reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                                }`
-                              : t('song.reanalyze'),
-                            onSelect: () => {
-                              void confirm({
-                                title: t('song.reanalyze'),
-                                description: t('song.reanalyzeConfirm'),
-                                confirmLabel: t('song.reanalyze'),
-                              }).then((accepted) => {
-                                if (accepted) onReanalyze();
-                              });
-                            },
-                            disabled: reanalyzing,
-                          },
-                        ] satisfies ActionMenuItem[],
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-            {!editingLyrics && (!saved || dirty) ? (
-              <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
-                {saved ? t('song.save') : t('song.saveToLibrary')}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
+      <SongHeader
+        song={song}
+        sourceLabel={sourceLabel}
+        saved={saved}
+        dirty={dirty}
+        editing={editing}
+        editingLyrics={editingLyrics}
+        performance={performance}
+        reanalyzing={reanalyzing}
+        reanalyzeProgress={reanalyzeProgress}
+        canCollaborate={canCollaborate}
+        hasPrintRows={printRows.length > 0}
+        onBack={onBack}
+        onOpenLibrary={onOpenLibrary}
+        onToggleEditing={() => setEditing((value) => !value)}
+        onOpenDetails={openDetails}
+        onOpenSetlist={() => setAddToSetlistOpen(true)}
+        onTogglePerformance={togglePerformance}
+        onOpenShare={() => {
+          setShareNotice(null);
+          setShareOpen(true);
+        }}
+        onShareNotice={setShareNotice}
+        onShareCollab={onShareCollab}
+        onExportScore={exportScoreFile}
+        onExportMidi={exportMidiFile}
+        onExportChordPro={exportChordProFile}
+        onReanalyze={onReanalyze}
+        onSave={onSave}
+      />
 
       {editingDetails ? (
         <form
