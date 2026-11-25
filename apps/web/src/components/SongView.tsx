@@ -46,7 +46,7 @@ import { barRangeAt } from '../practice/range';
 import { useMicPractice } from '../practice/useMicPractice';
 import { usePracticeSession } from '../practice/usePracticeSession';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { buildLyricLines, chordRowMargin } from '../lyrics/lines';
+import { buildLyricLines } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
 import { usePlaybackIndex, usePlaybackTime } from '../sync/hooks';
 import {
@@ -71,6 +71,7 @@ import { MoreSettings } from './MoreSettings';
 import { AudioControls } from './AudioControls';
 import { SectionsPanel } from './SectionsPanel';
 import { StemsPanel } from './StemsPanel';
+import { SongPrintSheet } from './SongPrintSheet';
 import { StemsInstallPrompt } from './StemsInstallPrompt';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
@@ -1424,72 +1425,15 @@ export function SongView({
         </aside>
       </div>
 
-      <section className="print-sheet" data-testid="print-sheet" aria-hidden="true">
-        <header className="print-sheet-header">
-          <img className="print-brand-logo" src="/brand-print.png" alt="chordifree" />
-          <h1>{song.title}</h1>
-          <p className="print-meta">
-            {[
-              keyLabel ?? t('song.unknownKey'),
-              capoAvailable && capo > 0 ? t('song.capoValue', { value: capo }) : null,
-              bpm ? `${bpm} BPM` : null,
-              formatTime(song.duration),
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        </header>
-
-        {song.lyrics?.trim() ? (
-          <section className="print-lyrics">
-            <h2 className="print-section-title">{t('song.printLyrics')}</h2>
-            <div className="print-lyric-lines">
-              {printLyrics.map((line) => (
-                <div className="print-lyric-line" key={line.index}>
-                  {line.chords.length > 0 ? (
-                    <div
-                      className="print-lyric-chords"
-                      style={{ paddingLeft: chordRowMargin(line.chords) }}
-                    >
-                      {line.chords.map((chord) => {
-                        const offset = song.lyricChordOffsets?.[String(chord.segmentIndex)] ?? 0;
-                        return (
-                          <span
-                            key={`${chord.segmentIndex}-${chord.time}`}
-                            style={{ transform: `translateX(${offset}em)` }}
-                          >
-                            {chord.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  <p className="print-lyric-text">{line.text}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <ol className="print-chords" aria-label={t('song.printChordsAria')}>
-          {printRows.map((row, index) => (
-            <li key={`${row.time}-${row.chord}-${index}`}>
-              <span className="print-time">{row.time}</span>
-              <span className="print-chord">{row.chord}</span>
-              {row.degree ? <span className="print-degree">{row.degree}</span> : null}
-            </li>
-          ))}
-        </ol>
-
-        <footer className="print-footer">
-          {song.source.type === 'youtube'
-            ? t('song.printYoutube', { id: song.source.videoId })
-            : song.source.type === 'sheet'
-              ? t('song.printSheet', { name: song.source.filename })
-              : t('song.printAudio', { name: song.source.filename })}{' '}
-          · {t('song.generatedOn', { date: new Date().toLocaleDateString() })} · v{__APP_VERSION__}
-        </footer>
-      </section>
+      <SongPrintSheet
+        song={song}
+        keyLabel={keyLabel}
+        capo={capo}
+        capoAvailable={capoAvailable}
+        bpm={bpm}
+        printLyrics={printLyrics}
+        printRows={printRows}
+      />
 
       {performance ? (
         <button
