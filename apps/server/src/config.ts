@@ -106,28 +106,69 @@ function isLocalHost(value: string): boolean {
   }
 }
 
+type Env = z.infer<typeof EnvSchema>;
+
+function trimOrUndefined(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
+/** Drops empty and undefined values so optional fields stay absent. */
+function compact<T extends Record<string, unknown>>(values: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined && value !== ''),
+  ) as Partial<T>;
+}
+
+function parseAdminEmails(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.length > 0);
+}
+
+function assertAnalysisJobConfig(env: Env, jobName: string, region: string): void {
+  if (!jobName) return;
+  if (!region || !env.GOOGLE_CLOUD_PROJECT.trim()) {
+    throw new Error('CLOUD_RUN_REGION and GOOGLE_CLOUD_PROJECT are required for analysis jobs');
+  }
+  if (env.AUTH_MODE !== 'google') {
+    throw new Error('AUTH_MODE=google is required for Cloud Run analysis jobs');
+  }
+}
+
+function assertExtractorConfig(env: Env, extractorUrl: string): void {
+  if (extractorUrl && !env.YOUTUBE_EXTRACTOR_TOKEN.trim()) {
+    throw new Error('YOUTUBE_EXTRACTOR_TOKEN is required when YOUTUBE_EXTRACTOR_URL is set');
+  }
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.parse(env);
   const local = isLocalHost(parsed.HOST) || isLocalHost(parsed.CORS_ORIGIN);
   const youtubeExtractorUrl = parsed.YOUTUBE_EXTRACTOR_URL.trim();
   const analysisJobName = parsed.ANALYSIS_JOB_NAME.trim();
   const cloudRunRegion = parsed.CLOUD_RUN_REGION.trim();
-  if (analysisJobName && (!cloudRunRegion || !parsed.GOOGLE_CLOUD_PROJECT.trim())) {
-    throw new Error('CLOUD_RUN_REGION and GOOGLE_CLOUD_PROJECT are required for analysis jobs');
-  }
-  if (analysisJobName && parsed.AUTH_MODE !== 'google') {
-    throw new Error('AUTH_MODE=google is required for Cloud Run analysis jobs');
-  }
-  if (youtubeExtractorUrl && !parsed.YOUTUBE_EXTRACTOR_TOKEN.trim()) {
-    throw new Error('YOUTUBE_EXTRACTOR_TOKEN is required when YOUTUBE_EXTRACTOR_URL is set');
-  }
+  assertAnalysisJobConfig(parsed, analysisJobName, cloudRunRegion);
+  assertExtractorConfig(parsed, youtubeExtractorUrl);
+
+  const optional = compact({
+    webDist: parsed.WEB_DIST,
+    cloudRunRegion: trimOrUndefined(parsed.CLOUD_RUN_REGION),
+    analysisJobName: trimOrUndefined(parsed.ANALYSIS_JOB_NAME),
+    youtubeExtractorUrl: trimOrUndefined(parsed.YOUTUBE_EXTRACTOR_URL),
+    stemsPluginDir: trimOrUndefined(parsed.STEMS_PLUGIN_DIR),
+    stemsSetupDir: trimOrUndefined(parsed.STEMS_SETUP_DIR),
+    stemsPluginSource: trimOrUndefined(parsed.STEMS_PLUGIN_SOURCE),
+    stemsServiceUrl: trimOrUndefined(parsed.STEMS_SERVICE_URL),
+  });
+
   return {
     host: parsed.HOST,
     port: parsed.PORT,
     corsOrigin: parsed.CORS_ORIGIN,
     analyzerUrl: parsed.ANALYZER_URL,
     analyzerToken: parsed.ANALYZER_TOKEN,
-    ...(parsed.WEB_DIST ? { webDist: parsed.WEB_DIST } : {}),
     maxDurationSeconds: parsed.MAX_DURATION_SECONDS,
     maxUploadBytes: parsed.MAX_UPLOAD_BYTES,
     rateLimitMax: parsed.RATE_LIMIT_MAX,
@@ -142,27 +183,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     analyzerVersion: parsed.ANALYZER_VERSION,
     authMode: parsed.AUTH_MODE,
     googleClientId: parsed.GOOGLE_CLIENT_ID,
-    adminEmails: parsed.ADMIN_EMAILS.split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean),
+    adminEmails: parseAdminEmails(parsed.ADMIN_EMAILS),
     googleCloudProject: parsed.GOOGLE_CLOUD_PROJECT,
     firestoreDatabase: parsed.FIRESTORE_DATABASE,
-    ...(cloudRunRegion ? { cloudRunRegion } : {}),
-    ...(analysisJobName ? { analysisJobName } : {}),
     analyzerAuth: parsed.ANALYZER_AUTH,
-    ...(youtubeExtractorUrl ? { youtubeExtractorUrl } : {}),
     youtubeExtractorToken: parsed.YOUTUBE_EXTRACTOR_TOKEN,
     youtubeExtractorTimeoutMs: parsed.YOUTUBE_EXTRACTOR_TIMEOUT_MS,
-    ...(parsed.STEMS_PLUGIN_DIR.trim() ? { stemsPluginDir: parsed.STEMS_PLUGIN_DIR.trim() } : {}),
-    ...(parsed.STEMS_SETUP_DIR.trim() ? { stemsSetupDir: parsed.STEMS_SETUP_DIR.trim() } : {}),
-    ...(parsed.STEMS_PLUGIN_SOURCE.trim()
-      ? { stemsPluginSource: parsed.STEMS_PLUGIN_SOURCE.trim() }
-      : {}),
     local,
-    ...(parsed.STEMS_SERVICE_URL.trim()
-      ? { stemsServiceUrl: parsed.STEMS_SERVICE_URL.trim() }
-      : {}),
     stemsServiceToken: parsed.STEMS_SERVICE_TOKEN.trim(),
     stemsServiceTimeoutMs: parsed.STEMS_SERVICE_TIMEOUT_MS,
+    ...optional,
   };
 }
