@@ -47,25 +47,16 @@ import {
   type Song,
 } from '../types';
 import { AddToSetlistDialog } from './AddToSetlistDialog';
-import { ActiveChordDiagram } from './ActiveChordDiagram';
-import { ChordGrid } from './ChordGrid';
-import { CollabPanel } from './CollabPanel';
 import { DisplayControls } from './DisplayControls';
-import { EditorPanel } from './EditorPanel';
 import { ErrorBanner, NoticeBanner } from './ErrorBanner';
-import { LyricsEditor } from './LyricsEditor';
 import { MoreSettings } from './MoreSettings';
-import { AudioControls } from './AudioControls';
-import { SectionsPanel } from './SectionsPanel';
-import { StemsPanel } from './StemsPanel';
+import { SongGridColumn } from './SongGridColumn';
 import { SongHeader } from './SongHeader';
 import { SongPracticeControls } from './SongPracticeControls';
+import { SongToolsColumn } from './SongToolsColumn';
 import { SongPrintSheet } from './SongPrintSheet';
 import { SongShareDialog, type ShareNotice } from './SongShareDialog';
-import { StemsInstallPrompt } from './StemsInstallPrompt';
 import { NotationControls } from './NotationControls';
-import { PlayerHost } from './PlayerHost';
-import { SongInfoPanel } from './SongInfoPanel';
 
 interface SongViewProps {
   song: Song;
@@ -945,206 +936,97 @@ export function SongView({
         data-testid="song-layout"
         className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start"
       >
-        <div
-          data-testid="song-grid-column"
-          className="order-2 min-w-0 lg:col-start-1 lg:row-start-1"
-        >
-          {editingLyrics ? (
-            <LyricsEditor
-              value={lyricsDraft}
-              initialValue={song.lyrics ?? ''}
-              canDelete={Boolean(song.lyrics)}
-              canAnchor={Boolean(adapter)}
-              getCurrentTime={() => adapter?.getCurrentTime() ?? null}
-              onChange={setLyricsDraft}
-              onSave={saveLyrics}
-              onCancel={closeLyricsEditor}
-              onDelete={deleteLyrics}
-              onFindLyrics={findLyrics}
-            />
-          ) : editing ? (
-            <EditorPanel
-              song={song}
-              notation={song.notation}
-              accidental={accidental}
-              onSave={saveEdited}
-              onDiscard={() => setEditing(false)}
-            />
-          ) : (
-            <ChordGrid
-              segments={displaySegments}
-              lyricsSegments={lyricsSegments}
-              lyricChordOffsets={song.lyricChordOffsets}
-              lyricChordLines={song.lyricChordLines}
-              onLyricChordOffsetChange={updateLyricChordOffset}
-              onLyricChordLineChange={updateLyricChordLine}
-              onResetLyricChordOffsets={resetLyricChordOffsets}
-              notation={song.notation}
-              accidental={accidental}
-              clock={clock}
-              onSeek={seek}
-              onSelectBar={selectBar}
-              markMode={markMode}
-              beats={beats}
-              beatsPerBar={beatsPerBar}
-              duration={song.duration}
-              loopA={loopA}
-              loopB={loopB}
-              vocalRegions={song.vocalRegions}
-              lyrics={song.lyrics}
-              onEditLyrics={openLyricsEditor}
-              view={gridView}
-              onViewChange={(view) => onPreferences({ gridView: view })}
-              practiceHits={micPractice.hits}
-              practiceHitRanges={practiceHitRanges}
-            />
-          )}
+        <SongGridColumn
+          song={song}
+          adapter={adapter}
+          clock={clock}
+          editing={editing}
+          editingLyrics={editingLyrics}
+          lyricsDraft={lyricsDraft}
+          accidental={accidental}
+          displaySegments={displaySegments}
+          lyricsSegments={lyricsSegments}
+          transposedSegments={transposedSegments}
+          estimatedKey={estimatedKey}
+          gridView={gridView}
+          beats={beats}
+          beatsPerBar={beatsPerBar}
+          loopA={loopA}
+          loopB={loopB}
+          markMode={markMode}
+          practiceHits={micPractice.hits}
+          practiceHitRanges={practiceHitRanges}
+          keyLabel={keyLabel}
+          relativeKeyLabel={relativeKeyLabel}
+          effectiveCapo={effectiveCapo}
+          capoKeyLabel={capoKeyLabel}
+          capoAvailable={capoAvailable}
+          bpm={bpm}
+          artist={artist}
+          chordList={chordList}
+          onLyricsDraftChange={setLyricsDraft}
+          onSaveLyrics={saveLyrics}
+          onCancelLyrics={closeLyricsEditor}
+          onDeleteLyrics={deleteLyrics}
+          onFindLyrics={findLyrics}
+          onSaveEdits={saveEdited}
+          onDiscardEdits={() => setEditing(false)}
+          onSeek={seek}
+          onSelectBar={selectBar}
+          onOpenLyricsEditor={openLyricsEditor}
+          onGridChange={(view) => onPreferences({ gridView: view })}
+          onLyricChordOffsetChange={updateLyricChordOffset}
+          onLyricChordLineChange={updateLyricChordLine}
+          onResetLyricChordOffsets={resetLyricChordOffsets}
+          onMeterChange={changeMeter}
+        />
 
-          <div data-testid="song-info-column" className="mt-5">
-            <SongInfoPanel
-              details={{
-                keyLabel,
-                relativeKeyLabel,
-                capo: effectiveCapo,
-                capoKeyLabel,
-                showCapo: capoAvailable,
-                bpm,
-                beatsPerBar,
-                duration: song.duration,
-                artist,
-                chords: chordList,
-                showChords: false,
-                onChangeMeter: changeMeter,
-              }}
-              harmony={{
-                segments: transposedSegments,
-                harmonyKey: estimatedKey,
-                notation: song.notation,
-                accidental,
-                capo: effectiveCapo,
-              }}
-            />
-          </div>
-        </div>
-
-        <aside
-          data-testid="song-tools-column"
-          className="song-tools contents lg:sticky lg:top-5 lg:col-start-2 lg:row-start-1 lg:flex lg:min-w-0 lg:flex-col lg:gap-5"
-          aria-label={t('song.toolsColumnAria')}
-        >
-          <div data-testid="song-player-column" className="order-1 lg:order-none">
-            <section
-              className="rounded-xl border border-line bg-panel p-3 shadow-sm"
-              aria-label={t('song.playerAria')}
-            >
-              <PlayerHost
-                song={song}
-                audioUrl={audioUrl}
-                forceFake={forceFake}
-                variant="compact"
-                pitch={pitch}
-                karaoke={karaoke}
-                overrideUrl={null}
-                mix={mixActive ? stemMix : null}
-                stemGains={stemGains}
-                onAdapter={handleAdapter}
-                onPlaybackError={setPlaybackError}
-              />
-            </section>
-          </div>
-
-          <div data-testid="song-audio" className="order-2 lg:order-none">
-            <AudioControls
-              adapter={adapter}
-              rate={rate}
-              onRateChange={(value) => updatePractice({ rate: value })}
-              pitch={pitch}
-              onPitchChange={(value) => updatePractice({ pitch: value })}
-              pitchAvailable={
-                !mixActive &&
-                (song.source.type === 'youtube' || typeof adapter?.setPitch === 'function')
-              }
-              karaoke={karaoke}
-              onKaraokeChange={setKaraoke}
-              karaokeAvailable={!mixActive && typeof adapter?.setKaraoke === 'function'}
-            >
-              {videoId && stems.status?.available ? (
-                <StemsPanel
-                  status={stems.status}
-                  job={stems.job}
-                  busy={stems.busy}
-                  checking={stems.checking}
-                  error={stems.error ?? stemError}
-                  midiBusy={stemMidiBusy}
-                  mixActive={mixActive}
-                  mixBusy={mixBusy}
-                  gains={stemGains}
-                  canUninstall={Boolean(stems.setup?.managed)}
-                  uninstalling={uninstalling}
-                  onSeparate={() => void stems.separate()}
-                  onCancel={() => void stems.cancel()}
-                  onToggleMix={(active) => void toggleMix(active)}
-                  onGainChange={changeStemGain}
-                  onDownloadStem={downloadStemByName}
-                  onDownloadMidi={() => void downloadStemMidi()}
-                  onRetry={() => void stems.separate()}
-                  onUninstall={() => void uninstallPlugin()}
-                />
-              ) : videoId && stems.setup?.supported ? (
-                <StemsInstallPrompt installed={stems.setup.installed} onOpenSetup={onOpenStems} />
-              ) : null}
-            </AudioControls>
-          </div>
-          <div data-testid="song-active-chord" className="order-2 lg:order-none">
-            <ActiveChordDiagram
-              segments={displaySegments}
-              clock={clock}
-              instrument={instrument}
-              notation={song.notation}
-              accidental={accidental}
-            />
-          </div>
-
-          {song.sections !== undefined || sections.length > 0 ? (
-            <div data-testid="song-sections" className="order-2 lg:order-none">
-              <SectionsPanel
-                sections={song.sections ?? sections}
-                currentTime={currentTime}
-                onSeek={seek}
-                onChange={updateSections}
-              />
-            </div>
-          ) : null}
-
-          {collabShare ? (
-            <div className="order-2 lg:order-none">
-              <CollabPanel
-                share={collabShare}
-                song={song}
-                currentUid={collabUid}
-                language={language}
-                loading={collabLoading}
-                onCopyLink={() => {
-                  const url = `${window.location.origin}${window.location.pathname}#/collab/${collabShare.id}`;
-                  void navigator.clipboard
-                    .writeText(url)
-                    .then(() =>
-                      setShareNotice({ message: t('collab.linkCopied'), tone: 'success' }),
-                    )
-                    .catch(() =>
-                      setShareNotice({
-                        message: t('collab.linkReady', { url }),
-                        tone: 'warning',
-                      }),
-                    );
-                }}
-                onRefresh={onRefreshCollab}
-                onLoadRevision={onLoadCollabRevision}
-                onApply={onApplyCollabRevision}
-              />
-            </div>
-          ) : null}
-        </aside>
+        <SongToolsColumn
+          song={song}
+          audioUrl={audioUrl}
+          forceFake={forceFake}
+          pitch={pitch}
+          karaoke={karaoke}
+          onKaraokeChange={setKaraoke}
+          mixActive={mixActive}
+          stemMix={stemMix}
+          stemGains={stemGains}
+          adapter={adapter}
+          rate={rate}
+          onRateChange={(value) => updatePractice({ rate: value })}
+          onPitchChange={(value) => updatePractice({ pitch: value })}
+          videoId={videoId}
+          stems={stems}
+          stemError={stemError}
+          stemMidiBusy={stemMidiBusy}
+          mixBusy={mixBusy}
+          uninstalling={uninstalling}
+          onToggleMix={(active) => void toggleMix(active)}
+          onStemGainChange={changeStemGain}
+          onDownloadStem={downloadStemByName}
+          onDownloadStemMidi={() => void downloadStemMidi()}
+          onUninstallStems={() => void uninstallPlugin()}
+          onOpenStems={onOpenStems}
+          segments={displaySegments}
+          clock={clock}
+          instrument={instrument}
+          notation={song.notation}
+          accidental={accidental}
+          sections={sections}
+          currentTime={currentTime}
+          onSeek={seek}
+          onSectionsChange={updateSections}
+          collabShare={collabShare}
+          collabUid={collabUid}
+          language={language}
+          collabLoading={collabLoading}
+          onShareNotice={setShareNotice}
+          onRefreshCollab={onRefreshCollab}
+          onLoadCollabRevision={onLoadCollabRevision}
+          onApplyCollabRevision={onApplyCollabRevision}
+          onAdapter={handleAdapter}
+          onPlaybackError={setPlaybackError}
+        />
       </div>
 
       <SongPrintSheet
