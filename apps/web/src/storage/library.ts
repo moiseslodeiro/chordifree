@@ -58,41 +58,98 @@ function isSection(value: unknown): boolean {
   );
 }
 
-export function isSong(value: unknown): value is Song {
-  if (!isRecord(value)) return false;
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number';
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every(isNumber);
+}
+
+function hasOptional(value: unknown, check: (candidate: unknown) => boolean): boolean {
+  return value === undefined || check(value);
+}
+
+function isOffsetRecord(value: unknown): boolean {
+  return isRecord(value) && Object.values(value).every(isFiniteNumber);
+}
+
+function isLineRecord(value: unknown): boolean {
+  return isRecord(value) && Object.values(value).every(isNonNegativeInteger);
+}
+
+function hasIdentity(value: Record<string, unknown>): boolean {
   return (
-    typeof value.id === 'string' &&
-    typeof value.title === 'string' &&
-    (value.artist === undefined || typeof value.artist === 'string') &&
-    isSource(value.source) &&
-    typeof value.duration === 'number' &&
+    isString(value.id) &&
+    isString(value.title) &&
+    hasOptional(value.artist, isString) &&
+    isSource(value.source)
+  );
+}
+
+function hasTimeline(value: Record<string, unknown>): boolean {
+  return (
+    isNumber(value.duration) &&
     Array.isArray(value.segments) &&
     value.segments.every(isSegment) &&
     Array.isArray(value.detectedSegments) &&
     value.detectedSegments.every(isSegment) &&
-    (value.beats === undefined ||
-      (Array.isArray(value.beats) && value.beats.every((beat) => typeof beat === 'number'))) &&
-    (value.beatsPerBar === undefined || typeof value.beatsPerBar === 'number') &&
-    (value.vocalRegions === undefined ||
-      (Array.isArray(value.vocalRegions) && value.vocalRegions.every(isVocalRegion))) &&
-    (value.sections === undefined ||
-      (Array.isArray(value.sections) && value.sections.every(isSection))) &&
-    (value.capo === undefined || typeof value.capo === 'number') &&
-    (value.lyrics === undefined || typeof value.lyrics === 'string') &&
-    (value.lyricChordOffsets === undefined ||
-      (isRecord(value.lyricChordOffsets) &&
-        Object.values(value.lyricChordOffsets).every(
-          (offset) => typeof offset === 'number' && Number.isFinite(offset),
-        ))) &&
-    (value.lyricChordLines === undefined ||
-      (isRecord(value.lyricChordLines) &&
-        Object.values(value.lyricChordLines).every(
-          (line) => typeof line === 'number' && Number.isInteger(line) && line >= 0,
-        ))) &&
-    typeof value.analyzerVersion === 'string' &&
-    typeof value.transpose === 'number' &&
+    hasOptional(value.beats, isNumberArray) &&
+    hasOptional(value.beatsPerBar, isNumber)
+  );
+}
+
+function hasPracticeData(value: Record<string, unknown>): boolean {
+  return (
+    hasOptional(
+      value.vocalRegions,
+      (regions) => Array.isArray(regions) && regions.every(isVocalRegion),
+    ) &&
+    hasOptional(
+      value.sections,
+      (sections) => Array.isArray(sections) && sections.every(isSection),
+    ) &&
+    hasOptional(value.capo, isNumber) &&
+    hasOptional(value.lyrics, isString)
+  );
+}
+
+function hasEditorState(value: Record<string, unknown>): boolean {
+  return (
+    hasOptional(value.lyricChordOffsets, isOffsetRecord) &&
+    hasOptional(value.lyricChordLines, isLineRecord)
+  );
+}
+
+function hasAnalysisMeta(value: Record<string, unknown>): boolean {
+  return (
+    isString(value.analyzerVersion) &&
+    isNumber(value.transpose) &&
     (value.notation === 'english' || value.notation === 'spanish') &&
-    typeof value.updatedAt === 'string'
+    isString(value.updatedAt)
+  );
+}
+
+export function isSong(value: unknown): value is Song {
+  if (!isRecord(value)) return false;
+  return (
+    hasIdentity(value) &&
+    hasTimeline(value) &&
+    hasPracticeData(value) &&
+    hasEditorState(value) &&
+    hasAnalysisMeta(value)
   );
 }
 

@@ -12,18 +12,8 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/**
- * Repairs the invariants of a timeline: order, no overlap,
- * minimum duration, merging of equal chords and full coverage of the audio.
- */
-export function normalizeSegments(
-  input: ChordSegment[],
-  duration: number,
-  minDuration: number = MIN_SEGMENT_SECONDS,
-): ChordSegment[] {
-  if (!Number.isFinite(duration) || duration <= 0) return [];
-
-  const clamped = input
+function prepareSegments(input: ChordSegment[], duration: number): ChordSegment[] {
+  return input
     .filter((segment) => Number.isFinite(segment.start) && Number.isFinite(segment.end))
     .map((segment) => ({
       ...segment,
@@ -32,17 +22,24 @@ export function normalizeSegments(
     }))
     .filter((segment) => segment.end - segment.start > EPSILON)
     .sort((a, b) => a.start - b.start);
+}
 
+/** Drops or trims segments so they stop overlapping, preserving the earlier one. */
+function resolveOverlaps(segments: ChordSegment[]): ChordSegment[] {
   const resolved: ChordSegment[] = [];
-  for (const segment of clamped) {
+  for (const segment of segments) {
     const previous = resolved[resolved.length - 1];
     const start = previous ? Math.max(segment.start, previous.end) : segment.start;
     if (segment.end - start <= EPSILON) continue;
     resolved.push({ ...segment, start });
   }
+  return resolved;
+}
 
+/** Merges equal neighbours and gives short segments to the previous chord. */
+function absorbShortSegments(segments: ChordSegment[], minDuration: number): ChordSegment[] {
   const kept: ChordSegment[] = [];
-  for (const segment of resolved) {
+  for (const segment of segments) {
     const previous = kept[kept.length - 1];
     if (previous && chordEquals(previous.chord, segment.chord)) {
       previous.end = segment.end;
@@ -54,16 +51,28 @@ export function normalizeSegments(
     }
     kept.push({ ...segment });
   }
+  return kept;
+}
 
-  if (kept.length > 1 && kept[0] && kept[0].end - kept[0].start < minDuration) {
-    const first = kept.shift();
-    const next = kept[0];
-    if (first && next) next.start = first.start;
+/** Merges equal neighbours into a single segment. */
+function mergeAdjacentChords(segments: ChordSegment[]): ChordSegment[] {
+  const merged: ChordSegment[] = [];
+  for (const segment of segments) {
+    const previous = merged[merged.length - 1];
+    if (previous && chordEquals(previous.chord, segment.chord)) {
+      previous.end = segment.end;
+      continue;
+    }
+    merged.push({ ...segment });
   }
+  return merged;
+}
 
+/** Inserts silence so the timeline covers `duration` without gaps. */
+function fillGaps(segments: ChordSegment[], duration: number): ChordSegment[] {
   const filled: ChordSegment[] = [];
   let cursor = 0;
-  for (const segment of kept) {
+  for (const segment of segments) {
     if (segment.start - cursor > EPSILON) {
       filled.push({ start: cursor, end: segment.start, chord: null });
     }
@@ -73,44 +82,58 @@ export function normalizeSegments(
   if (duration - cursor > EPSILON) {
     filled.push({ start: cursor, end: duration, chord: null });
   }
-  if (filled.length === 0) {
-    return [{ start: 0, end: duration, chord: null }];
-  }
+  return filled;
+}
 
-  const merged: ChordSegment[] = [];
-  for (const segment of filled) {
-    const previous = merged[merged.length - 1];
-    if (previous && chordEquals(previous.chord, segment.chord)) {
-      previous.end = segment.end;
-      continue;
-    }
-    merged.push({ ...segment });
+/** Moves a short first segment into the one that follows it. */
+function shiftLeadingShort(segments: ChordSegment[], minDuration: number): ChordSegment[] {
+  const first = segments[0];
+  if (segments.length <= 1 || !first || first.end - first.start >= minDuration) {
+    return segments;
   }
+  const next = segments[1];
+  if (!next) return segments;
+  next.start = first.start;
+  segments.shift();
+  return segments;
+}
 
-  for (let i = merged.length - 1; i >= 1; i -= 1) {
-    const segment = merged[i];
-    const previous = merged[i - 1];
+/** Gives every short segment except the first to the one before it. */
+function removeTrailingShort(segments: ChordSegment[], minDuration: number): ChordSegment[] {
+  for (let index = segments.length - 1; index >= 1; index -= 1) {
+    const segment = segments[index];
+    const previous = segments[index - 1];
     if (!segment || !previous) continue;
     if (segment.end - segment.start < minDuration) {
       previous.end = segment.end;
-      merged.splice(i, 1);
+      segments.splice(index, 1);
     }
   }
-  if (merged.length > 1 && merged[0] && merged[0].end - merged[0].start < minDuration) {
-    const first = merged.shift();
-    const next = merged[0];
-    if (first && next) next.start = first.start;
-  }
+  return segments;
+}
 
-  const final: ChordSegment[] = [];
-  for (const segment of merged) {
-    const previous = final[final.length - 1];
-    if (previous && chordEquals(previous.chord, segment.chord)) {
-      previous.end = segment.end;
-      continue;
-    }
-    final.push({ ...segment });
-  }
+/**
+ * Repairs the invariants of a timeline: order, no overlap,
+ * minimum duration, merging of equal chords and full coverage of the audio.
+ */
+export function normalizeSegments(
+  input: ChordSegment[],
+  duration: number,
+  minDuration: number = MIN_SEGMENT_SECONDS,
+): ChordSegment[] {
+  if (!Number.isFinite(duration) || duration <= 0) return [];
+
+  const prepared = resolveOverlaps(prepareSegments(input, duration));
+  const kept = shiftLeadingShort(absorbShortSegments(prepared, minDuration), minDuration);
+
+  const filled = fillGaps(kept, duration);
+  if (filled.length === 0) return [{ start: 0, end: duration, chord: null }];
+
+  const trimmed = shiftLeadingShort(
+    removeTrailingShort(mergeAdjacentChords(filled), minDuration),
+    minDuration,
+  );
+  const final = mergeAdjacentChords(trimmed);
 
   if (final.length === 0) return [{ start: 0, end: duration, chord: null }];
   const first = final[0];

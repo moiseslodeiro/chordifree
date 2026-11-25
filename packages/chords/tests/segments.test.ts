@@ -68,6 +68,37 @@ describe('normalizeSegments', () => {
   it('covers the whole duration when there are no segments', () => {
     expect(normalizeSegments([], 10)).toEqual([{ start: 0, end: 10, chord: null }]);
   });
+
+  it('clamps to the duration and drops non-finite bounds', () => {
+    const result = normalizeSegments(
+      [seg(-2, 2, c), seg(6, 12, g), { start: Number.NaN, end: 1, chord: c }],
+      8,
+    );
+    expect(result).toEqual([
+      { start: 0, end: 2, chord: c },
+      { start: 2, end: 6, chord: null },
+      { start: 6, end: 8, chord: g },
+    ]);
+  });
+
+  it('drops zero-length segments after clamping', () => {
+    expect(normalizeSegments([seg(8, 8, c)], 8)).toEqual([{ start: 0, end: 8, chord: null }]);
+  });
+
+  it('absorbs a short leading segment into the next one', () => {
+    const result = normalizeSegments([seg(0, 0.1, c), seg(0.1, 8, g)], 8);
+    expect(result).toEqual([{ start: 0, end: 8, chord: g }]);
+  });
+
+  it('absorbs a short leading segment into the following silence', () => {
+    const result = normalizeSegments([seg(0, 0.1, c)], 8);
+    expect(result).toEqual([{ start: 0, end: 8, chord: null }]);
+  });
+
+  it('absorbs a short trailing segment into the previous chord', () => {
+    const result = normalizeSegments([seg(0, 7.9, c), seg(7.9, 8, g)], 8);
+    expect(result).toEqual([{ start: 0, end: 8, chord: c }]);
+  });
 });
 
 describe('findActiveSegmentIndex', () => {

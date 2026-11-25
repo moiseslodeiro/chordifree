@@ -148,9 +148,15 @@ function sameOriginWriteGuard(config: AppConfig) {
   };
 }
 
-export function createApp(options: CreateAppOptions = {}): express.Express {
-  const config = options.config ?? loadConfig();
-  const analysisDispatcher =
+function useGoogleStore<T>(config: AppConfig, firestore: () => T, fallback: () => T): T {
+  return config.authMode === 'google' ? firestore() : fallback();
+}
+
+function createAnalysisDispatcher(
+  options: CreateAppOptions,
+  config: AppConfig,
+): AnalysisJobDispatcher | undefined {
+  return (
     options.analysisDispatcher ??
     (config.analysisJobName && config.cloudRunRegion
       ? new CloudRunAnalysisJobDispatcher(
@@ -158,24 +164,25 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
           config.cloudRunRegion,
           config.analysisJobName,
         )
-      : undefined);
-  const analysisInputs =
+      : undefined)
+  );
+}
+
+function createAnalysisInputs(
+  options: CreateAppOptions,
+  config: AppConfig,
+  dispatcher: AnalysisJobDispatcher | undefined,
+): AnalysisInputStore | undefined {
+  return (
     options.analysisInputs ??
-    (analysisDispatcher && config.authMode === 'google'
+    (dispatcher && config.authMode === 'google'
       ? new FirestoreAnalysisInputStore(createFirestore(config))
-      : undefined);
-  const tools = options.tools ?? createMediaTools(config);
-  const analyzerTokenProvider =
-    config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
-  const audioCache =
-    options.audioCache ??
-    new TemporaryAudioCache({
-      directory: audioCacheDirectory(config.tempDir),
-      workspaceRoot: config.tempDir,
-      ttlMs: config.audioCacheTtlMinutes * 60_000,
-      tools,
-    });
-  const stemsEngine =
+      : undefined)
+  );
+}
+
+function createStemsEngine(options: CreateAppOptions, config: AppConfig): StemEngine {
+  return (
     options.stemsEngine ??
     (config.stemsServiceUrl
       ? new RemoteStemEngine(
@@ -185,23 +192,133 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         )
       : config.stemsPluginDir
         ? new PluginStemEngine(config.stemsPluginDir)
-        : new NullStemEngine());
+        : new NullStemEngine())
+  );
+}
+
+function createStemsSetup(
+  options: CreateAppOptions,
+  config: AppConfig,
+): StemInstallerLike | undefined {
+  if (options.stemsSetup) return options.stemsSetup;
+  if (!config.local || !config.stemsSetupDir || !config.stemsPluginSource) return undefined;
+  return new StemInstaller({
+    pluginDir: config.stemsSetupDir,
+    sourceDir: config.stemsPluginSource,
+  });
+}
+
+function buildStores(
+  options: CreateAppOptions,
+  config: AppConfig,
+  dispatcher: AnalysisJobDispatcher | undefined,
+): Pick<
+  AppDependencies,
+  'store' | 'cloudLibrary' | 'analysisCache' | 'profiles' | 'collab' | 'analysisLog'
+> {
+  const store =
+    options.store ??
+    (dispatcher
+      ? useGoogleStore<AnalysisJobStore>(
+          config,
+          () => new FirestoreAnalysisJobStore(createFirestore(config)),
+          () => new JobStore(),
+        )
+      : new JobStore());
+
+  return {
+    store,
+    cloudLibrary:
+      options.cloudLibrary ??
+      useGoogleStore<CloudLibraryStore | null>(
+        config,
+        () => new FirestoreCloudLibraryStore(createFirestore(config)),
+        () => null,
+      ),
+    analysisCache:
+      options.analysisCache ??
+      useGoogleStore<AnalysisCacheStore>(
+        config,
+        () => new FirestoreAnalysisCache(createFirestore(config)),
+        () => new MemoryAnalysisCache(),
+      ),
+    profiles:
+      options.profiles ??
+      useGoogleStore<ProfileStore>(
+        config,
+        () => new FirestoreProfileStore(createFirestore(config)),
+        () => new MemoryProfileStore(),
+      ),
+    collab:
+      options.collab ??
+      useGoogleStore<CollabStore>(
+        config,
+        () => new FirestoreCollabStore(createFirestore(config)),
+        () => new MemoryCollabStore(),
+      ),
+    analysisLog:
+      options.analysisLog ??
+      useGoogleStore<AnalysisLogStore>(
+        config,
+        () => new FirestoreAnalysisLogStore(createFirestore(config)),
+        () => new MemoryAnalysisLogStore(),
+      ),
+  };
+}
+
+function buildStemsDependencies(
+  options: CreateAppOptions,
+  config: AppConfig,
+  audioCache: TemporaryAudioCache,
+): Pick<AppDependencies, 'stemsEngine' | 'stemsCache' | 'stems' | 'stemsSetup'> {
+  const stemsEngine = createStemsEngine(options, config);
   const stemsCache = options.stemsCache ?? new StemCache(resolve(config.tempDir, 'stems-cache'));
-  const stemsSetup =
-    options.stemsSetup ??
-    (config.local && config.stemsSetupDir && config.stemsPluginSource
-      ? new StemInstaller({
-          pluginDir: config.stemsSetupDir,
-          sourceDir: config.stemsPluginSource,
-        })
-      : undefined);
+  const stemsSetup = createStemsSetup(options, config);
+  const stems =
+    options.stems ??
+    new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems'), stemsCache);
+
+  return {
+    stemsEngine,
+    stemsCache,
+    stems,
+    ...(stemsSetup ? { stemsSetup } : {}),
+  };
+}
+
+function audioCacheFor(
+  options: CreateAppOptions,
+  config: AppConfig,
+  tools: MediaTools,
+): TemporaryAudioCache {
+  return (
+    options.audioCache ??
+    new TemporaryAudioCache({
+      directory: audioCacheDirectory(config.tempDir),
+      workspaceRoot: config.tempDir,
+      ttlMs: config.audioCacheTtlMinutes * 60_000,
+      tools,
+    })
+  );
+}
+
+function webDistFor(options: CreateAppOptions, config: AppConfig): string {
+  if (options.webDist) return options.webDist;
+  if (config.webDist) return config.webDist;
+  return resolve(here, '../../web/dist');
+}
+
+function buildDependencies(options: CreateAppOptions, config: AppConfig): AppDependencies {
+  const analysisDispatcher = createAnalysisDispatcher(options, config);
+  const analysisInputs = createAnalysisInputs(options, config, analysisDispatcher);
+  const tools = options.tools ?? createMediaTools(config);
+  const audioCache = audioCacheFor(options, config, tools);
+  const analyzerTokenProvider =
+    config.analyzerAuth === 'google' ? createGoogleIdTokenProvider(config.analyzerUrl) : undefined;
+
   const deps: AppDependencies = {
     config,
-    store:
-      options.store ??
-      (analysisDispatcher && config.authMode === 'google'
-        ? new FirestoreAnalysisJobStore(createFirestore(config))
-        : new JobStore()),
+    ...buildStores(options, config, analysisDispatcher),
     queue: options.queue ?? new JobQueue(2),
     tools,
     analyzer:
@@ -210,43 +327,16 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     lyrics: options.lyrics ?? createLyricsClient(fetch),
     audioCache,
     auth: options.auth ?? createAuthContext(config),
-    cloudLibrary:
-      options.cloudLibrary ??
-      (config.authMode === 'google'
-        ? new FirestoreCloudLibraryStore(createFirestore(config))
-        : null),
-    analysisCache:
-      options.analysisCache ??
-      (config.authMode === 'google'
-        ? new FirestoreAnalysisCache(createFirestore(config))
-        : new MemoryAnalysisCache()),
-    profiles:
-      options.profiles ??
-      (config.authMode === 'google'
-        ? new FirestoreProfileStore(createFirestore(config))
-        : new MemoryProfileStore()),
-    collab:
-      options.collab ??
-      (config.authMode === 'google'
-        ? new FirestoreCollabStore(createFirestore(config))
-        : new MemoryCollabStore()),
-    analysisLog:
-      options.analysisLog ??
-      (config.authMode === 'google'
-        ? new FirestoreAnalysisLogStore(createFirestore(config))
-        : new MemoryAnalysisLogStore()),
-    stemsEngine,
-    stems:
-      options.stems ??
-      new StemJobs(stemsEngine, audioCache, resolve(config.tempDir, 'stems'), stemsCache),
-    stemsCache,
-    ...(analysisDispatcher ? { analysisDispatcher } : {}),
-    ...(analysisInputs ? { analysisInputs } : {}),
-    ...(stemsSetup ? { stemsSetup } : {}),
-    webDist: options.webDist ?? config.webDist ?? resolve(here, '../../web/dist'),
+    ...buildStemsDependencies(options, config, audioCache),
+    webDist: webDistFor(options, config),
   };
 
-  const app = express();
+  if (analysisDispatcher) deps.analysisDispatcher = analysisDispatcher;
+  if (analysisInputs) deps.analysisInputs = analysisInputs;
+  return deps;
+}
+
+function applyBaseMiddleware(app: express.Express, config: AppConfig): void {
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
   app.use(
@@ -289,7 +379,9 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     next();
   });
   app.use('/api', sameOriginWriteGuard(config));
+}
 
+function registerHealthRoute(app: express.Express, deps: AppDependencies, config: AppConfig): void {
   app.get('/api/health', async (_req, res) => {
     const [health, extractor] = await Promise.all([
       deps.analyzer.health(),
@@ -309,7 +401,9 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
         : {}),
     });
   });
+}
 
+function mountApiRoutes(app: express.Express, deps: AppDependencies, config: AppConfig): void {
   app.use('/api/config', createConfigRouter(deps.config, deps.cloudLibrary));
   app.use('/api/auth', createAuthRouter(deps.auth));
   app.use('/api/admin', createAdminRouter(deps.auth));
@@ -346,24 +440,27 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
   app.use('/api', (_req, res) => {
     res.status(404).json(errorBody('NOT_FOUND', 'Ruta no encontrada'));
   });
+}
 
-  if (existsSync(deps.webDist)) {
-    app.use(
-      express.static(deps.webDist, {
-        index: false,
-        maxAge: '1h',
-        setHeaders: (res, path) => {
-          if (path.includes('/assets/')) {
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-          }
-        },
-      }),
-    );
-    app.get(/^(?!\/api).*/, (_req, res) => {
-      res.sendFile(join(deps.webDist, 'index.html'));
-    });
-  }
+function mountStaticApp(app: express.Express, deps: AppDependencies): void {
+  if (!existsSync(deps.webDist)) return;
+  app.use(
+    express.static(deps.webDist, {
+      index: false,
+      maxAge: '1h',
+      setHeaders: (res, path) => {
+        if (path.includes('/assets/')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
+    }),
+  );
+  app.get(/^(?!\/api).*/, (_req, res) => {
+    res.sendFile(join(deps.webDist, 'index.html'));
+  });
+}
 
+function mountErrorHandler(app: express.Express): void {
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
@@ -382,7 +479,17 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
     console.error(error);
     res.status(500).json(errorBody('ANALYSIS_FAILED', 'Unexpected analysis error'));
   });
+}
 
+export function createApp(options: CreateAppOptions = {}): express.Express {
+  const config = options.config ?? loadConfig();
+  const deps = buildDependencies(options, config);
+  const app = express();
+  applyBaseMiddleware(app, config);
+  registerHealthRoute(app, deps, config);
+  mountApiRoutes(app, deps, config);
+  mountStaticApp(app, deps);
+  mountErrorHandler(app);
   return app;
 }
 
