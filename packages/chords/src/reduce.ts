@@ -224,6 +224,149 @@ function dominantChord(slots: ChordSegment[]): Chord | null {
   return totals[0]?.chord ?? null;
 }
 
+function barIndexAt(time: number, anchor: number, window: number): number {
+  const raw = (time - anchor) / window;
+  const nearest = Math.round(raw);
+  return Math.abs(raw - nearest) < 1e-6 ? nearest : Math.floor(raw);
+}
+
+/** Segment and bar boundaries, so every stretch belongs to one chord and one bar. */
+function barBoundaries(segments: ChordSegment[], anchor: number, window: number): number[] {
+  const first = segments[0]!.start;
+  const last = segments[segments.length - 1]!.end;
+  const boundaries = new Set<number>();
+  for (const segment of segments) {
+    boundaries.add(segment.start);
+    boundaries.add(segment.end);
+  }
+  const firstIndex = Math.floor((first - anchor) / window) - 1;
+  const lastIndex = Math.ceil((last - anchor) / window) + 1;
+  for (let index = firstIndex; index <= lastIndex; index += 1) {
+    const time = anchor + index * window;
+    if (time > first - EPSILON && time < last + EPSILON) {
+      boundaries.add(Number(time.toFixed(6)));
+    }
+  }
+  return [...boundaries].sort((a, b) => a - b);
+}
+
+function slotsFromBoundaries(boundaries: number[], segments: ChordSegment[]): ChordSegment[] {
+  const slots: ChordSegment[] = [];
+  let cursor = 0;
+  for (let index = 0; index + 1 < boundaries.length; index += 1) {
+    const start = boundaries[index]!;
+    const end = boundaries[index + 1]!;
+    if (end - start <= EPSILON) continue;
+    while (cursor < segments.length - 1 && segments[cursor]!.end <= start + EPSILON) {
+      cursor += 1;
+    }
+    const source = segments[cursor];
+    const covers =
+      source !== undefined && source.start <= start + EPSILON && source.end >= end - EPSILON;
+    slots.push({ start, end, chord: covers ? source.chord : null });
+  }
+  return slots;
+}
+
+function groupByBar(
+  slots: ChordSegment[],
+  anchor: number,
+  window: number,
+): Map<number, ChordSegment[]> {
+  const bars = new Map<number, ChordSegment[]>();
+  for (const slot of slots) {
+    const key = barIndexAt(slot.start, anchor, window);
+    const list = bars.get(key);
+    if (list) list.push(slot);
+    else bars.set(key, [slot]);
+  }
+  return bars;
+}
+
+/** Dominant chord of a bar and the time it really starts. */
+function dominantPlacement(
+  slots: ChordSegment[],
+  windowStart: number,
+  window: number,
+  segments: ChordSegment[],
+): { start: number; chord: Chord; movedEarlier: boolean } | null {
+  const dominant = dominantChord(slots);
+  if (dominant === null) return null;
+
+  const firstDominant = slots.find(
+    (slot) => slot.chord !== null && chordEquals(slot.chord, dominant),
+  );
+  let start = firstDominant?.start ?? windowStart;
+  let movedEarlier = false;
+
+  // A chord can dominate the next bar while starting just before its line.
+  // Keep its real start instead of snapping it to the bar boundary.
+  const source = firstDominant
+    ? segments.find(
+        (segment) =>
+          segment.chord !== null &&
+          chordEquals(segment.chord, dominant) &&
+          segment.start <= firstDominant.start + EPSILON &&
+          segment.end > firstDominant.start + EPSILON,
+      )
+    : undefined;
+  if (
+    source !== undefined &&
+    source.start < start - EPSILON &&
+    source.start > windowStart - window + EPSILON
+  ) {
+    start = source.start;
+    movedEarlier = true;
+  }
+  return { start, chord: dominant, movedEarlier };
+}
+
+function leadingChord(slots: ChordSegment[], before: number): Chord | null {
+  const earlier = slots.filter((slot) => slot.start < before - EPSILON);
+  return earlier[earlier.length - 1]?.chord ?? null;
+}
+
+function collapseWindows(
+  windows: Map<number, ChordSegment[]>,
+  segments: ChordSegment[],
+  window: number,
+): ChordSegment[] {
+  const collapsed: ChordSegment[] = [];
+  const keys = [...windows.keys()].sort((a, b) => a - b);
+
+  for (const key of keys) {
+    const list = windows.get(key)!;
+    const windowStart = list[0]!.start;
+    const windowEnd = list[list.length - 1]!.end;
+    const placement = dominantPlacement(list, windowStart, window, segments);
+
+    if (placement === null) {
+      collapsed.push({ start: windowStart, end: windowEnd, chord: null });
+      continue;
+    }
+
+    if (placement.movedEarlier) {
+      const previous = collapsed[collapsed.length - 1];
+      if (previous && previous.end > placement.start + EPSILON) {
+        previous.end = Math.max(previous.start, placement.start);
+        if (previous.end - previous.start <= EPSILON) collapsed.pop();
+      }
+    }
+
+    if (placement.start > windowStart + EPSILON) {
+      collapsed.push({
+        start: windowStart,
+        end: placement.start,
+        chord: leadingChord(list, placement.start),
+      });
+    }
+
+    collapsed.push({ start: placement.start, end: windowEnd, chord: placement.chord });
+  }
+
+  return collapsed;
+}
+
 /**
  * Max mode: splits the timeline into bars of four beats (anchored to the
  * first detected beat) and leaves a single chord per bar, the one that sounds
@@ -241,116 +384,11 @@ function collapseToBars(
   const anchor = times[0] ?? segments[0]!.start;
   const barBeats = Number.isFinite(beatsPerBar) && beatsPerBar > 0 ? Math.floor(beatsPerBar) : 4;
   const window = Math.max(beatDuration(beats) * barBeats, MIN_BAR_SECONDS);
-  const first = segments[0]!.start;
-  const last = segments[segments.length - 1]!.end;
 
-  // Segment and bar boundaries; thus each stretch belongs to a single
-  // chord and a single bar.
-  const boundaries = new Set<number>();
-  for (const segment of segments) {
-    boundaries.add(segment.start);
-    boundaries.add(segment.end);
-  }
-  const firstIndex = Math.floor((first - anchor) / window) - 1;
-  const lastIndex = Math.ceil((last - anchor) / window) + 1;
-  for (let index = firstIndex; index <= lastIndex; index += 1) {
-    const time = anchor + index * window;
-    if (time > first - EPSILON && time < last + EPSILON) {
-      boundaries.add(Number(time.toFixed(6)));
-    }
-  }
-
-  const sorted = [...boundaries].sort((a, b) => a - b);
-  const slots: ChordSegment[] = [];
-  let cursor = 0;
-  for (let index = 0; index + 1 < sorted.length; index += 1) {
-    const start = sorted[index]!;
-    const end = sorted[index + 1]!;
-    if (end - start <= EPSILON) continue;
-    while (cursor < segments.length - 1 && segments[cursor]!.end <= start + EPSILON) {
-      cursor += 1;
-    }
-    const source = segments[cursor];
-    const covers =
-      source !== undefined && source.start <= start + EPSILON && source.end >= end - EPSILON;
-    slots.push({ start, end, chord: covers ? source.chord : null });
-  }
-
-  const windowKey = (time: number): number => {
-    const raw = (time - anchor) / window;
-    const nearest = Math.round(raw);
-    return Math.abs(raw - nearest) < 1e-6 ? nearest : Math.floor(raw);
-  };
-
-  const windows = new Map<number, ChordSegment[]>();
-  for (const slot of slots) {
-    const key = windowKey(slot.start);
-    const list = windows.get(key);
-    if (list) list.push(slot);
-    else windows.set(key, [slot]);
-  }
-
-  const collapsed: ChordSegment[] = [];
-  const keys = [...windows.keys()].sort((a, b) => a - b);
-  for (const key of keys) {
-    const list = windows.get(key)!;
-    const windowStart = list[0]!.start;
-    const windowEnd = list[list.length - 1]!.end;
-    const dominant = dominantChord(list);
-
-    if (dominant === null) {
-      collapsed.push({ start: windowStart, end: windowEnd, chord: null });
-      continue;
-    }
-
-    const firstDominant = list.find(
-      (slot) => slot.chord !== null && chordEquals(slot.chord, dominant),
-    );
-    let dominantStart = firstDominant?.start ?? windowStart;
-
-    // A chord can dominate the next bar while starting just before its line.
-    // Keep its real start instead of snapping it to the bar boundary.
-    const source = firstDominant
-      ? segments.find(
-          (segment) =>
-            segment.chord !== null &&
-            chordEquals(segment.chord, dominant) &&
-            segment.start <= firstDominant.start + EPSILON &&
-            segment.end > firstDominant.start + EPSILON,
-        )
-      : undefined;
-    const previousBarStart = windowStart - window;
-    if (
-      source !== undefined &&
-      source.start < dominantStart - EPSILON &&
-      source.start > previousBarStart + EPSILON
-    ) {
-      dominantStart = source.start;
-      const previous = collapsed[collapsed.length - 1];
-      if (previous && previous.end > dominantStart + EPSILON) {
-        previous.end = Math.max(previous.start, dominantStart);
-        if (previous.end - previous.start <= EPSILON) collapsed.pop();
-      }
-    }
-
-    if (dominantStart > windowStart + EPSILON) {
-      const before = list.filter((slot) => slot.start < dominantStart - EPSILON);
-      const lead = before[before.length - 1];
-      collapsed.push({
-        start: windowStart,
-        end: dominantStart,
-        chord: lead?.chord ?? null,
-      });
-    }
-
-    collapsed.push({
-      start: dominantStart,
-      end: windowEnd,
-      chord: dominant,
-    });
-  }
-
-  return mergeAdjacent(collapsed);
+  const boundaries = barBoundaries(segments, anchor, window);
+  const slots = slotsFromBoundaries(boundaries, segments);
+  const windows = groupByBar(slots, anchor, window);
+  return mergeAdjacent(collapseWindows(windows, segments, window));
 }
 
 /**
