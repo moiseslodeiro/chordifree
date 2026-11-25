@@ -115,6 +115,83 @@ function snapEndToBar(time: number, beats: number[], beatsPerBar: number): numbe
   return Math.max(snapUpToBar(time, beats, beatsPerBar), time);
 }
 
+function buildBlocks(
+  segments: ChordSegment[],
+  vocalRegions: Array<{ start: number; end: number }>,
+): Block[] {
+  return mergeVocalBlocks(vocalRegions).map((block) => ({
+    ...block,
+    chords: chordLabelsInRange(segments, block.start, block.end),
+  }));
+}
+
+function barSecondsOf(beats: number[], beatsPerBar: number): number {
+  if (beats.length <= beatsPerBar) return 0;
+  return ((beats[beats.length - 1]! - beats[0]!) / (beats.length - 1)) * beatsPerBar;
+}
+
+function longEnough(
+  length: number,
+  barSeconds: number,
+  minSeconds: number,
+  minBars: number,
+): boolean {
+  return length >= minSeconds || (barSeconds > 0 && length >= barSeconds * minBars);
+}
+
+function chorusIndexSet(blocks: Block[]): Set<number> {
+  const indices = new Set<number>();
+  const chorus = chorusBlockIndex(blocks);
+  if (chorus < 0) return indices;
+  for (let index = 0; index < blocks.length; index += 1) {
+    if (isSameSectionType(blocks[chorus]!, blocks[index]!)) indices.add(index);
+  }
+  return indices;
+}
+
+function snappedRange(
+  block: Block,
+  beats: number[],
+  beatsPerBar: number,
+): { start: number; end: number } {
+  return {
+    start: snapDownToBar(block.start, beats, beatsPerBar),
+    end: snapEndToBar(block.end, beats, beatsPerBar),
+  };
+}
+
+function appendBlockSections(
+  sections: SongSection[],
+  blocks: Block[],
+  index: number,
+  chorusIndices: Set<number>,
+  beats: number[],
+  beatsPerBar: number,
+  duration: number,
+  barSeconds: number,
+): void {
+  const block = blocks[index]!;
+  const range = snappedRange(block, beats, beatsPerBar);
+  if (range.end - range.start < 1) return;
+  sections.push({
+    label: chorusIndices.has(index) ? 'chorus' : 'verse',
+    start: Math.max(0, range.start),
+    end: Math.min(duration, range.end),
+  });
+
+  const next = blocks[index + 1];
+  if (!next) return;
+  const gapStart = range.end;
+  const gapEnd = snapDownToBar(next.start, beats, beatsPerBar);
+  const gapLength = gapEnd - gapStart;
+  if (
+    gapEnd > gapStart &&
+    longEnough(gapLength, barSeconds, MIN_SECTION_SECONDS, MIN_INSTRUMENTAL_BARS)
+  ) {
+    sections.push({ label: 'instrumental', start: gapStart, end: gapEnd });
+  }
+}
+
 /**
  * Derives intro/verse/chorus/instrumental/outro sections from the vocal regions,
  * the detected bars and the chords. Sections snap to bar lines and are meant as
@@ -127,60 +204,39 @@ export function detectSections(song: Song): SongSection[] {
   const vocal = song.vocalRegions ?? [];
   if (duration <= 0 || vocal.length === 0) return [];
 
-  const blocks = mergeVocalBlocks(vocal).map<Block>((block) => ({
-    ...block,
-    chords: chordLabelsInRange(song.segments, block.start, block.end),
-  }));
+  const blocks = buildBlocks(song.segments, vocal);
   if (blocks.length === 0) return [];
 
-  const barSeconds =
-    beats.length > beatsPerBar
-      ? ((beats[beats.length - 1]! - beats[0]!) / (beats.length - 1)) * beatsPerBar
-      : 0;
+  const barSeconds = barSecondsOf(beats, beatsPerBar);
+  const first = blocks[0]!;
+  const last = blocks[blocks.length - 1]!;
   // A section starts on the downbeat of the bar that contains the vocals and
   // ends on the downbeat after the last sung bar, so partial bars stay inside.
-  const introEnd = snapDownToBar(blocks[0]!.start, beats, beatsPerBar);
-  const outroStart = snapEndToBar(blocks[blocks.length - 1]!.end, beats, beatsPerBar);
-  const chorus = chorusBlockIndex(blocks);
-  const chorusIndices = new Set<number>();
-  if (chorus >= 0) {
-    for (let index = 0; index < blocks.length; index += 1) {
-      if (isSameSectionType(blocks[chorus]!, blocks[index]!)) chorusIndices.add(index);
-    }
-  }
+  const introEnd = snapDownToBar(first.start, beats, beatsPerBar);
+  const outroStart = snapEndToBar(last.end, beats, beatsPerBar);
+  const chorusIndices = chorusIndexSet(blocks);
 
   const sections: SongSection[] = [];
-  if (introEnd >= MIN_SECTION_SECONDS || (barSeconds > 0 && introEnd >= barSeconds * 2)) {
+  if (longEnough(introEnd, barSeconds, MIN_SECTION_SECONDS, 2)) {
     sections.push({ label: 'intro', start: 0, end: introEnd });
   }
 
   for (let index = 0; index < blocks.length; index += 1) {
-    const block = blocks[index]!;
-    const start = snapDownToBar(block.start, beats, beatsPerBar);
-    const end = snapEndToBar(block.end, beats, beatsPerBar);
-    if (end - start < 1) continue;
-    sections.push({
-      label: chorusIndices.has(index) ? 'chorus' : 'verse',
-      start: Math.max(0, start),
-      end: Math.min(duration, end),
-    });
-    const next = blocks[index + 1];
-    if (!next) continue;
-    const gapStart = end;
-    const gapEnd = snapDownToBar(next.start, beats, beatsPerBar);
-    const longEnough =
-      gapEnd - gapStart >= MIN_SECTION_SECONDS ||
-      (barSeconds > 0 && gapEnd - gapStart >= barSeconds * MIN_INSTRUMENTAL_BARS);
-    if (longEnough && gapEnd > gapStart) {
-      sections.push({ label: 'instrumental', start: gapStart, end: gapEnd });
-    }
+    appendBlockSections(
+      sections,
+      blocks,
+      index,
+      chorusIndices,
+      beats,
+      beatsPerBar,
+      duration,
+      barSeconds,
+    );
   }
 
-  if (
-    duration - outroStart >= MIN_SECTION_SECONDS ||
-    (barSeconds > 0 && duration - outroStart >= barSeconds * 2)
-  ) {
-    if (outroStart < duration) sections.push({ label: 'outro', start: outroStart, end: duration });
+  const outroLength = duration - outroStart;
+  if (outroStart < duration && longEnough(outroLength, barSeconds, MIN_SECTION_SECONDS, 2)) {
+    sections.push({ label: 'outro', start: outroStart, end: duration });
   }
 
   return sections.filter((section) => section.end > section.start);
