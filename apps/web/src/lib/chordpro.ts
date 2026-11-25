@@ -45,10 +45,7 @@ function formatLine(text: string, chords: Array<{ offset: number; label: string 
   if (chords.length === 0) return text;
   const byIndex = new Map<number, string[]>();
   for (const chord of chords) {
-    const rawIndex = Math.min(
-      text.length,
-      Math.max(0, Math.round(chord.offset * text.length)),
-    );
+    const rawIndex = Math.min(text.length, Math.max(0, Math.round(chord.offset * text.length)));
     const index = snapToWord(text, rawIndex);
     const list = byIndex.get(index) ?? [];
     list.push(`[${chord.label}]`);
@@ -85,12 +82,7 @@ export function buildChordPro(input: ChordProInput): string {
       lines.push(formatLine(line.text, line.chords));
     }
   } else {
-    const bars = harmonyBars(
-      input.segments,
-      input.beats,
-      input.beatsPerBar,
-      input.duration,
-    );
+    const bars = harmonyBars(input.segments, input.beats, input.beatsPerBar, input.duration);
     const labels = bars.map((bar) =>
       bar.chord ? formatChord(bar.chord, input.notation, input.accidental) : 'N.C.',
     );
@@ -114,27 +106,8 @@ export function downloadChordPro(filename: string, content: string): void {
   URL.revokeObjectURL(url);
 }
 
-
 const DIRECTIVE = /^\{\s*([a-zA-Z_]+)\s*(?::\s*(.*?))?\s*\}$/;
 const INLINE_CHORD = /\[([^\]]+)\]/g;
-const SECTION_DIRECTIVES = new Set([
-  'start_of_chorus',
-  'end_of_chorus',
-  'soc',
-  'eoc',
-  'start_of_verse',
-  'end_of_verse',
-  'sov',
-  'eov',
-  'chorus',
-  'verse',
-  'comment',
-  'c',
-  'ci',
-  'cb',
-  'define',
-  'chord',
-]);
 
 export class ChordProError extends Error {
   constructor(message: string) {
@@ -164,6 +137,106 @@ function isChordOnlyLine(line: string): string[] {
   return tokens;
 }
 
+interface ParsedSheet {
+  title: string;
+  artist: string;
+  tempo: number;
+  capo: number;
+  lyricLines: string[];
+  chords: string[];
+}
+
+function applyDirective(sheet: ParsedSheet, match: RegExpExecArray): void {
+  const [, rawName = '', rawValue = ''] = match;
+  const name = rawName.toLowerCase();
+  if (name === 'title' || name === 't') {
+    sheet.title = rawValue.trim();
+  } else if (name === 'artist') {
+    sheet.artist = rawValue.trim();
+  } else if (name === 'tempo') {
+    const parsed = Number(rawValue);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      sheet.tempo = Math.min(300, Math.max(30, parsed));
+    }
+  } else if (name === 'capo') {
+    const parsed = Number(rawValue);
+    if (Number.isInteger(parsed) && parsed > 0) sheet.capo = parsed;
+  }
+}
+
+function readContentLine(sheet: ParsedSheet, line: string): void {
+  const barChords = isChordLine(line);
+  if (barChords.length > 0) {
+    sheet.chords.push(...barChords);
+    sheet.lyricLines.push('');
+    return;
+  }
+
+  const inline: string[] = [];
+  const plain = line.replace(INLINE_CHORD, (_match, chord: string) => {
+    inline.push(chord.trim());
+    return '';
+  });
+  if (inline.length > 0) {
+    sheet.chords.push(...inline);
+    sheet.lyricLines.push(plain.trim());
+    return;
+  }
+
+  const chordOnly = isChordOnlyLine(line);
+  if (chordOnly.length > 0) {
+    sheet.chords.push(...chordOnly);
+    sheet.lyricLines.push('');
+    return;
+  }
+
+  sheet.lyricLines.push(plain);
+}
+
+function readSheet(text: string): ParsedSheet {
+  const sheet: ParsedSheet = {
+    title: '',
+    artist: '',
+    tempo: 120,
+    capo: 0,
+    lyricLines: [],
+    chords: [],
+  };
+
+  for (const rawLine of text.replace(/\r\n?/g, '\n').split('\n')) {
+    const line = rawLine.trimEnd();
+    const directive = DIRECTIVE.exec(line.trim());
+    if (directive) {
+      applyDirective(sheet, directive);
+      continue;
+    }
+    if (line.trim().startsWith('#')) continue;
+    readContentLine(sheet, line);
+  }
+
+  while (sheet.lyricLines.length > 0 && !sheet.lyricLines[0]?.trim()) sheet.lyricLines.shift();
+  while (sheet.lyricLines.length > 0 && !sheet.lyricLines[sheet.lyricLines.length - 1]?.trim()) {
+    sheet.lyricLines.pop();
+  }
+  return sheet;
+}
+
+function segmentsFromChords(chords: string[], barSeconds: number): ChordSegment[] {
+  return chords.map((label, index) => ({
+    start: Math.round(index * barSeconds * 1000) / 1000,
+    end: Math.round((index + 1) * barSeconds * 1000) / 1000,
+    chord: parseChord(label),
+  }));
+}
+
+function beatsUntil(duration: number, beatSeconds: number): number[] {
+  const beats: number[] = [];
+  for (let time = 0; time < duration; time += beatSeconds) {
+    beats.push(Math.round(time * 1000) / 1000);
+  }
+  return beats;
+}
+
 /**
  * Imports a ChordPro file as a timed song. ChordPro has no audio timing, so
  * every chord gets one bar at the declared tempo. The user can then edit the
@@ -175,91 +248,22 @@ export function parseChordPro(
   preferences: Preferences,
   now: Date = new Date(),
 ): Song {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
-  let title = '';
-  let artist = '';
-  let tempo = 120;
-  let capo = 0;
-  const lyricLines: string[] = [];
-  const chords: string[] = [];
-
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd();
-    const directive = DIRECTIVE.exec(line.trim());
-    if (directive) {
-      const [, name = '', value = ''] = directive;
-      const key = name.toLowerCase();
-      if (key === 'title' || key === 't') title = value.trim();
-      else if (key === 'artist') artist = value.trim();
-      else if (key === 'tempo') {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed) && parsed > 0) tempo = Math.min(300, Math.max(30, parsed));
-      } else if (key === 'capo') {
-        const parsed = Number(value);
-        if (Number.isInteger(parsed) && parsed > 0) capo = parsed;
-      } else if (SECTION_DIRECTIVES.has(key)) {
-        continue;
-      }
-      continue;
-    }
-
-    if (line.trim().startsWith('#')) continue;
-
-    const barChords = isChordLine(line);
-    if (barChords.length > 0) {
-      chords.push(...barChords);
-      lyricLines.push('');
-      continue;
-    }
-
-    const inline: string[] = [];
-    const plain = line.replace(INLINE_CHORD, (_match, chord: string) => {
-      inline.push(chord.trim());
-      return '';
-    });
-
-    if (inline.length > 0) {
-      chords.push(...inline);
-      lyricLines.push(plain.trim());
-      continue;
-    }
-
-    const chordOnly = isChordOnlyLine(line);
-    if (chordOnly.length > 0) {
-      chords.push(...chordOnly);
-      lyricLines.push('');
-      continue;
-    }
-
-    lyricLines.push(plain);
-  }
-
-  while (lyricLines.length > 0 && !lyricLines[0]?.trim()) lyricLines.shift();
-  while (lyricLines.length > 0 && !lyricLines[lyricLines.length - 1]?.trim()) lyricLines.pop();
-
-  const cleanedTitle = title.trim() || filename.replace(/\.(cho|pro|crd|txt)$/i, '') || 'Imported song';
-  const lyrics = lyricLines.join('\n');
-  if (!lyrics.trim() && chords.length === 0) {
+  const sheet = readSheet(text);
+  const cleanedTitle =
+    sheet.title.trim() || filename.replace(/\.(cho|pro|crd|txt)$/i, '') || 'Imported song';
+  const lyrics = sheet.lyricLines.join('\n');
+  if (!lyrics.trim() && sheet.chords.length === 0) {
     throw new ChordProError('The file does not contain chords or lyrics');
   }
 
-  const beatSeconds = 60 / tempo;
+  const beatSeconds = 60 / sheet.tempo;
   const barSeconds = beatSeconds * 4;
-  const segments: ChordSegment[] =
-    chords.length > 0
-      ? chords.map((label, index) => ({
-          start: Math.round(index * barSeconds * 1000) / 1000,
-          end: Math.round((index + 1) * barSeconds * 1000) / 1000,
-          chord: parseChord(label),
-        }))
+  const segments =
+    sheet.chords.length > 0
+      ? segmentsFromChords(sheet.chords, barSeconds)
       : [{ start: 0, end: barSeconds * 2, chord: null }];
 
   const duration = Math.max(4, segments[segments.length - 1]?.end ?? 4);
-  const beats: number[] = [];
-  for (let time = 0; time < duration; time += beatSeconds) {
-    beats.push(Math.round(time * 1000) / 1000);
-  }
-
   const timestamp = now.toISOString();
   const song: Song = {
     id: crypto.randomUUID(),
@@ -268,7 +272,7 @@ export function parseChordPro(
     duration,
     segments,
     detectedSegments: segments,
-    beats,
+    beats: beatsUntil(duration, beatSeconds),
     beatsPerBar: 4,
     vocalRegions: [],
     analyzerVersion: 'chordpro-import',
@@ -279,7 +283,7 @@ export function parseChordPro(
     updatedAt: timestamp,
     lyrics,
   };
-  if (artist) song.artist = artist;
-  if (capo > 0) song.capo = capo;
+  if (sheet.artist) song.artist = sheet.artist;
+  if (sheet.capo > 0) song.capo = sheet.capo;
   return song;
 }
