@@ -25,21 +25,10 @@ import { useT } from '../i18n';
 import { useConfirm } from './ConfirmDialog';
 import { fetchLyrics } from '../lib/api';
 import { buildChordPro, downloadChordPro } from '../lib/chordpro';
-import {
-  MAX_SHARE_URL,
-  buildShareMessage,
-  buildShareUrl,
-  canShareLinks,
-  emailShareUrl,
-  encodeSongForShare,
-  telegramShareUrl,
-  whatsappShareUrl,
-} from '../lib/share';
 import { buildMusicXml, downloadMusicXml } from '../lib/score';
 import { buildMidi, downloadMidi, type MidiOverrides } from '../lib/midi';
 import { downloadStem, getStemNotes, prepareStemAudio, uninstallStems } from '../lib/api';
 import { useStems } from '../hooks/useStems';
-import { downloadSong } from '../storage/backup';
 import { extendBeats, tempoFromBeats } from '../grid/beats';
 import { detectSections } from '../sections/detect';
 import { barRangeAt } from '../practice/range';
@@ -72,6 +61,7 @@ import { AudioControls } from './AudioControls';
 import { SectionsPanel } from './SectionsPanel';
 import { StemsPanel } from './StemsPanel';
 import { SongPrintSheet } from './SongPrintSheet';
+import { SongShareDialog, type ShareNotice } from './SongShareDialog';
 import { StemsInstallPrompt } from './StemsInstallPrompt';
 import { NotationControls } from './NotationControls';
 import { PlayerHost } from './PlayerHost';
@@ -164,6 +154,7 @@ export function SongView({
   const [markMode, setMarkMode] = useState<'a' | 'b' | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareNotice, setShareNotice] = useState<ShareNotice | null>(null);
   const [karaoke, setKaraoke] = useState(false);
   const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
   const stems = useStems(videoId, song.title);
@@ -178,13 +169,6 @@ export function SongView({
   const [uninstalling, setUninstalling] = useState(false);
   const stemUrlsRef = useRef<string[]>([]);
   const [addToSetlistOpen, setAddToSetlistOpen] = useState(false);
-  const [shareNotice, setShareNotice] = useState<{
-    message: string;
-    tone: 'success' | 'warning';
-  } | null>(null);
-  const shareCloseRef = useRef<HTMLButtonElement>(null);
-  const shareDialogRef = useRef<HTMLDivElement>(null);
-  const [shareLink, setShareLink] = useState<string | null>(null);
   const [performance, setPerformance] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
@@ -195,62 +179,6 @@ export function SongView({
     setLyricsDraft('');
     setMicEnabled(false);
   }, [song.id]);
-
-  useEffect(() => {
-    if (!shareOpen) return;
-    shareCloseRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShareOpen(false);
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const dialog = shareDialogRef.current;
-      if (!dialog) return;
-      const focusables = [
-        ...dialog.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      ].filter((element) => element.offsetParent !== null);
-      if (focusables.length === 0) return;
-      const first = focusables[0]!;
-      const last = focusables[focusables.length - 1]!;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [shareOpen]);
-
-  useEffect(() => {
-    if (!shareOpen || !canShareLinks()) {
-      setShareLink(null);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const token = await encodeSongForShare(song);
-        const url = buildShareUrl(token);
-        if (!cancelled) setShareLink(url.length <= MAX_SHARE_URL ? url : null);
-      } catch {
-        if (!cancelled) setShareLink(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [shareOpen, song]);
 
   useEffect(() => {
     document.body.classList.toggle('performance-mode', performance);
@@ -865,54 +793,6 @@ export function SongView({
     downloadChordPro(`${base}.cho`, content);
   };
 
-  const copyChordSheet = async () => {
-    try {
-      await navigator.clipboard.writeText(chordProContent());
-      setShareNotice({ message: t('share.copySheetDone'), tone: 'success' });
-    } catch {
-      setShareNotice({ message: t('share.failed'), tone: 'warning' });
-    }
-  };
-
-  const downloadShareFile = () => {
-    downloadSong(song);
-    setShareNotice({ message: t('share.fileDone'), tone: 'success' });
-  };
-
-  const copyShareLink = async () => {
-    if (!shareLink) {
-      setShareNotice({ message: t('share.tooLong'), tone: 'warning' });
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setShareNotice({ message: t('share.linkDone'), tone: 'success' });
-    } catch {
-      setShareNotice({ message: t('share.failed'), tone: 'warning' });
-    }
-  };
-
-  const shareTo = (target: 'whatsapp' | 'telegram' | 'email') => {
-    const message = buildShareMessage(song.title, chordProContent(), shareLink);
-    if (target === 'email') {
-      window.location.href = emailShareUrl(song.title, message);
-      return;
-    }
-    const url =
-      target === 'whatsapp' ? whatsappShareUrl(message) : telegramShareUrl(message, shareLink);
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const nativeShare = async () => {
-    if (typeof navigator.share !== 'function') return;
-    try {
-      await navigator.share({ title: song.title, text: chordProContent() });
-    } catch (error) {
-      if ((error as DOMException)?.name === 'AbortError') return;
-      setShareNotice({ message: t('share.failed'), tone: 'warning' });
-    }
-  };
-
   const sourceLabel =
     song.source.type === 'youtube'
       ? t('song.sourceYoutube', { id: song.source.videoId })
@@ -996,7 +876,6 @@ export function SongView({
                             label: t('song.share'),
                             onSelect: () => {
                               setShareNotice(null);
-                              setShareLink(null);
                               setShareOpen(true);
                             },
                           },
@@ -1457,103 +1336,13 @@ export function SongView({
       ) : null}
 
       {shareOpen ? (
-        <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 px-4 pb-10 pt-[10vh]"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setShareOpen(false);
-          }}
-        >
-          <div
-            ref={shareDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="share-title"
-            className="mx-auto w-full max-w-lg rounded-2xl border border-line bg-panel p-6 shadow-2xl sm:p-8"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">{t('share.eyebrow')}</p>
-                <h2 id="share-title" className="display mt-2 text-2xl">
-                  {t('share.title')}
-                </h2>
-              </div>
-              <button
-                ref={shareCloseRef}
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShareOpen(false)}
-              >
-                {t('common.close')}
-              </button>
-            </div>
-
-            {shareNotice ? (
-              <NoticeBanner
-                message={shareNotice.message}
-                tone={shareNotice.tone}
-                onDismiss={() => setShareNotice(null)}
-              />
-            ) : null}
-
-            <div className="mt-6 space-y-5">
-              <div>
-                <h3 className="text-sm font-semibold text-ink">{t('share.quickTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.quickBody')}</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  <button type="button" className="btn" onClick={() => shareTo('whatsapp')}>
-                    {t('share.whatsapp')}
-                  </button>
-                  <button type="button" className="btn" onClick={() => shareTo('telegram')}>
-                    {t('share.telegram')}
-                  </button>
-                  <button type="button" className="btn" onClick={() => shareTo('email')}>
-                    {t('share.email')}
-                  </button>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-ink3">{t('share.quickNote')}</p>
-              </div>
-
-              <div className="border-t border-line pt-5">
-                <h3 className="text-sm font-semibold text-ink">{t('share.copySheetTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.copySheetBody')}</p>
-                <button type="button" className="btn mt-3" onClick={() => void copyChordSheet()}>
-                  {t('share.copySheetAction')}
-                </button>
-              </div>
-
-              <div className="border-t border-line pt-5">
-                <h3 className="text-sm font-semibold text-ink">{t('share.fileTitle')}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.fileBody')}</p>
-                <button type="button" className="btn mt-3" onClick={downloadShareFile}>
-                  {t('share.fileAction')}
-                </button>
-              </div>
-
-              {canShareLinks() ? (
-                <div className="border-t border-line pt-5">
-                  <h3 className="text-sm font-semibold text-ink">{t('share.linkTitle')}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-ink3">{t('share.linkBody')}</p>
-                  <button type="button" className="btn mt-3" onClick={() => void copyShareLink()}>
-                    {t('share.linkAction')}
-                  </button>
-                </div>
-              ) : (
-                <p className="border-t border-line pt-5 text-xs leading-relaxed text-ink3">
-                  {t('share.linkUnavailable')}
-                </p>
-              )}
-
-              {typeof navigator.share === 'function' ? (
-                <div className="border-t border-line pt-5">
-                  <button type="button" className="btn" onClick={() => void nativeShare()}>
-                    {t('share.native')}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <SongShareDialog
+          song={song}
+          getChordPro={chordProContent}
+          notice={shareNotice}
+          onNotice={setShareNotice}
+          onClose={() => setShareOpen(false)}
+        />
       ) : null}
     </div>
   );
