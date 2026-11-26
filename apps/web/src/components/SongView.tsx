@@ -15,8 +15,6 @@ import {
   transposeKey,
   type Accidental,
   type ChordSegment,
-  type Notation,
-  type AccidentalPreference,
   type EstimatedKey,
 } from '@chordifree/chords';
 import type { PlayerAdapter } from '../player/types';
@@ -34,6 +32,7 @@ import { detectSections } from '../sections/detect';
 import { barRangeAt } from '../practice/range';
 import { useMicPractice } from '../practice/useMicPractice';
 import { usePracticeSession } from '../practice/usePracticeSession';
+import { useSongKeyboard } from '../hooks/useSongKeyboard';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { buildLyricLines } from '../lyrics/lines';
 import { PlaybackClock } from '../sync/clock';
@@ -46,17 +45,15 @@ import {
   type Preferences,
   type Song,
 } from '../types';
-import { AddToSetlistDialog } from './AddToSetlistDialog';
-import { DisplayControls } from './DisplayControls';
-import { ErrorBanner, NoticeBanner } from './ErrorBanner';
-import { MoreSettings } from './MoreSettings';
+import { ErrorBanner } from './ErrorBanner';
 import { SongGridColumn } from './SongGridColumn';
 import { SongHeader } from './SongHeader';
+import { SongOverlays } from './SongOverlays';
+import { SongToolbar, type SongPreferencePatch } from './SongToolbar';
 import { SongPracticeControls } from './SongPracticeControls';
 import { SongToolsColumn } from './SongToolsColumn';
 import { SongPrintSheet } from './SongPrintSheet';
-import { SongShareDialog, type ShareNotice } from './SongShareDialog';
-import { NotationControls } from './NotationControls';
+import type { ShareNotice } from './SongShareDialog';
 
 interface SongViewProps {
   song: Song;
@@ -144,7 +141,10 @@ export function SongView({
   const [shareOpen, setShareOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState<ShareNotice | null>(null);
   const [karaoke, setKaraoke] = useState(false);
-  const videoId = song.source.type === 'youtube' ? song.source.videoId : null;
+  const videoId = useMemo(
+    () => (song.source.type === 'youtube' ? song.source.videoId : null),
+    [song.source],
+  );
   const stems = useStems(videoId, song.title);
   const [mixActive, setMixActive] = useState(false);
   const [mixBusy, setMixBusy] = useState(false);
@@ -160,6 +160,8 @@ export function SongView({
   const [performance, setPerformance] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
   const { practice, updatePractice } = usePracticeSession(song.id);
+
+  useSongKeyboard(adapter, clock, song.duration);
   const { loopA, loopB, loopEnabled, rate, bpm: manualBpm, pitch } = practice;
 
   useEffect(() => {
@@ -214,7 +216,7 @@ export function SongView({
   const capo = song.capo ?? 0;
   /** The piano does not support a capo: the capo is ignored when showing shapes. */
   const capoAvailable = supportsCapo(instrument);
-  const effectiveCapo = capoAvailable ? capo : 0;
+  const effectiveCapo = useMemo(() => (capoAvailable ? capo : 0), [capoAvailable, capo]);
 
   /** Chords shown: with a capo, shapes are shifted down `capo` semitones. */
   const shapeSegments = useMemo(
@@ -264,8 +266,10 @@ export function SongView({
     segments: practiceSegments,
     currentIndex: practiceIndex,
   });
-  const practiceTarget =
-    practiceIndex >= 0 ? (practiceSegments[practiceIndex]?.chord ?? null) : null;
+  const practiceTarget = useMemo(
+    () => (practiceIndex >= 0 ? (practiceSegments[practiceIndex]?.chord ?? null) : null),
+    [practiceIndex, practiceSegments],
+  );
   const totalPracticeChords = useMemo(
     () => practiceSegments.filter((segment) => segment.chord !== null).length,
     [practiceSegments],
@@ -573,39 +577,6 @@ export function SongView({
   };
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.tagName === 'BUTTON' ||
-          target.tagName === 'A' ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      if (event.code === 'Space') {
-        event.preventDefault();
-        if (adapter?.isPlaying()) adapter.pause();
-        else adapter?.play();
-        return;
-      }
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        const delta = event.key === 'ArrowLeft' ? -5 : 5;
-        const next = Math.max(0, Math.min(song.duration, (adapter?.getCurrentTime() ?? 0) + delta));
-        adapter?.seekTo(next);
-        clock?.tickOnce();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [adapter, clock, song.duration]);
-
-  useEffect(() => {
     if (markMode === null) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMarkMode(null);
@@ -614,17 +585,7 @@ export function SongView({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [markMode]);
 
-  const changePreferences = (patch: {
-    notation?: Notation;
-    accidentalPreference?: AccidentalPreference;
-    transpose?: number;
-    simplifyChords?: boolean;
-    reduceChords?: boolean;
-    reduceChordsMax?: boolean;
-    instrument?: Instrument;
-    gridView?: GridView;
-    capo?: number;
-  }) => {
+  const changePreferences = (patch: SongPreferencePatch) => {
     const songPatch: Partial<
       Pick<Song, 'notation' | 'accidentalPreference' | 'transpose' | 'capo'>
     > = {};
@@ -781,20 +742,14 @@ export function SongView({
     downloadChordPro(`${base}.cho`, content);
   };
 
-  const sourceLabel =
-    song.source.type === 'youtube'
-      ? t('song.sourceYoutube', { id: song.source.videoId })
-      : song.source.type === 'sheet'
-        ? t('song.sourceSheet', { name: song.source.filename })
-        : t('song.sourceUpload', { name: song.source.filename });
+  const sourceLabel = useMemo(() => {
+    if (song.source.type === 'youtube') return t('song.sourceYoutube', { id: song.source.videoId });
+    if (song.source.type === 'sheet') return t('song.sourceSheet', { name: song.source.filename });
+    return t('song.sourceUpload', { name: song.source.filename });
+  }, [song.source, t]);
 
   return (
     <div className="song-view space-y-5">
-      {performance ? <h1 className="sr-only">{song.title}</h1> : null}
-      {notice ? (
-        <NoticeBanner message={notice.message} tone={notice.tone} onDismiss={onDismissNotice} />
-      ) : null}
-
       <SongHeader
         song={song}
         sourceLabel={sourceLabel}
@@ -893,36 +848,18 @@ export function SongView({
         onMicReset={micPractice.reset}
       />
 
-      <section
-        className="song-toolbar flex flex-wrap items-stretch overflow-hidden rounded-xl border border-line bg-panel shadow-sm"
-        aria-label={t('song.toolbarAria')}
-      >
-        <NotationControls
-          notation={song.notation}
-          accidentalPreference={song.accidentalPreference}
-          transpose={song.transpose}
-          hideAdvanced={mobile}
-          onChange={changePreferences}
-        />
-        <DisplayControls
-          simplifyChords={simplifyChords}
-          reduceChords={reduceChords}
-          reduceChordsMax={reduceChordsMax}
-          instrument={instrument}
-          capo={capo}
-          hideAdvanced={mobile}
-          onChange={changePreferences}
-        />
-      </section>
-
-      {mobile ? (
-        <MoreSettings
-          accidentalPreference={song.accidentalPreference}
-          instrument={instrument}
-          capo={capo}
-          onChange={changePreferences}
-        />
-      ) : null}
+      <SongToolbar
+        notation={song.notation}
+        accidentalPreference={song.accidentalPreference}
+        transpose={song.transpose}
+        simplifyChords={simplifyChords}
+        reduceChords={reduceChords}
+        reduceChordsMax={reduceChordsMax}
+        instrument={instrument}
+        capo={capo}
+        mobile={mobile}
+        onChange={changePreferences}
+      />
 
       {playbackError ? (
         <ErrorBanner
@@ -1039,36 +976,23 @@ export function SongView({
         printRows={printRows}
       />
 
-      {performance ? (
-        <button
-          type="button"
-          className="btn btn-secondary fixed bottom-4 right-4 z-[60]"
-          onClick={togglePerformance}
-        >
-          {t('song.exitPerformance')}
-        </button>
-      ) : null}
-
-      {addToSetlistOpen ? (
-        <AddToSetlistDialog
-          songId={song.id}
-          songTitle={song.title}
-          setlists={setlists}
-          onAdd={onAddToSetlist}
-          onCreate={onCreateSetlistWithSong}
-          onClose={() => setAddToSetlistOpen(false)}
-        />
-      ) : null}
-
-      {shareOpen ? (
-        <SongShareDialog
-          song={song}
-          getChordPro={chordProContent}
-          notice={shareNotice}
-          onNotice={setShareNotice}
-          onClose={() => setShareOpen(false)}
-        />
-      ) : null}
+      <SongOverlays
+        performance={performance}
+        onExitPerformance={togglePerformance}
+        setlistOpen={addToSetlistOpen}
+        song={song}
+        setlists={setlists}
+        onAddToSetlist={onAddToSetlist}
+        onCreateSetlistWithSong={onCreateSetlistWithSong}
+        onCloseSetlist={() => setAddToSetlistOpen(false)}
+        shareOpen={shareOpen}
+        getChordPro={chordProContent}
+        shareNotice={shareNotice}
+        notice={notice}
+        onDismissNotice={onDismissNotice}
+        onShareNotice={setShareNotice}
+        onCloseShare={() => setShareOpen(false)}
+      />
     </div>
   );
 }
