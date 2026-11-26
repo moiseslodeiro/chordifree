@@ -45,7 +45,7 @@
 | RNF-009 | Disponibilidad | Los jobs no se pierden en un reinicio | Firestore + Cloud Run Jobs | Implementado (online) |
 | RNF-010 | Escalabilidad | Soportar más de una instancia del servidor | Estado compartido | **Pendiente** |
 | RNF-011 | Mantenibilidad | Tipos de API compartidos entre web y servidor | `packages/contracts` | Implementado |
-| RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Parcial** |
+| RNF-012 | Mantenibilidad | `App.tsx` dividido por features/páginas | ≤ 300 líneas por archivo de página | **Parcial**: `App.tsx` 427 líneas; `SongView` ya dividido |
 | RNF-013 | Mantenibilidad | Tests de servidor, web, analyzer y E2E | CI de servidor, web, analyzer y E2E | Implementado |
 | RNF-014 | Privacidad | El modo local no envía datos a terceros salvo YouTube/LRCLIB | Sin cuentas ni analytics | Implementado |
 | RNF-015 | Privacidad | Documentar el tratamiento de datos del modo online | `PRIVACY.md` actualizado | Implementado |

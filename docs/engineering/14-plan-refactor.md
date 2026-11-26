@@ -11,15 +11,20 @@ es reescribir la app: es reducir el coste de cambio sin alterar el comportamient
 - No mezclar refactor con features nuevas.
 - Mantener el modo local y el online funcionando en cada paso.
 
-## Estado a 2026-11-16
+## Estado a 2026-11-26
 
 - **PR 1 — contratos:** hecho. `packages/contracts` está integrado en web y servidor.
 - **PR 2 — cloud sync:** hecho. `sync/cloud.ts` + `useCloudLibrary` con tests; `setlistsRef` y
   los efectos de nube salieron de `App.tsx`.
-- **PR 3 — `App.tsx`:** hecho. De ~996 a 293 líneas. El routing y el estado de la canción
-  viven en `useSongNavigation`; las acciones de biblioteca y setlists en `useLibraryActions` y
+- **PR 3 — `App.tsx`:** parcial. El routing y el estado de la canción viven en
+  `useSongNavigation`; las acciones de biblioteca y setlists en `useLibraryActions` y
   `useSetlistActions`; la importación de enlaces en `useSharedSongImport`; y el switch de ruta
-  en `AppRoutes`. Header, footer, preferencias, health y caché ya estaban extraídos.
+  en `AppRoutes`. `App.tsx` sigue en **427 líneas**, por encima del objetivo de 300.
+- **`SongView`:** dividido en `SongHeader`, `SongGridColumn`, `SongToolsColumn`,
+  `SongPracticeControls`, `SongToolbar`, `SongOverlays`, `SongPrintSheet` y
+  `SongShareDialog`. Queda en 998 líneas como orquestador.
+- **Herramientas:** `pnpm test:coverage` genera cobertura V8; ESLint avisa de complejidad
+  superior a 12. La línea base actual es 52 avisos.
 - **P0:** privacidad, términos, producto, seguridad, diseño y borrado de cuenta online
   completados.
 
