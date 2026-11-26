@@ -1,6 +1,6 @@
 fastapi==0.162.7
 uvicorn[standard]==0.54.0
-python-multipart==0.0.33
+python-multipart==0.0.34
 numpy>=1.26,<3
 # Essentia 2.0.1 (latest stable) is from 2014, is not on PyPI and does not
 # include NNLSChroma/LogSpectrum. We pin the exact beta the analyzer is validated with.
