@@ -24,6 +24,7 @@ export default tseslint.config(
       globals: { ...globals.node, ...globals.browser },
     },
     rules: {
+      complexity: ['warn', 12],
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
