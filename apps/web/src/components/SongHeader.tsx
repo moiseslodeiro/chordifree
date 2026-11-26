@@ -1,7 +1,7 @@
 import { formatTime } from '@chordifree/chords';
 import { useT } from '../i18n';
 import type { Song } from '../types';
-import { ActionMenu, type ActionMenuItem } from './ActionMenu';
+import { ActionMenu, type ActionMenuItem, type ActionMenuSection } from './ActionMenu';
 import { useConfirm } from './ConfirmDialog';
 import type { ShareNotice } from './SongShareDialog';
 
@@ -84,6 +84,73 @@ export function SongHeader({
     },
   };
 
+  const songMenuSections = (): ActionMenuSection[] => {
+    if (!idle) return [];
+    return [
+      {
+        label: t('menu.song'),
+        items: [
+          { label: t('song.editDetails'), onSelect: onOpenDetails },
+          ...(saved ? [{ label: t('song.addToSetlist'), onSelect: onOpenSetlist }] : []),
+          {
+            label: performance ? t('song.exitPerformance') : t('song.performance'),
+            onSelect: onTogglePerformance,
+          },
+        ] satisfies ActionMenuItem[],
+      },
+      {
+        label: t('menu.share'),
+        items: [
+          { label: t('song.share'), onSelect: onOpenShare },
+          ...(canCollaborate && saved ? [collabShareItem] : []),
+        ] satisfies ActionMenuItem[],
+      },
+    ];
+  };
+
+  const exportMenuSections = (): ActionMenuSection[] => {
+    if (!idle || !hasPrintRows) return [];
+    return [
+      {
+        label: t('menu.export'),
+        items: [
+          { label: t('song.print'), onSelect: () => window.print() },
+          { label: t('song.score'), onSelect: onExportScore },
+          { label: t('song.midi'), onSelect: onExportMidi },
+          { label: t('song.chordpro'), onSelect: onExportChordPro },
+        ] satisfies ActionMenuItem[],
+      },
+    ];
+  };
+
+  const analysisMenuSections = (): ActionMenuSection[] => {
+    if (!idle || song.source.type !== 'youtube') return [];
+    return [
+      {
+        label: t('menu.analysis'),
+        items: [
+          {
+            label: reanalyzing
+              ? `${t('song.reanalyzing')}${
+                  reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
+                }`
+              : t('song.reanalyze'),
+            onSelect: () => {
+              void confirm({
+                title: t('song.reanalyze'),
+                description: t('song.reanalyzeConfirm'),
+                confirmLabel: t('song.reanalyze'),
+              }).then((accepted) => {
+                if (accepted) onReanalyze();
+              });
+            },
+            disabled: reanalyzing,
+          },
+        ] satisfies ActionMenuItem[],
+      },
+    ];
+  };
+
   return (
     <header className="song-header border-b border-line pb-5">
       <nav className="flex flex-wrap items-center gap-5" aria-label={t('song.navAria')}>
@@ -126,76 +193,7 @@ export function SongHeader({
           ) : null}
           <ActionMenu
             label={t('song.moreActions')}
-            sections={[
-              ...(idle
-                ? [
-                    {
-                      label: t('menu.song'),
-                      items: [
-                        { label: t('song.editDetails'), onSelect: onOpenDetails },
-                        ...(saved
-                          ? [
-                              {
-                                label: t('song.addToSetlist'),
-                                onSelect: onOpenSetlist,
-                              },
-                            ]
-                          : []),
-                        {
-                          label: performance ? t('song.exitPerformance') : t('song.performance'),
-                          onSelect: onTogglePerformance,
-                        },
-                      ] satisfies ActionMenuItem[],
-                    },
-                    {
-                      label: t('menu.share'),
-                      items: [
-                        { label: t('song.share'), onSelect: onOpenShare },
-                        ...(canCollaborate && saved ? [collabShareItem] : []),
-                      ] satisfies ActionMenuItem[],
-                    },
-                  ]
-                : []),
-              ...(idle && hasPrintRows
-                ? [
-                    {
-                      label: t('menu.export'),
-                      items: [
-                        { label: t('song.print'), onSelect: () => window.print() },
-                        { label: t('song.score'), onSelect: onExportScore },
-                        { label: t('song.midi'), onSelect: onExportMidi },
-                        { label: t('song.chordpro'), onSelect: onExportChordPro },
-                      ] satisfies ActionMenuItem[],
-                    },
-                  ]
-                : []),
-              ...(idle && song.source.type === 'youtube'
-                ? [
-                    {
-                      label: t('menu.analysis'),
-                      items: [
-                        {
-                          label: reanalyzing
-                            ? `${t('song.reanalyzing')}${
-                                reanalyzeProgress !== null ? ` ${reanalyzeProgress}%` : '…'
-                              }`
-                            : t('song.reanalyze'),
-                          onSelect: () => {
-                            void confirm({
-                              title: t('song.reanalyze'),
-                              description: t('song.reanalyzeConfirm'),
-                              confirmLabel: t('song.reanalyze'),
-                            }).then((accepted) => {
-                              if (accepted) onReanalyze();
-                            });
-                          },
-                          disabled: reanalyzing,
-                        },
-                      ] satisfies ActionMenuItem[],
-                    },
-                  ]
-                : []),
-            ]}
+            sections={[...songMenuSections(), ...exportMenuSections(), ...analysisMenuSections()]}
           />
           {!editingLyrics && (!saved || dirty) ? (
             <button type="button" className="btn btn-primary" onClick={() => onSave(song)}>
