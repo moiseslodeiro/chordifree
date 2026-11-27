@@ -217,213 +217,215 @@ export function Home({
             {t(desktop ? 'home.subtitleDesktop' : 'home.subtitle')}
           </p>
 
-          <div className="mt-8 flex flex-wrap border-b border-line" role="tablist">
-            {(desktop ? (['upload', 'youtube'] as const) : (['youtube', 'upload'] as const)).map(
-              (value, index, list) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === value}
-                  className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
-                  onClick={() => setMode(value)}
-                >
-                  {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
-                </button>
-              ),
-            )}
-          </div>
+          <div hidden={busy}>
+            <div className="mt-8 flex flex-wrap border-b border-line" role="tablist">
+              {(desktop ? (['upload', 'youtube'] as const) : (['youtube', 'upload'] as const)).map(
+                (value, index, list) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === value}
+                    className={`tab -mb-px pb-2 ${index < list.length - 1 ? 'mr-6' : ''}`}
+                    onClick={() => setMode(value)}
+                  >
+                    {value === 'upload' ? t('home.uploadTab') : t('home.youtubeTab')}
+                  </button>
+                ),
+              )}
+            </div>
 
-          <form
-            className="mt-7 space-y-7"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submit();
-            }}
-          >
-            {mode === 'youtube' ? (
-              <div className="space-y-6">
-                {youtubeMode === 'hosted' ? (
-                  <p className="note note-warning text-xs leading-relaxed">
-                    {t('home.youtubeHostedHint')}
-                  </p>
-                ) : null}
-                <div className="space-y-2">
-                  <label htmlFor="youtube-search" className="eyebrow block">
-                    {t('home.searchLabel')}
-                  </label>
-                  <div className="flex gap-2">
+            <form
+              className="mt-7 space-y-7"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submit();
+              }}
+            >
+              {mode === 'youtube' ? (
+                <div className="space-y-6">
+                  {youtubeMode === 'hosted' ? (
+                    <p className="note note-warning text-xs leading-relaxed">
+                      {t('home.youtubeHostedHint')}
+                    </p>
+                  ) : null}
+                  <div className="space-y-2">
+                    <label htmlFor="youtube-search" className="eyebrow block">
+                      {t('home.searchLabel')}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="youtube-search"
+                        type="search"
+                        className="field min-w-0"
+                        placeholder={t('home.searchPlaceholder')}
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            void runSearch();
+                          }
+                        }}
+                        disabled={busy}
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn shrink-0"
+                        onClick={() => void runSearch()}
+                        disabled={busy || searching}
+                      >
+                        {searching ? t('home.searching') : t('home.searchAction')}
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed text-ink3">{t('home.searchHelp')}</p>
+                  </div>
+
+                  <div aria-live="polite">
+                    {results !== null ? (
+                      results.length === 0 ? (
+                        <p className="text-xs text-ink3">{t('home.searchEmpty')}</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {results.map((item) => {
+                            const analyzing = analyzingId === item.videoId;
+                            const analyzed = item.analyzed === true;
+                            const meta = [
+                              item.uploader,
+                              typeof item.duration === 'number'
+                                ? formatDuration(item.duration)
+                                : null,
+                            ]
+                              .filter((value): value is string => Boolean(value))
+                              .join(' · ');
+                            return (
+                              <li
+                                key={item.videoId}
+                                className={`grid grid-cols-[auto_1fr] items-center gap-3 rounded-lg border p-2 sm:flex ${
+                                  analyzing
+                                    ? 'border-accent/50 bg-accent/5'
+                                    : 'border-line bg-panel-2/60'
+                                }`}
+                              >
+                                <img
+                                  src={item.thumbnail}
+                                  alt=""
+                                  width={128}
+                                  height={72}
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                  className="h-14 w-24 shrink-0 rounded-md bg-panel object-cover sm:h-[4.5rem] sm:w-32"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p
+                                      className="truncate text-sm font-semibold leading-snug text-ink"
+                                      title={item.title}
+                                    >
+                                      {item.title}
+                                    </p>
+                                    {analyzed ? (
+                                      <span className="badge shrink-0 border-positive/60 text-positive">
+                                        ✓ {t('home.analyzed')}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  {meta ? (
+                                    <p className="mt-0.5 truncate text-xs text-ink3">{meta}</p>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`col-span-2 w-full justify-center sm:col-span-1 sm:w-auto ${
+                                    analyzed ? 'btn' : 'btn btn-primary'
+                                  }`}
+                                  onClick={() => void loadSearchResult(item)}
+                                  disabled={busy}
+                                  aria-busy={analyzing || undefined}
+                                  aria-label={
+                                    analyzing
+                                      ? t('home.analyzingVideo', { title: item.title })
+                                      : analyzed
+                                        ? t('home.openVideo', { title: item.title })
+                                        : t('home.analyzeVideo', { title: item.title })
+                                  }
+                                >
+                                  {analyzing ? (
+                                    <>
+                                      <span
+                                        aria-hidden="true"
+                                        className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+                                      />
+                                      {t('home.analyzing')}
+                                    </>
+                                  ) : analyzed ? (
+                                    t('home.openResult')
+                                  ) : (
+                                    t('home.analyzeResult')
+                                  )}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2 border-t border-line pt-5">
+                    <p className="eyebrow">{t('home.orPasteLink')}</p>
+                    <label htmlFor="youtube-url" className="block">
+                      {t('home.youtubeLabel')}
+                    </label>
                     <input
-                      id="youtube-search"
-                      type="search"
-                      className="field min-w-0"
-                      placeholder={t('home.searchPlaceholder')}
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          void runSearch();
-                        }
-                      }}
+                      id="youtube-url"
+                      type="url"
+                      inputMode="url"
+                      className="field"
+                      placeholder="https://www.youtube.com/watch?v=…"
+                      value={url}
+                      onChange={(event) => setUrl(event.target.value)}
                       disabled={busy}
                       autoComplete="off"
                     />
-                    <button
-                      type="button"
-                      className="btn shrink-0"
-                      onClick={() => void runSearch()}
-                      disabled={busy || searching}
-                    >
-                      {searching ? t('home.searching') : t('home.searchAction')}
-                    </button>
+                    <p className="text-xs leading-relaxed text-ink3">{t('home.youtubeHelp')}</p>
+                    {radioHint ? (
+                      <p className="text-xs leading-relaxed text-warning">{t('home.radioHint')}</p>
+                    ) : null}
                   </div>
-                  <p className="text-xs leading-relaxed text-ink3">{t('home.searchHelp')}</p>
                 </div>
-
-                <div aria-live="polite">
-                  {results !== null ? (
-                    results.length === 0 ? (
-                      <p className="text-xs text-ink3">{t('home.searchEmpty')}</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {results.map((item) => {
-                          const analyzing = analyzingId === item.videoId;
-                          const analyzed = item.analyzed === true;
-                          const meta = [
-                            item.uploader,
-                            typeof item.duration === 'number'
-                              ? formatDuration(item.duration)
-                              : null,
-                          ]
-                            .filter((value): value is string => Boolean(value))
-                            .join(' · ');
-                          return (
-                            <li
-                              key={item.videoId}
-                              className={`grid grid-cols-[auto_1fr] items-center gap-3 rounded-lg border p-2 sm:flex ${
-                                analyzing
-                                  ? 'border-accent/50 bg-accent/5'
-                                  : 'border-line bg-panel-2/60'
-                              }`}
-                            >
-                              <img
-                                src={item.thumbnail}
-                                alt=""
-                                width={128}
-                                height={72}
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                                className="h-14 w-24 shrink-0 rounded-md bg-panel object-cover sm:h-[4.5rem] sm:w-32"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p
-                                    className="truncate text-sm font-semibold leading-snug text-ink"
-                                    title={item.title}
-                                  >
-                                    {item.title}
-                                  </p>
-                                  {analyzed ? (
-                                    <span className="badge shrink-0 border-positive/60 text-positive">
-                                      ✓ {t('home.analyzed')}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                {meta ? (
-                                  <p className="mt-0.5 truncate text-xs text-ink3">{meta}</p>
-                                ) : null}
-                              </div>
-                              <button
-                                type="button"
-                                className={`col-span-2 w-full justify-center sm:col-span-1 sm:w-auto ${
-                                  analyzed ? 'btn' : 'btn btn-primary'
-                                }`}
-                                onClick={() => void loadSearchResult(item)}
-                                disabled={busy}
-                                aria-busy={analyzing || undefined}
-                                aria-label={
-                                  analyzing
-                                    ? t('home.analyzingVideo', { title: item.title })
-                                    : analyzed
-                                      ? t('home.openVideo', { title: item.title })
-                                      : t('home.analyzeVideo', { title: item.title })
-                                }
-                              >
-                                {analyzing ? (
-                                  <>
-                                    <span
-                                      aria-hidden="true"
-                                      className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
-                                    />
-                                    {t('home.analyzing')}
-                                  </>
-                                ) : analyzed ? (
-                                  t('home.openResult')
-                                ) : (
-                                  t('home.analyzeResult')
-                                )}
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )
-                  ) : null}
-                </div>
-
-                <div className="space-y-2 border-t border-line pt-5">
-                  <p className="eyebrow">{t('home.orPasteLink')}</p>
-                  <label htmlFor="youtube-url" className="block">
-                    {t('home.youtubeLabel')}
+              ) : (
+                <div className="space-y-2">
+                  <label htmlFor="audio-file" className="eyebrow block">
+                    {t('home.uploadLabel')}
                   </label>
                   <input
-                    id="youtube-url"
-                    type="url"
-                    inputMode="url"
-                    className="field"
-                    placeholder="https://www.youtube.com/watch?v=…"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
+                    id="audio-file"
+                    type="file"
+                    className="field file:mr-4 file:border file:border-line-strong file:bg-panel-2 file:px-3 file:py-1.5 file:font-mono file:text-[0.7rem] file:uppercase file:tracking-[0.12em] file:text-ink2"
+                    accept=".mp3,.wav,.m4a,.ogg,.flac,.webm,.mp4,audio/*"
+                    onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                     disabled={busy}
-                    autoComplete="off"
                   />
-                  <p className="text-xs leading-relaxed text-ink3">{t('home.youtubeHelp')}</p>
-                  {radioHint ? (
-                    <p className="text-xs leading-relaxed text-warning">{t('home.radioHint')}</p>
-                  ) : null}
+                  <p className="text-xs leading-relaxed text-ink3">{t('home.uploadHelp')}</p>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label htmlFor="audio-file" className="eyebrow block">
-                  {t('home.uploadLabel')}
-                </label>
-                <input
-                  id="audio-file"
-                  type="file"
-                  className="field file:mr-4 file:border file:border-line-strong file:bg-panel-2 file:px-3 file:py-1.5 file:font-mono file:text-[0.7rem] file:uppercase file:tracking-[0.12em] file:text-ink2"
-                  accept=".mp3,.wav,.m4a,.ogg,.flac,.webm,.mp4,audio/*"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  disabled={busy}
-                />
-                <p className="text-xs leading-relaxed text-ink3">{t('home.uploadHelp')}</p>
-              </div>
-            )}
+              )}
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? t('home.analyzing') : t('home.detect')}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => onAnalyzed(createDemoSong(preferences), DEMO_AUDIO_URL)}
-              >
-                {t('home.demo')}
-              </button>
-            </div>
-          </form>
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {busy ? t('home.analyzing') : t('home.detect')}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => onAnalyzed(createDemoSong(preferences), DEMO_AUDIO_URL)}
+                >
+                  {t('home.demo')}
+                </button>
+              </div>
+            </form>
+          </div>
 
           <div className="mt-7 space-y-4 empty:mt-0">
             <ProgressPanel state={runner.state} onCancel={runner.cancel} />
