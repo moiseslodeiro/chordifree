@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises';
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import multer from 'multer';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import type { MediaTools } from '../services/media';
 import type { AnalysisResult } from '../types';
 import { extractVideoId } from '../youtube';
 import type { AnalysisInputStore, AnalysisJobDispatcher } from '../services/cloud-run-analysis';
+import type { AnalysisQuota } from '../services/analysis-quota';
 
 const YoutubeSchema = z
   .object({
@@ -45,6 +46,18 @@ export interface AnalysesRouterDeps {
   profiles: ProfileStore;
   analysisDispatcher?: AnalysisJobDispatcher;
   analysisInputs?: AnalysisInputStore;
+  analysisQuota?: AnalysisQuota;
+}
+
+async function assertWithinQuota(req: Request, deps: AnalysesRouterDeps): Promise<void> {
+  const uid = req.authUser?.uid;
+  if (!uid || !deps.analysisQuota) return;
+  if (!(await deps.analysisQuota.consume(uid))) {
+    throw new ApiError(
+      'QUOTA_EXCEEDED',
+      'The daily analysis quota is exhausted. Try again tomorrow.',
+    );
+  }
 }
 
 async function requesterFor(
@@ -181,6 +194,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
           throw new ApiError('INVALID_AUDIO', 'The file does not look like valid audio');
         }
 
+        await assertWithinQuota(req, deps);
         await mkdir(deps.config.tempDir, { recursive: true });
         const source = { type: 'upload' as const, filename: originalname };
         const job = await deps.store.create(source, await requesterFor(req.authUser, deps));
@@ -231,6 +245,7 @@ export function createAnalysesRouter(deps: AnalysesRouterDeps): Router {
         }
       }
 
+      await assertWithinQuota(req, deps);
       await mkdir(deps.config.tempDir, { recursive: true });
       const job = await deps.store.create(source, await requesterFor(req.authUser, deps));
       let view = deps.store.toView(job);

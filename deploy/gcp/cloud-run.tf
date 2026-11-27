@@ -159,6 +159,11 @@ resource "google_cloud_run_v2_service" "server" {
       }
 
       env {
+        name  = "ANALYSIS_DAILY_QUOTA"
+        value = tostring(var.analysis_daily_quota)
+      }
+
+      env {
         name  = "AUDIO_CACHE_TTL_MINUTES"
         value = tostring(var.audio_cache_ttl_minutes)
       }

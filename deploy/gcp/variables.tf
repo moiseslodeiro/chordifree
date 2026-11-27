@@ -118,6 +118,12 @@ variable "rate_limit_max" {
   default     = 60
 }
 
+variable "analysis_daily_quota" {
+  description = "Hosted analyses allowed per user and UTC day. 0 disables the quota."
+  type        = number
+  default     = 50
+}
+
 variable "audio_cache_ttl_minutes" {
   description = "How long temporary YouTube audio is kept on the instance."
   type        = number

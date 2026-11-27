@@ -225,7 +225,8 @@ Ver `.env.example`. Las más relevantes:
 - `ANALYZER_URL`: URL del microservicio (por defecto `http://localhost:8001`).
 - `MAX_DURATION_SECONDS`: duración máxima analizable (900 s).
 - `MAX_UPLOAD_BYTES`: tamaño máximo de subida (25 MB).
-- `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS`: límite de análisis por IP.
+- `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS`: límite de análisis por usuario (por IP en local).
+- `ANALYSIS_DAILY_QUOTA`: análisis por usuario y día UTC en la instancia online; `0` lo desactiva.
 - `YTDLP_PATH`, `FFMPEG_PATH`, `FFPROBE_PATH`: rutas a los binarios.
 - `AUTH_MODE`: `none` para local/escritorio, `google` para la instancia online.
 - `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`: cliente OAuth y administradores de la instancia online.
@@ -317,7 +318,8 @@ curl -fsS http://localhost:3001/api/health
 | ---------------------------- | ----------------- | ---------------------------------------- |
 | Duración máxima por análisis | 15 minutos        | `MAX_DURATION_SECONDS`                   |
 | Tamaño máximo de subida      | 25 MB             | `MAX_UPLOAD_BYTES`                       |
-| Análisis por IP              | 60 por hora       | `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS` |
+| Análisis por usuario o IP    | 60 por hora       | `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS` |
+| Análisis por usuario y día   | 50                | `ANALYSIS_DAILY_QUOTA`                   |
 | Concurrencia de la cola      | 2 trabajos        | fija en esta versión                     |
 | Timeout de descarga          | 90 s              | fijo                                     |
 | Timeout de conversión        | 60 s              | fijo                                     |

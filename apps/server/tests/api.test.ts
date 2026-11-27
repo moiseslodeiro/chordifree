@@ -70,6 +70,24 @@ describe('POST /api/analyses', () => {
     expect(body.progress).toBe(100);
   });
 
+  it('rejects analyses when the daily quota is exhausted', async () => {
+    const consume = vi.fn(async () => false);
+    const app = await buildApp({ analysisQuota: { consume } });
+
+    const youtube = await request(app)
+      .post('/api/analyses')
+      .send({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
+    expect(youtube.status).toBe(429);
+    expect(youtube.body.error.code).toBe('QUOTA_EXCEEDED');
+
+    const upload = await request(app)
+      .post('/api/analyses')
+      .attach('file', wavBuffer(), { filename: 'cancion.wav', contentType: 'audio/wav' });
+    expect(upload.status).toBe(429);
+    expect(upload.body.error.code).toBe('QUOTA_EXCEEDED');
+    expect(consume).toHaveBeenCalledTimes(2);
+  });
+
   it('reuses the result for the same video within the TTL', async () => {
     let probes = 0;
     const app = await buildApp({
