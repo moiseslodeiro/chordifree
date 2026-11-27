@@ -133,6 +133,7 @@ describe('Home', () => {
 
     expect(await screen.findByText('El audio es demasiado largo.')).toBeInTheDocument();
     expect(screen.getByText('DURATION_EXCEEDED')).toBeInTheDocument();
+    expect(screen.getByLabelText('Enlace del video')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -339,11 +340,14 @@ describe('Home', () => {
       await screen.findByRole('button', { name: 'Analizar Never Gonna Give You Up' }),
     );
 
-    const analyzing = await screen.findByRole('button', {
-      name: 'Analizando Never Gonna Give You Up',
-    });
-    expect(analyzing).toHaveTextContent('Analizando…');
-    expect(analyzing).toHaveAttribute('aria-busy', 'true');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Analizar Never Gonna Give You Up' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar en YouTube')).not.toBeVisible();
 
     release();
     await waitFor(() => expect(onAnalyzed).toHaveBeenCalledTimes(1));

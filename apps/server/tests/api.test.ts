@@ -43,6 +43,40 @@ async function buildApp(overrides: Parameters<typeof createApp>[0] = {}) {
   });
 }
 
+describe('same-origin write guard', () => {
+  it('accepts the loopback alias on the same port', async () => {
+    const app = await buildApp();
+    const response = await request(app)
+      .post('/api/analyses')
+      .set('Origin', 'http://127.0.0.1:5173')
+      .send({});
+
+    expect(response.status).not.toBe(403);
+    expect(response.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('rejects another origin, port or cross-site request', async () => {
+    const app = await buildApp();
+    const foreign = await request(app)
+      .post('/api/analyses')
+      .set('Origin', 'https://evil.example')
+      .send({});
+    expect(foreign.status).toBe(403);
+
+    const otherPort = await request(app)
+      .post('/api/analyses')
+      .set('Origin', 'http://127.0.0.1:5174')
+      .send({});
+    expect(otherPort.status).toBe(403);
+
+    const crossSite = await request(app)
+      .post('/api/analyses')
+      .set('Sec-Fetch-Site', 'cross-site')
+      .send({});
+    expect(crossSite.status).toBe(403);
+  });
+});
+
 describe('POST /api/analyses', () => {
   it('creates a YouTube analysis and returns the normalized result', async () => {
     const app = await buildApp();
