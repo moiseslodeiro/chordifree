@@ -151,6 +151,8 @@ export function Home({
     const input = `https://www.youtube.com/watch?v=${result.videoId}`;
     setUrl(input);
     setAnalyzingId(result.videoId);
+    // Collapse the matches so the progress panel is visible while analyzing.
+    setResults(null);
     try {
       await submitYoutube(input);
     } finally {

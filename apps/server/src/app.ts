@@ -115,6 +115,30 @@ async function checkExtractor(url: string): Promise<ExtractorHealth> {
   }
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+/** Protocol and port of a loopback origin, or null for anything else. */
+function loopbackOrigin(value: string): { protocol: string; port: string } | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (!LOOPBACK_HOSTS.has(url.hostname)) return null;
+    return { protocol: url.protocol, port: url.port };
+  } catch {
+    return null;
+  }
+}
+
+/** Dev servers may be reached as localhost or 127.0.0.1 on the same port. */
+function isAllowedWriteOrigin(origin: string, configured: string): boolean {
+  if (origin === configured) return true;
+  const left = loopbackOrigin(origin);
+  const right = loopbackOrigin(configured);
+  return (
+    left !== null && right !== null && left.protocol === right.protocol && left.port === right.port
+  );
+}
+
 /**
  * Rejects browser writes from another origin. CORS only controls whether the
  * response can be read; a cross-site form or multipart POST is still executed
@@ -140,7 +164,7 @@ function sameOriginWriteGuard(config: AppConfig) {
 
     // Do not derive an allowed origin from the Host header. A DNS-rebinding
     // page can make Host and Origin match while both point at this local API.
-    if (origin !== config.corsOrigin) {
+    if (!isAllowedWriteOrigin(origin, config.corsOrigin)) {
       res.status(403).json(errorBody('FORBIDDEN', 'Cross-origin request blocked'));
       return;
     }
