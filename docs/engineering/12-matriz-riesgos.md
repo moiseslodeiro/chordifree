@@ -14,7 +14,7 @@ Escala: probabilidad e impacto `Baja / Media / Alta`; nivel = combinación cuali
 | RT-008 | El token de Google en `sessionStorage` se filtra por XSS | Baja | Alto | Medio | CSP estricta, dependencias auditadas, expiración del token | Web auth | Aceptado |
 | RT-009 | Pérdida del estado local de Terraform | Media | Alto | Alto | Backend GCS + backup del state | Terraform | Pendiente |
 | RT-010 | `PRIVACY.md` no cubre el modo online | Alta | Medio | Alto | Actualizar política: email, uid, biblioteca, retención y borrado | Documentación/legal | Mitigado |
-| RT-011 | `App.tsx` concentra demasiada lógica y favorece regresiones | Alta | Medio | Alto | Extraer hooks/páginas; tests de merge y sync | Web | Mitigado parcial |
+| RT-011 | `App.tsx` concentra demasiada lógica y favorece regresiones | Alta | Medio | Alto | Hooks/páginas extraídos; `SongView` dividido; faltan `App.tsx` ≤300 y tests de merge/sync | Web | Mitigado parcial |
 | RT-012 | Tipos web/servidor divergen | Media | Medio | Medio | `packages/contracts` con Zod | Web + server | Mitigado |
 | RT-013 | Dependencia con vulnerabilidad conocida | Media | Alto | Alto | `pnpm audit`, Dependabot, pin de versiones | Repo | Pendiente |
 | RT-014 | Firestore sin backup ni política de retención | Media | Alto | Alto | TTL operativo; falta export programado + runbook de borrado | Firestore | Mitigado parcial |

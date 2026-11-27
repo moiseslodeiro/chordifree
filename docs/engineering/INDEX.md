@@ -20,7 +20,7 @@ actual, no una propuesta de producto.
 | 11 | [Mapa de errores](11-mapa-errores.md) | Códigos HTTP, origen, recuperación y severidad |
 | 12 | [Matriz de riesgos](12-matriz-riesgos.md) | Riesgos técnicos y mitigaciones |
 | 13 | [Decisiones técnicas](13-decisiones-tecnicas.md) | 13 ADRs con contexto y consecuencias |
-| 14 | [Plan de refactor](14-plan-refactor.md) | 3 PRs: contratos, sync y división de `App.tsx` |
+| 14 | [Plan de refactor](14-plan-refactor.md) | Contratos y sync hechos; `App.tsx` parcial y `SongView` dividido |
 
 ## Resumen ejecutivo
 
