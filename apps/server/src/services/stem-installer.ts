@@ -95,13 +95,15 @@ const PYTHON_CACHE_MS = 60 * 1000;
 const SOURCE_FILES = ['separate.py', 'transcribe.py'] as const;
 const MARKER_FILE = '.chordifree-stems.json';
 
+// Exact versions: the installer runs pip on the user's machine, so a floating
+// range would let a new or compromised release run with local privileges.
 const REQUIREMENTS = `--extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.4,<3
-torchaudio>=2.4,<3
+torch==2.6.0
+torchaudio==2.6.0
 demucs==4.1.0
-librosa>=1.0
-numpy>=1.26,<3
-soundfile
+librosa==1.0.1
+numpy==2.2.6
+soundfile==0.14.0
 `;
 
 /** Default candidates: prefer a supported CPython, then fall back to PATH. */
