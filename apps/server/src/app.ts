@@ -188,7 +188,13 @@ function createAnalysisQuota(
   config: AppConfig,
 ): AnalysisQuota | undefined {
   if (options.analysisQuota) return options.analysisQuota;
-  if (config.authMode !== 'google' || config.analysisDailyQuota <= 0) return undefined;
+  if (
+    config.authMode !== 'google' ||
+    !config.googleCloudProject ||
+    config.analysisDailyQuota <= 0
+  ) {
+    return undefined;
+  }
   return new FirestoreAnalysisQuota(createFirestore(config), config.analysisDailyQuota);
 }
 
