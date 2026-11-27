@@ -229,8 +229,9 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `ANALYZER_URL`             | `http://localhost:8001` | Internal analyzer URL                                                                                          |
 | `MAX_DURATION_SECONDS`     | `900`                   | Maximum audio/video length                                                                                     |
 | `MAX_UPLOAD_BYTES`         | `26214400`              | Maximum upload size (25 MB)                                                                                    |
-| `RATE_LIMIT_MAX`           | `60`                    | Analysis requests per window and IP                                                                            |
+| `RATE_LIMIT_MAX`           | `60`                    | Analysis requests per window and user (IP in local mode)                                                       |
 | `RATE_LIMIT_WINDOW_MS`     | `3600000`               | Rate-limit window                                                                                              |
+| `ANALYSIS_DAILY_QUOTA`     | `50`                    | Hosted analyses per user and UTC day. `0` disables the daily quota                                             |
 | `TRUST_PROXY`              | `0`                     | Trusted reverse-proxy hops; set `1` behind nginx/Caddy                                                         |
 | `TEMP_DIR`                 | `./.tmp`                | Temporary audio and analysis working directory                                                                 |
 | `AUDIO_CACHE_TTL_MINUTES`  | auto                    | Temporary YouTube audio retention. `0` keeps it until cleared; defaults to `0` on localhost and `60` elsewhere |

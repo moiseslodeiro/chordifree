@@ -46,6 +46,7 @@ import {
   type AnalysisLogStore,
 } from './services/analysis-log';
 import { StemJobs } from './services/stem-jobs';
+import { FirestoreAnalysisQuota, type AnalysisQuota } from './services/analysis-quota';
 import { StemCache } from './services/stem-cache';
 import {
   CloudRunAnalysisJobDispatcher,
@@ -83,6 +84,7 @@ export interface AppDependencies {
   stemsSetup?: StemInstallerLike;
   analysisDispatcher?: AnalysisJobDispatcher;
   analysisInputs?: AnalysisInputStore;
+  analysisQuota?: AnalysisQuota;
   webDist: string;
 }
 
@@ -203,6 +205,21 @@ function createAnalysisInputs(
       ? new FirestoreAnalysisInputStore(createFirestore(config))
       : undefined)
   );
+}
+
+function createAnalysisQuota(
+  options: CreateAppOptions,
+  config: AppConfig,
+): AnalysisQuota | undefined {
+  if (options.analysisQuota) return options.analysisQuota;
+  if (
+    config.authMode !== 'google' ||
+    !config.googleCloudProject ||
+    config.analysisDailyQuota <= 0
+  ) {
+    return undefined;
+  }
+  return new FirestoreAnalysisQuota(createFirestore(config), config.analysisDailyQuota);
 }
 
 function createStemsEngine(options: CreateAppOptions, config: AppConfig): StemEngine {
@@ -351,6 +368,7 @@ function buildDependencies(options: CreateAppOptions, config: AppConfig): AppDep
     lyrics: options.lyrics ?? createLyricsClient(fetch),
     audioCache,
     auth: options.auth ?? createAuthContext(config),
+    analysisQuota: createAnalysisQuota(options, config),
     ...buildStemsDependencies(options, config, audioCache),
     webDist: webDistFor(options, config),
   };

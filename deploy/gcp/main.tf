@@ -93,6 +93,15 @@ resource "google_firestore_field" "analysis_jobs_expires" {
   ttl_config {}
 }
 
+# Per-user daily analysis quotas also expire automatically.
+resource "google_firestore_field" "analysis_quota_expires" {
+  project    = var.project_id
+  database   = google_firestore_database.default.name
+  collection = "chordifree_analysis_quota"
+  field      = "expiresAt"
+  ttl_config {}
+}
+
 resource "google_firestore_field" "analysis_inputs_expires" {
   project    = var.project_id
   database   = google_firestore_database.default.name

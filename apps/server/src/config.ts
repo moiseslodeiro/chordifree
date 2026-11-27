@@ -18,6 +18,7 @@ const EnvSchema = z.object({
     .int()
     .positive()
     .default(60 * 60 * 1000),
+  ANALYSIS_DAILY_QUOTA: z.coerce.number().int().nonnegative().default(50),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   TEMP_DIR: z.string().default('./.tmp'),
   AUDIO_CACHE_TTL_MINUTES: z.coerce.number().int().nonnegative().optional(),
@@ -59,6 +60,7 @@ export interface AppConfig {
   maxUploadBytes: number;
   rateLimitMax: number;
   rateLimitWindowMs: number;
+  analysisDailyQuota: number;
   trustProxy: number;
   tempDir: string;
   audioCacheTtlMinutes: number;
@@ -173,6 +175,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     maxUploadBytes: parsed.MAX_UPLOAD_BYTES,
     rateLimitMax: parsed.RATE_LIMIT_MAX,
     rateLimitWindowMs: parsed.RATE_LIMIT_WINDOW_MS,
+    analysisDailyQuota: parsed.ANALYSIS_DAILY_QUOTA,
     trustProxy: parsed.TRUST_PROXY,
     tempDir: parsed.TEMP_DIR,
     // Local installs keep the cache until the user clears it; hosted servers expire it.

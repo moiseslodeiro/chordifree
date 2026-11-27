@@ -17,6 +17,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     maxUploadBytes: 25 * 1024 * 1024,
     rateLimitMax: 100,
     rateLimitWindowMs: 60_000,
+    analysisDailyQuota: 50,
     trustProxy: 1,
     local: true,
     tempDir: join(tmpdir(), 'chordifree-test'),

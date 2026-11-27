@@ -36,6 +36,12 @@ describe('config defaults', () => {
     ).toBe(0);
   });
 
+  it('sets the daily analysis quota and allows disabling it', () => {
+    expect(loadConfig({}).analysisDailyQuota).toBe(50);
+    expect(loadConfig({ ANALYSIS_DAILY_QUOTA: '5' }).analysisDailyQuota).toBe(5);
+    expect(loadConfig({ ANALYSIS_DAILY_QUOTA: '0' }).analysisDailyQuota).toBe(0);
+  });
+
   it('reads the optional YouTube extractor configuration', () => {
     const config = loadConfig({
       YOUTUBE_EXTRACTOR_URL: 'https://extractor.example.com',
